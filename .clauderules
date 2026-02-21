@@ -1,9 +1,11 @@
 # Hard Constraints — saas-django
+
 # NON-NEGOTIABLE. Apply every rule to every response without exception.
 
 ---
 
 ## 1. Package & Environment
+
 - ALWAYS `uv add <pkg>` — NEVER `pip install`
 - ALWAYS `uv run <cmd>` — NEVER bare `python manage.py ...`
 - `uv.lock` is the single source of truth — run `uv sync` after dependency changes
@@ -12,6 +14,7 @@
 ---
 
 ## 2. Project Layout
+
 - Settings: `config/settings/base.py` + `dev.py` + `prod.py`
 - All Django apps: `apps/<app_name>/`
 - New features → new app inside `apps/` if it represents a clear domain boundary
@@ -21,6 +24,7 @@
 ---
 
 ## 3. Database
+
 - PostgreSQL only — NEVER SQLite for any new work
 - All PKs: `UUIDField(primary_key=True, default=uuid.uuid4, editable=False)`
 - Every tenant-scoped model: `tenant_id = models.UUIDField(db_index=True)`
@@ -30,6 +34,7 @@
 ---
 
 ## 4. Models — Universal Field Rules
+
 Apply to every major data model (not lookup/config tables):
 
 - **UUID PK** (see §3)
@@ -44,12 +49,17 @@ Apply to every major data model (not lookup/config tables):
   )
   ```
 - **Timestamps:** `created_at` / `updated_at` via `auto_now_add` / `auto_now`
+- **`created_by` / `updated_by`:** Do NOT add these to the abstract base model.
+  They cause circular dependency risks (especially on `User` itself) and migration
+  complexity. Add them **opt-in**, only on models where attribution genuinely matters
+  (e.g. a `Document` or `Invoice`). Document the decision per model in a comment.
 - NEVER raw SQL — always use the Django ORM
 - Keep `models.py` thin — no business logic
 
 ---
 
 ## 5. User Model
+
 - ALWAYS subclass `AbstractUser` in `apps/users/`
 - Set `USERNAME_FIELD = "email"` and `REQUIRED_FIELDS = []`
 - Provide a custom `UserManager` with `create_user(email, password, ...)` and `create_superuser(email, password, ...)`
@@ -61,10 +71,75 @@ Apply to every major data model (not lookup/config tables):
   uv run python manage.py createsuperuser
   ```
 - Login/logout always uses **email + password**, never username
+- The `User` model itself stays minimal — all optional profile data lives in `UserProfile`
+
+---
+
+## 5a. UserProfile Model
+
+`UserProfile` is a separate model in `apps/users/` with a `OneToOneField` to `User`.
+It holds all optional, editable, user-visible preferences. It is **never** part of
+the registration form — it is created automatically after registration via a signal.
+
+Fields:
+
+```python
+class UserProfile(TimeStampedSoftDeleteModel):
+    user         = models.OneToOneField(settings.AUTH_USER_MODEL,
+                       on_delete=models.CASCADE, related_name="profile")
+    # Display
+    display_name = models.CharField(max_length=100, blank=True, null=True)
+                   # nullable; auto-populated from email on creation (see below)
+
+    # Localisation
+    language     = models.CharField(max_length=10, blank=True, default="en")
+    timezone     = models.CharField(max_length=50, blank=True, default="UTC")
+    country      = models.CharField(max_length=2, blank=True)  # ISO 3166-1 alpha-2
+    currency     = models.CharField(max_length=3, blank=True, default="EUR")
+                   # ISO 4217 (EUR, USD, GBP …)
+
+    # UI preferences
+    theme        = models.CharField(
+                       max_length=20,
+                       choices=[("corporate","Light"),("night","Dark"),("system","System")],
+                       default="system"
+                   )
+
+    # Marketing
+    marketing_emails    = models.BooleanField(default=False)
+                          # newsletters
+    product_updates     = models.BooleanField(default=False)
+                          # product update emails
+```
+
+**Auto-population on registration (signal):**
+- `display_name`: take the string left of `@` in the email; if it contains `.`, take
+  the string left of the first `.`  (e.g. `peter.janssens@...` → `peter`)
+- `language` / `timezone` / `country`: attempt to detect from the browser's
+  `Accept-Language` header and `Intl.DateTimeFormat().resolvedOptions().timeZone`
+  (passed as a hidden field on the registration form)
+- All detected values are suggestions — the user can edit them at any time in `/profile/`
+
+**Profile form (`/profile/`):**
+- Editable fields: `display_name`, `language`, `timezone`, `country`, `currency`,
+  `theme`, `marketing_emails`, `product_updates`
+- Login required
+- Does NOT include email or password (those are in a separate settings section)
+- Theme preference in the profile form **also** updates `localStorage` key `theme`
+- Language preference in the profile form **also** triggers a locale switch
+
+**Navbar (authenticated):**
+- Replace the static "Leave" text with the user's `display_name` (fall back to
+  email local-part if `display_name` is null)
+- Clicking/tapping opens a **dropdown menu** with:
+  - "Profile" → `/profile/`
+  - "Logout" → `/logout/`
+- On mobile: same options available in the bottom nav / full-screen overlay user section
 
 ---
 
 ## 6. Views & Business Logic
+
 - CBVs for non-trivial logic, FBVs for simple endpoints
 - Views must stay thin — delegate to `services.py` / `selectors.py`
 - `services.py` — write/mutation logic
@@ -77,6 +152,7 @@ Apply to every major data model (not lookup/config tables):
 ---
 
 ## 7. App Structure (per app)
+
 ```
 apps/<name>/
   models.py
@@ -98,6 +174,7 @@ apps/<name>/
 ---
 
 ## 8. Frontend — Tailwind + DaisyUI
+
 - ALWAYS use **Tailwind CSS** + **DaisyUI** for all templates
 - Default DaisyUI theme: **corporate** (light) / **night** (dark)
 - Default mode: **follow system** (`prefers-color-scheme`)
@@ -113,14 +190,18 @@ apps/<name>/
 ---
 
 ## 9. Anti-Flash Script (theme)
+
 Place this script in `<head>` of `base.html` **before any CSS or `<body>` tags**:
+
 ```html
 <script>
   (function () {
-    const stored = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const theme = stored || (prefersDark ? 'night' : 'corporate');
-    document.documentElement.setAttribute('data-theme', theme);
+    const stored = localStorage.getItem("theme");
+    const prefersDark = window.matchMedia(
+      "(prefers-color-scheme: dark)",
+    ).matches;
+    const theme = stored || (prefersDark ? "night" : "corporate");
+    document.documentElement.setAttribute("data-theme", theme);
   })();
 </script>
 ```
@@ -128,6 +209,7 @@ Place this script in `<head>` of `base.html` **before any CSS or `<body>` tags**
 ---
 
 ## 10. Templates & Context Processors
+
 - Create a `context_processors.py` in `config/` (or a shared app) that injects into every template:
   - `SITE_NAME` (from settings)
   - `current_theme` (from request cookie or `localStorage` via initial render)
@@ -137,23 +219,33 @@ Place this script in `<head>` of `base.html` **before any CSS or `<body>` tags**
 ---
 
 ## 11. Navigation Layout
+
 ### Desktop (≥ lg breakpoint)
+
 - **Top navbar** with:
   - Left: `H` (placeholder for logo) → links to homepage
   - Centre: navigation links (currently: "Home" → homepage)
-  - Right: language selector → light/dark/system toggle → auth button
-    - Not authenticated: "Get started" → opens login modal/page with link to register
-    - Authenticated: "Leave" → logout
+  - Right: language selector → light/dark/system toggle → auth control
+    - **Not authenticated:** "Get started" button → opens login page with link to register
+    - **Authenticated:** show `display_name` (fall back to email local-part if null) as a
+      DaisyUI **dropdown** button; menu items:
+      - "Profile" → `/profile/`
+      - "Logout" → `/logout/`
 - Use `<nav>` tag — never a generic `<div>` for navigation
 
 ### Mobile (< lg breakpoint)
+
 - Bottom Navigation bar or Full-Screen Overlay
 - Same options as desktop, mobile-friendly UX
+- Authenticated user section in the overlay / bottom sheet:
+  - Show `display_name` (or email local-part)
+  - "Profile" and "Logout" as list items
 - Hamburger icon (if used): must have `aria-label="Toggle menu"`
 
 ---
 
 ## 12. I18N
+
 - Supported locales: `en-us` (US English) and `nl-be` (Belgian Dutch)
 - Use Django's `i18n` framework: `USE_I18N = True`, `LANGUAGE_CODE = "en-us"`
 - Wrap all user-facing strings in `{% trans %}` / `_()` from the start
@@ -167,6 +259,7 @@ Place this script in `<head>` of `base.html` **before any CSS or `<body>` tags**
 ---
 
 ## 13. HTML Forms — General Rules
+
 - Always use the correct HTML input `type`: `type="email"` for emails, `type="password"` for passwords, `type="tel"` for phone numbers, etc.
 - Always label every input with `<label for="...">` or `aria-label`
 - Use `autocomplete` attributes on all auth fields (`autocomplete="email"`, `autocomplete="current-password"`, etc.)
@@ -174,6 +267,7 @@ Place this script in `<head>` of `base.html` **before any CSS or `<body>` tags**
 ---
 
 ## 14. Accessibility
+
 - Always use semantic HTML: `<nav>`, `<main>`, `<header>`, `<footer>`, `<section>`, `<article>`
 - NEVER use a generic `<div>` where a semantic tag exists
 - All interactive icons must have `aria-label`
@@ -183,6 +277,7 @@ Place this script in `<head>` of `base.html` **before any CSS or `<body>` tags**
 ---
 
 ## 15. Health Check
+
 - Expose a `GET /health/` endpoint (FBV, no auth required)
 - Returns `{"status": "ok", "db": "ok"}` — checks DB connectivity
 - Lives in `apps/core/views.py` or a minimal `apps/health/` app
@@ -190,6 +285,7 @@ Place this script in `<head>` of `base.html` **before any CSS or `<body>` tags**
 ---
 
 ## 16. Security
+
 - NEVER hardcode secrets — always `env("VAR_NAME")`
 - NEVER commit `.env` — only `.env.example`
 - prod.py must have: `SECURE_SSL_REDIRECT`, `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE`, HSTS
@@ -199,13 +295,29 @@ Place this script in `<head>` of `base.html` **before any CSS or `<body>` tags**
 ---
 
 ## 17. Multi-Tenancy
+
 - Tenant isolation via `tenant_id` on every relevant model
 - Never write cross-tenant queries unless explicitly instructed
 - PostgreSQL Row-Level Security (RLS) is the long-term isolation goal
 
 ---
 
+## 17a. Date & Time — Store UTC, Display Local
+
+- `USE_TZ = True` in `base.py` (already set by Django default) — NEVER disable
+- All `DateTimeField` values are stored in UTC in the database
+- All `DateTimeField` on models: never use `auto_now` / `auto_now_add` with naive datetimes
+- Display layer: convert UTC → user's local timezone using `UserProfile.timezone`
+- Use `zoneinfo` (Python stdlib) for timezone conversion — `import zoneinfo`
+- In templates: use a custom template filter or tag `{{ value|localtime:request.user.profile.timezone }}`
+- Never display raw UTC to the end user (except in admin or debug views)
+- Timezone selection in the profile form uses the IANA timezone database
+  (e.g. `Europe/Brussels`, `America/New_York`) — use `zoneinfo.available_timezones()`
+
+---
+
 ## 18. Background Tasks (Async)
+
 - Use a task queue (Celery + Redis, or Django-Q) for any async work
 - Required for: billing webhooks, email sending, long-running jobs
 - Tasks live in `apps/<name>/tasks.py`
@@ -214,6 +326,7 @@ Place this script in `<head>` of `base.html` **before any CSS or `<body>` tags**
 ---
 
 ## 19. Code Quality
+
 - After ANY new app, model, or file: `uv run ruff check --fix && uv run ruff format`
 - Line length: 88 | Quote style: double | Import order: isort via ruff
 - First-party modules: `config`, `apps`
@@ -223,5 +336,6 @@ Place this script in `<head>` of `base.html` **before any CSS or `<body>` tags**
 ---
 
 ## 20. Git
+
 - Commit messages: imperative mood, concise subject + optional body
 - Never commit: `.env`, `db.sqlite3`, `__pycache__`, `.DS_Store`, `staticfiles/`

@@ -29,16 +29,23 @@
 | 5   | UUID primary keys on all models                  | Avoids enumerable IDs, safe for multi-tenant            |
 | 6   | `tenant_id` on all tenant-scoped models          | Foundation for row-level security (RLS)                 |
 | 7   | Soft deletes (`is_active`, `deleted_at`, `deleted_by`) | Safe data recovery, audit trail, no hard deletes  |
-| 8   | Services/Selectors pattern                       | Thin views, testable business logic                     |
-| 9   | Ruff (DJ + S + B + E + F + I rules)              | Single tool for lint + format + isort                   |
-| 10  | Custom `User` model with `email` as `USERNAME_FIELD` | Email-based auth from day one, no username field   |
-| 11  | Tailwind CSS + DaisyUI (corporate/night themes)  | Rapid, consistent UI with zero custom CSS overhead      |
-| 12  | Follow-system as default theme                   | Respects OS preference; stored in `localStorage`        |
-| 13  | Anti-flash script in `<head>`                    | Prevents white flash on dark-mode page load             |
-| 14  | Bottom Nav / Full-Screen Overlay on mobile       | Better UX than top-right hamburger                      |
-| 15  | I18N: `en-us` + `nl-be`                          | Belgian Dutch as second locale from the start           |
-| 16  | Stripe deferred to Phase 6                       | Auth and UI foundations must be solid first             |
-| 17  | Background task queue (Celery + Redis)           | Required for Stripe webhooks; no blocking web requests  |
+| 8   | `created_by`/`updated_by` are opt-in, not in base model | Circular FK risk on `User` itself; adds migration noise; add only where attribution genuinely matters |
+| 9   | Services/Selectors pattern                       | Thin views, testable business logic                     |
+| 10  | Ruff (DJ + S + B + E + F + I rules)              | Single tool for lint + format + isort                   |
+| 11  | Custom `User` model with `email` as `USERNAME_FIELD` | Email-based auth from day one, no username field   |
+| 12  | `UserProfile` as separate `OneToOneField` model  | Keeps `User` minimal; profile fields never touch auth/registration forms |
+| 13  | `display_name` nullable, auto-derived from email | Friendly name without forcing input at registration     |
+| 14  | Browser-detected locale/timezone on registration | Best-effort UX, always user-overridable in profile      |
+| 15  | Store UTC everywhere, display in user's local tz | Single source of truth in DB; `UserProfile.timezone` drives display |
+| 16  | `zoneinfo` (stdlib) for timezone conversion      | No extra dependency; Python 3.9+ built-in              |
+| 17  | Tailwind CSS + DaisyUI (corporate/night themes)  | Rapid, consistent UI with zero custom CSS overhead      |
+| 18  | Follow-system as default theme                   | Respects OS preference; stored in `localStorage`        |
+| 19  | Anti-flash script in `<head>`                    | Prevents white flash on dark-mode page load             |
+| 20  | Bottom Nav / Full-Screen Overlay on mobile       | Better UX than top-right hamburger                      |
+| 21  | Navbar auth control = display_name dropdown      | "Leave" replaced with named user + Profile/Logout menu  |
+| 22  | I18N: `en-us` + `nl-be`                          | Belgian Dutch as second locale from the start           |
+| 23  | Stripe deferred to Phase 6                       | Auth and UI foundations must be solid first             |
+| 24  | Background task queue (Celery + Redis)           | Required for Stripe webhooks; no blocking web requests  |
 
 ---
 
@@ -75,21 +82,27 @@ saas-django/
 ---
 
 ## Shared Base Model Convention
-All major data models must extend a `TimeStampedSoftDeleteModel` base (to be created in `apps/core/models.py`):
+
+All major data models must extend `TimeStampedSoftDeleteModel` (to be created in `apps/core/models.py`):
 
 ```python
 class TimeStampedSoftDeleteModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    is_active   = models.BooleanField(default=True, db_index=True)
-    deleted_at  = models.DateTimeField(null=True, blank=True, db_index=True)
-    deleted_by  = models.ForeignKey(
+    is_active  = models.BooleanField(default=True, db_index=True)
+    deleted_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    deleted_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True,
         on_delete=models.SET_NULL, related_name="+"
     )
     class Meta:
         abstract = True
 ```
+
+> **`created_by` / `updated_by` are NOT in the base model.** They are opt-in, added
+> only on models where attribution genuinely matters (e.g. `Document`, `Invoice`).
+> This avoids circular FK dependencies — especially on `User` itself — and keeps
+> migrations clean. Document the decision with a comment on each opt-in model.
 
 ---
 
@@ -134,6 +147,27 @@ class TimeStampedSoftDeleteModel(models.Model):
 - [ ] Admin registration
 - [ ] Tests: user creation, email uniqueness, tenant link, superuser creation
 
+#### 1d — UserProfile
+- [ ] `UserProfile(TimeStampedSoftDeleteModel)` in `apps/users/models.py`:
+  - `user` — `OneToOneField(User, related_name="profile")`
+  - `display_name` — `CharField(max_length=100, blank=True, null=True)`
+  - `language` — `CharField` (IANA language tag, default `"en"`)
+  - `timezone` — `CharField` (IANA tz, default `"UTC"`)
+  - `country` — `CharField(max_length=2)` (ISO 3166-1 alpha-2)
+  - `currency` — `CharField(max_length=3, default="EUR")` (ISO 4217)
+  - `theme` — `CharField` choices: `corporate` / `night` / `system`; default `system`
+  - `marketing_emails` — `BooleanField(default=False)`
+  - `product_updates` — `BooleanField(default=False)`
+- [ ] `post_save` signal on `User` → auto-create `UserProfile`
+- [ ] Auto-populate `display_name` from email:
+  - Take local-part (left of `@`); if it contains `.`, take left of first `.`
+  - e.g. `peter.janssens@acme.com` → `peter`
+- [ ] Accept hidden fields `tz_detect` and `lang_detect` on the registration form
+  (populated via JS `Intl.DateTimeFormat().resolvedOptions().timeZone` and
+  `navigator.language`) to pre-fill `timezone` and `language`
+- [ ] `UserProfile` is NEVER part of the registration form
+- [ ] Tests: profile auto-created, display_name derivation, signal idempotency
+
 ---
 
 ### 🔲 Phase 2 — UI Shell: Tailwind, DaisyUI & Base Templates
@@ -145,35 +179,53 @@ class TimeStampedSoftDeleteModel(models.Model):
 - [ ] Create `templates/base.html`:
   - Anti-flash `<script>` in `<head>` before any CSS (see `.clauderules §9`)
   - DaisyUI top navbar (desktop) and bottom navigation / full-screen overlay (mobile)
-  - Navbar structure: logo-left / nav-centre / controls-right (language, theme toggle, auth button)
-  - `<nav>` tag, not `<div>`; hamburger with `aria-label="Toggle menu"`
-  - Auth button: "Get started" (unauthenticated) / "Leave" (authenticated)
-  - Left-side menu (authenticated only): initially just "Dashboard"
+  - **Desktop navbar:** logo-left / nav-centre / controls-right
+    - Controls: language selector, theme toggle, auth control
+    - **Unauthenticated auth control:** "Get started" button → login page
+    - **Authenticated auth control:** `display_name` (or email local-part) as DaisyUI
+      dropdown; items: "Profile" → `/profile/`, "Logout" → `/logout/`
+  - **Mobile:** bottom nav / overlay — same options including Profile + Logout in user section
+  - `<nav>` tag; hamburger with `aria-label="Toggle menu"`
+  - Left-side menu (authenticated only): initially "Dashboard"
 - [ ] Create `config/context_processors.py` → injects `SITE_NAME`, `current_theme` to all templates
 - [ ] Register context processor in `base.py`
-- [ ] Light/dark/system toggle: stores choice in `localStorage` key `theme`, applies `data-theme` on `<html>`
+- [ ] Light/dark/system toggle: stores in `localStorage` key `theme`, applies `data-theme` on `<html>`
+- [ ] Create `apps/core/templatetags/tz_tags.py` — custom template filter
+  `{{ value|localtime:request.user.profile.timezone }}` for UTC→local conversion
 - [ ] Skeleton components on form loads and theme switch
-- [ ] Semantic HTML throughout: `<main>`, `<header>`, `<footer>`, `<nav>`, `<section>`
-- [ ] Create `apps/core/` health check endpoint: `GET /health/` → `{"status": "ok", "db": "ok"}`
-- [ ] Tests: health check returns 200, context processor injects vars
+- [ ] Semantic HTML: `<main>`, `<header>`, `<footer>`, `<nav>`, `<section>`
+- [ ] Health check endpoint: `GET /health/` → `{"status": "ok", "db": "ok"}`
+- [ ] Tests: health check 200, context processor injects vars, timezone filter
 
 ---
 
-### 🔲 Phase 3 — Auth UX: Login, Register, Dashboard
+### 🔲 Phase 3 — Auth UX: Login, Register, Dashboard & Profile
 
-**Goal:** Users can register, log in, and access a protected dashboard — all via email.
+**Goal:** Users can register, log in, access a protected dashboard, and manage their profile — all via email.
 
 - [ ] `apps/pages/` — public homepage (`/`) displaying "Home"
 - [ ] Login view (`/login/`): email + password; failure → redirect to homepage
-- [ ] Register view (`/register/`): email + password; success → skip email confirmation → redirect to dashboard
+- [ ] Register view (`/register/`):
+  - Fields: email + password only
+  - Hidden fields: `tz_detect`, `lang_detect` (populated via JS, see Phase 1d)
+  - Success → skip email confirmation → auto-create profile → redirect to dashboard
 - [ ] Logout (`/logout/`): clears session → redirect to homepage
-- [ ] Dashboard view (`/dashboard/`): login required; displays "Welcome {email}"; unauthenticated → redirect to login
-- [ ] Auth forms use DaisyUI **hero** + split-screen layout (desktop); full-width, `items-start` (mobile)
-- [ ] Correct HTML input types: `type="email"`, `type="password"`, `autocomplete` attributes
-- [ ] Left-side nav appears only when authenticated (initially: "Dashboard" link)
+- [ ] Dashboard view (`/dashboard/`): login required; displays "Welcome {display_name or email}";
+  unauthenticated → redirect to login
+- [ ] **Profile page (`/profile/`):** login required
+  - Editable: `display_name`, `language`, `timezone`, `country`, `currency`, `theme`
+  - Marketing section: `marketing_emails` opt-in, `product_updates` opt-in
+  - Theme change also updates `localStorage` key `theme`
+  - Language change also triggers Django locale switch + updates `localStorage` key `lang`
+  - Timezone uses IANA tz selector
+  - Does NOT include email or password fields
+- [ ] Auth forms: DaisyUI **hero** + split-screen (desktop); full-width `items-start` (mobile)
+  Use correct HTML input types: `type="email"`, `type="password"`, `autocomplete` attributes
+- [ ] Left-side nav (authenticated): "Dashboard" + "Profile" links
 - [ ] Email backend: `console` for dev, configurable SMTP/SES for prod
 - [ ] Password reset flow (forgot password)
-- [ ] Tests: register, login (success + failure redirect), logout, dashboard auth-gate, password reset
+- [ ] Tests: register (profile auto-created, display_name derived), login (success + failure redirect),
+  logout, dashboard auth-gate, profile update, marketing prefs toggle, password reset
 
 ---
 
@@ -244,6 +296,11 @@ These are valid ideas — implement only after Phase 7 is complete:
 | 2026-02-21 | `.clauderules` added for Claude in VS Code        | Hard constraints enforced per-session                |
 | 2026-02-21 | Email as `USERNAME_FIELD`, no username            | Simpler UX, consistent with SaaS expectations        |
 | 2026-02-21 | Soft deletes on all major models                  | Safe recovery, audit trail, no data loss             |
+| 2026-02-21 | `created_by`/`updated_by` opt-in only             | Circular FK risk on `User`; add per-model where needed |
+| 2026-02-21 | `UserProfile` as separate OneToOneField model     | Keeps User minimal; profile never touches auth forms |
+| 2026-02-21 | `display_name` nullable, derived from email       | Friendly name without forcing input at registration  |
+| 2026-02-21 | Store UTC, display in `UserProfile.timezone`      | Single DB truth; `zoneinfo` for conversion           |
+| 2026-02-21 | Navbar: display_name dropdown replaces "Leave"    | Named user with Profile + Logout dropdown menu       |
 | 2026-02-21 | Tailwind + DaisyUI corporate/night, follow-system | Consistent UI, zero-CSS-overhead, dark mode built-in |
 | 2026-02-21 | Stripe deferred to Phase 6                        | Auth + UI shell are higher priority foundations      |
 | 2026-02-21 | Celery + Redis for async (tied to Stripe)         | No blocking web requests for billing events          |
