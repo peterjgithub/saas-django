@@ -22,14 +22,21 @@ Key rules summary (full detail in `.clauderules`):
 - UUID PKs on every model
 - `tenant_id` on every tenant-scoped model
 - Soft deletes on all major models: `is_active`, `deleted_at`, `deleted_by`
+- **NEVER hard-delete a `User` or `UserProfile`** — set `is_active = False` only
 - Custom `User` model: `AbstractUser`, `USERNAME_FIELD = "email"`, custom `UserManager`
 - After first User migration: run `createsuperuser`
 - Apps live in `apps/<name>/`, business logic in `services.py` / `selectors.py`
+- Reference data (Country, Language, Timezone, Currency) live in `apps/core/` as DB models
+  loaded from `pycountry`; `UserProfile` uses FK references to them, not CharFields
 - Tailwind + DaisyUI (`corporate` light / `night` dark), follow-system default
 - Anti-flash script in `<head>` of `base.html` before any CSS
-- Login failure → homepage; registration success → dashboard (no email confirmation)
-- I18N: `en-us` + `nl-be`; wrap all strings in `{% trans %}` / `_()`
+- Login **failure** → stay on login form with inline error (NOT redirect)
+- Login **cancel** link → redirect to homepage
+- Registration success → `/profile/complete/` (two-step onboarding: profile → tenant)
+- "Do this later" sets `session["skip_profile_gate"]` — does NOT permanently complete profile
+- I18N: `en-us` + `nl-be` + `fr-be`; wrap all strings in `{% trans %}` / `_()`
+- `<html lang="{{ LANGUAGE_CODE }}">` — never hardcoded
+- WCAG AA: `aria-invalid`, `aria-describedby`, skip-to-content link, focus trap in modals, 44px min touch targets
 - Stripe and Celery deferred to Phase 6 — do not add earlier
 - Run `uv run ruff check --fix && uv run ruff format` after every code change
-- Every feature needs tests under `apps/<name>/tests/`
 - Every feature needs tests under `apps/<name>/tests/`

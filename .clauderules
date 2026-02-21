@@ -75,6 +75,8 @@ Apply to every major data model (not lookup/config tables):
   ```
 - Login/logout always uses **email + password**, never username
 - The `User` model itself stays minimal — all optional profile data lives in `UserProfile`
+- **NEVER hard-delete a `User` record.** Set `is_active = False` instead.
+  Hard deletion cascades silently and breaks foreign keys across the system.
 
 ---
 
@@ -83,6 +85,8 @@ Apply to every major data model (not lookup/config tables):
 `UserProfile` is a separate model in `apps/users/` with a `OneToOneField` to `User`.
 It holds all optional, editable, user-visible preferences. It is **never** part of
 the registration form — it is created automatically after registration via a signal.
+
+**NEVER hard-delete a `UserProfile` record.** Set `is_active = False` instead.
 
 Fields:
 
@@ -94,12 +98,23 @@ class UserProfile(TimeStampedSoftDeleteModel):
     display_name = models.CharField(max_length=100, blank=True, null=True)
                    # nullable; auto-populated from email on creation (see below)
 
-    # Localisation
-    language     = models.CharField(max_length=10, blank=True, default="en")
-    timezone     = models.CharField(max_length=50, blank=True, default="UTC")
-    country      = models.CharField(max_length=2, blank=True)  # ISO 3166-1 alpha-2
-    currency     = models.CharField(max_length=3, blank=True, default="EUR")
-                   # ISO 4217 (EUR, USD, GBP …)
+    # Localisation — FK to ISO reference tables (see §5b)
+    language     = models.ForeignKey(
+                       "core.Language", null=True, blank=True,
+                       on_delete=models.SET_NULL, related_name="+"
+                   )
+    timezone     = models.ForeignKey(
+                       "core.Timezone", null=True, blank=True,
+                       on_delete=models.SET_NULL, related_name="+"
+                   )
+    country      = models.ForeignKey(
+                       "core.Country", null=True, blank=True,
+                       on_delete=models.SET_NULL, related_name="+"
+                   )
+    currency     = models.ForeignKey(
+                       "core.Currency", null=True, blank=True,
+                       on_delete=models.SET_NULL, related_name="+"
+                   )
 
     # UI preferences
     theme        = models.CharField(
@@ -109,8 +124,13 @@ class UserProfile(TimeStampedSoftDeleteModel):
                    )
 
     # Marketing
-    marketing_emails    = models.BooleanField(default=False)
-                          # newsletters
+    marketing_emails = models.BooleanField(default=False)
+                       # newsletters opt-in only — no product_updates field
+
+    # Onboarding gate
+    profile_completed_at = models.DateTimeField(null=True, blank=True)
+                           # None until the user saves the profile form for the
+                           # first time; drives the ProfileCompleteMiddleware gate
 ```
 
 **Auto-population on registration (signal):**
@@ -142,6 +162,100 @@ class UserProfile(TimeStampedSoftDeleteModel):
 
 ---
 
+## 5b. Reference Data — Countries, Languages, Timezones, Currencies
+
+All ISO reference tables live in `apps/core/` and are loaded once via a management
+command (`uv run python manage.py load_reference_data`). They are **not** editable
+by end-users and have no soft-delete — they are controlled vocabulary.
+
+### Country (`core.Country`)
+
+```python
+class Country(models.Model):
+    code        = models.CharField(max_length=2, primary_key=True)   # ISO 3166-1 alpha-2
+    code_3      = models.CharField(max_length=3, unique=True)        # ISO 3166-1 alpha-3
+    numeric     = models.CharField(max_length=3, unique=True)        # ISO 3166-1 numeric
+    name        = models.CharField(max_length=100)
+    flag_emoji  = models.CharField(max_length=10, blank=True)
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name_plural = "countries"
+```
+
+### Language (`core.Language`)
+
+```python
+class Language(models.Model):
+    code        = models.CharField(max_length=10, primary_key=True)  # BCP 47 / IANA tag (e.g. "en-US", "nl-BE", "fr-BE")
+    name        = models.CharField(max_length=100)                   # native name
+    name_en     = models.CharField(max_length=100)                   # English name
+    countries   = models.ManyToManyField("core.Country", blank=True,
+                      related_name="languages")
+                  # e.g. "nl-BE" links to Belgium; allows filtering:
+                  #   Language.objects.filter(countries__code="BE")
+
+    class Meta:
+        ordering = ["name_en"]
+```
+
+### Timezone (`core.Timezone`)
+
+```python
+class Timezone(models.Model):
+    name        = models.CharField(max_length=100, primary_key=True) # IANA tz (e.g. "Europe/Brussels")
+    offset_std  = models.SmallIntegerField()                         # UTC offset in minutes (standard time)
+    offset_dst  = models.SmallIntegerField(null=True, blank=True)    # UTC offset in minutes (DST, null if no DST)
+    countries   = models.ManyToManyField("core.Country", blank=True,
+                      related_name="timezones")
+                  # allows filtering: Timezone.objects.filter(countries__code="BE")
+
+    class Meta:
+        ordering = ["offset_std", "name"]
+```
+
+### Currency (`core.Currency`)
+
+```python
+class Currency(models.Model):
+    code        = models.CharField(max_length=3, primary_key=True)   # ISO 4217 alphabetic (e.g. "EUR")
+    numeric     = models.CharField(max_length=3, unique=True)        # ISO 4217 numeric
+    name        = models.CharField(max_length=100)
+    symbol      = models.CharField(max_length=10, blank=True)        # "€", "$", "£"
+    decimals    = models.SmallIntegerField(default=2)                # minor units
+    countries   = models.ManyToManyField("core.Country", blank=True,
+                      related_name="currencies")
+                  # allows filtering: Currency.objects.filter(countries__code="BE")
+
+    class Meta:
+        ordering = ["code"]
+        verbose_name_plural = "currencies"
+```
+
+### Filtering patterns
+
+```python
+# Languages available for a country
+Language.objects.filter(countries__code="BE")
+
+# Timezones for a country
+Timezone.objects.filter(countries__code="BE")
+
+# Currencies for a country
+Currency.objects.filter(countries__code="BE")
+```
+
+### Data source
+
+Populate from `pycountry` (PyPI) in the `load_reference_data` management command:
+
+- `uv add pycountry`
+- Countries, languages, currencies: `pycountry.countries`, `pycountry.languages`, `pycountry.currencies`
+- Timezones: `zoneinfo.available_timezones()` + `zoneinfo.ZoneInfo` for offset calculation
+- Run the command once after initial migrations and in CI seed steps
+
+---
+
 ## 6. Views & Business Logic
 
 - CBVs (Class-Based Views) for non-trivial logic, FBVs (Function-Based Views) for simple endpoints
@@ -149,33 +263,67 @@ class UserProfile(TimeStampedSoftDeleteModel):
 - `services.py` — write/mutation logic
 - `selectors.py` — read/query logic
 - `tasks.py` — async/background work (Celery or Django-Q)
-- Login failure → redirect to **homepage** (not a blank error)
-- After successful registration → skip email confirmation → redirect to **profile page**
-  with page title **"Complete your profile"**
-- Unauthenticated access to protected pages → redirect to **login page**
 
-### Profile Completion Gate (middleware)
+### Login UX
 
-Implement `ProfileCompleteMiddleware` in `apps/users/middleware.py`.
-It runs on every request **after** `AuthenticationMiddleware`.
+- **Login failure** (wrong credentials): stay on the login form and display an inline
+  error message — do **NOT** redirect anywhere. The user must be able to try again immediately.
+- **Login cancel** (user actively navigates away, clicks "Back", or hits a "Cancel" link
+  on the login page): redirect to **homepage** (`/`).
+- After successful login → proceed to `?next` param (or `/dashboard/`).
+- Unauthenticated access to protected pages → redirect to **login page** (with `?next`).
 
-Rules:
+### Registration Flow
 
-- Only applies to **authenticated** users
-- A profile is considered **incomplete** if `UserProfile.profile_completed_at` is `None`
-  - Add `profile_completed_at = models.DateTimeField(null=True, blank=True)` to `UserProfile`
-  - Set it to `now()` on the first successful save of the profile form
-- If the profile is incomplete, redirect to `/profile/?next=<original_url>` with
-  page title **"Complete your profile"** — regardless of which protected URL was requested
-- Exempt URLs (never redirected, even when profile is incomplete):
-  - `/profile/` itself
-  - `/logout/`
-  - `/health/`
-  - Any URL matching `settings.PROFILE_GATE_EXEMPT_URLS` (a list, configurable in `base.py`)
-- Public pages (unauthenticated access allowed) are unaffected — the gate only
-  triggers for authenticated users with an incomplete profile
-- After the profile form is submitted and saved successfully for the first time,
-  set `profile_completed_at = now()` and redirect to `next` param (or `/dashboard/`)
+- After successful registration → skip email confirmation → auto-create `UserProfile`
+  via signal → redirect to `/profile/complete/` with page title **"Complete your profile"**.
+
+### Extended Onboarding Flow
+
+New users pass through a two-step onboarding gate after registration:
+
+```
+Register → Login → Middleware Check ──→ /profile/complete/   (Step 1: profile incomplete)
+                                    ──→ /onboarding/create-tenant/  (Step 2: no tenant)
+                                    ──→ Destination            (fully set up)
+```
+
+**Step 1 — Profile Completion (`/profile/complete/`):**
+
+- Collect: `display_name`, `timezone`, `avatar` (optional upload)
+- Show a DaisyUI **steps** progress indicator: `Profile → Workspace` (step 1 of 2)
+- **"Do this later"** button: sets `request.session["skip_profile_gate"] = True`
+  so the middleware does not redirect them again during this browser session,
+  even if `profile_completed_at` is still `None`
+- On form save: set `profile_completed_at = now()` → redirect to Step 2
+  (`/onboarding/create-tenant/`)
+
+**Step 2 — Tenant Creation (`/onboarding/create-tenant/`):**
+
+- User creates their first Workspace (Tenant): provide `name` and `organization`
+- Show the same DaisyUI **steps** progress indicator: `Profile → Workspace` (step 2 of 2)
+- On save: create `Tenant`, assign user as owner member → redirect to `/dashboard/`
+
+**Middleware (`ProfileCompleteMiddleware` in `apps/users/middleware.py`):**
+
+Runs on every request **after** `AuthenticationMiddleware`. Only applies to
+**authenticated** users. Decision logic:
+
+1. If `profile_completed_at` is `None` AND `request.session.get("skip_profile_gate")` is not `True`:
+   → redirect to `/profile/complete/?next=<original_url>`
+2. Else if user has no active `Tenant` membership:
+   → redirect to `/onboarding/create-tenant/?next=<original_url>`
+3. Else: proceed normally.
+
+Exempt from the gate (never redirected, even when checks fail):
+
+- `/profile/complete/`
+- `/onboarding/create-tenant/`
+- `/logout/`
+- `/health/`
+- Any URL matching `settings.PROFILE_GATE_EXEMPT_URLS` (a list in `base.py`, default `[]`)
+
+Public pages (unauthenticated access allowed) are unaffected.
 
 ---
 
@@ -274,13 +422,14 @@ Place this script in `<head>` of `base.html` **before any CSS or `<body>` tags**
 
 ## 12. I18N
 
-- Supported locales: `en-us` (US English) and `nl-be` (Belgian Dutch)
+- Supported locales: `en-us` (US English), `nl-be` (Belgian Dutch), `fr-be` (Belgian French)
 - Use Django's `i18n` framework: `USE_I18N = True`, `LANGUAGE_CODE = "en-us"`
 - Wrap all user-facing strings in `{% trans %}` / `_()` from the start
 - Language selector in navbar triggers locale switch and stores in `localStorage` key `lang`
 - Generate `.po` / `.mo` files with:
   ```
   uv run python manage.py makemessages -l nl_BE
+  uv run python manage.py makemessages -l fr_BE
   uv run python manage.py compilemessages
   ```
 
@@ -301,6 +450,74 @@ Place this script in `<head>` of `base.html` **before any CSS or `<body>` tags**
 - All interactive icons must have `aria-label`
 - Hamburger/menu toggle: `aria-label="Toggle menu"`, `aria-expanded` state
 - Colour contrast must meet WCAG AA minimum
+
+### 14a. Form Validation & Errors
+
+- A red border alone is **never** sufficient to communicate an error.
+- Every input that fails validation **must** receive `aria-invalid="true"`.
+- Every error message and hint text **must** be linked to its input via
+  `aria-describedby="<error-id>"` — the element with that `id` must contain the
+  human-readable error text.
+- After a failed form submission the page **must not** simply reload silently.
+  Move keyboard focus to either:
+  - A **"Summary of Errors"** `<div role="alert">` at the top of the form listing
+    all validation failures, **or**
+  - The **first invalid input** directly.
+- All DaisyUI form components: apply the `.input-error` / `.select-error` modifier
+  class alongside `aria-invalid="true"` so the visual and assistive cues are in sync.
+
+### 14b. Keyboard & Focus
+
+- NEVER use `outline: none` without an equally visible custom focus indicator.
+  DaisyUI provides default focus rings — keep them and ensure they are not obscured
+  by sticky navbars or overlapping elements.
+- Every page **must** have a **"Skip to Main Content"** link as the **first
+  focusable element** in `<body>`. It must be visually hidden until focused:
+  ```html
+  <a
+    href="#main-content"
+    class="sr-only focus:not-sr-only focus:absolute focus:z-50
+     focus:px-4 focus:py-2 focus:bg-base-100 focus:text-base-content"
+  >
+    Skip to main content
+  </a>
+  ```
+  The target `<main id="main-content">` must exist on every page.
+- **Focus trapping:** When a modal (`<dialog>`) or a full-screen mobile overlay is
+  open, focus **must** be trapped inside it. Tabbing must not reach background content.
+  Use a JS focus-trap utility (e.g. `focus-trap` npm package, or a small inline
+  implementation). Release the trap when the element closes.
+- **Logical tab order:** The DOM order must match the visual reading order
+  (top → bottom, left → right). Never use `tabindex` values > 0 to reorder focus.
+  Use `tabindex="0"` only to make non-interactive elements focusable when needed.
+
+### 14c. Touch & Gestures (Mobile / Motor)
+
+- **Minimum target size:** All interactive elements (buttons, links, inputs, toggles)
+  must be at least **44 × 44 px** (WCAG 2.5.5) — aim for 48 × 48 px for primary actions.
+  Apply `min-h-[44px] min-w-[44px]` (Tailwind) where DaisyUI defaults fall short.
+- **No dragging-only actions:** Any feature that requires dragging (e.g. a Kanban board,
+  a reorderable list, a range slider) **must** provide a button-based alternative
+  (e.g. "Move up" / "Move down" arrow buttons, or a numeric input for a slider).
+- **Orientation:** Content must work in both portrait and landscape orientations.
+  Never lock orientation unless absolutely essential for the feature.
+
+### 14d. Cognitive & Language
+
+- Every page's `<html>` tag **must** carry a valid `lang` attribute matching the
+  active Django locale (e.g. `<html lang="en">`, `<html lang="nl">`, `<html lang="fr">`).
+  Set this dynamically via a template context variable, not hardcoded.
+- **Consistent navigation:** The navbar, sidebar, and footer must appear in the
+  same location and the same order across every page. Never reorder navigation items
+  per page.
+- **Autocomplete on personal data inputs:** Any field that collects information the
+  browser can autofill **must** carry the correct `autocomplete` attribute:
+  - `autocomplete="name"` / `autocomplete="given-name"`
+  - `autocomplete="email"`
+  - `autocomplete="current-password"` / `autocomplete="new-password"`
+  - `autocomplete="tel"`
+  - `autocomplete="country"`, `autocomplete="language"`, etc.
+    This is required for WCAG 1.3.5 and helps users with cognitive disabilities.
 
 ---
 
