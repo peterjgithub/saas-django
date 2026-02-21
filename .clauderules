@@ -1,39 +1,82 @@
 # Hard Constraints — saas-django
-# These rules are NON-NEGOTIABLE. Apply them to every response without exception.
+# NON-NEGOTIABLE. Apply every rule to every response without exception.
 
-## Package & Environment
-- ALWAYS use `uv add <pkg>` — NEVER `pip install`
-- ALWAYS prefix commands with `uv run` — NEVER bare `python manage.py ...`
-- `uv.lock` is the single source of truth — run `uv sync` after any dependency change
+---
+
+## 1. Package & Environment
+- ALWAYS `uv add <pkg>` — NEVER `pip install`
+- ALWAYS `uv run <cmd>` — NEVER bare `python manage.py ...`
+- `uv.lock` is the single source of truth — run `uv sync` after dependency changes
 - Python target: 3.14 | Django target: >=6.0,<6.1
 
-## Project Layout
+---
+
+## 2. Project Layout
 - Settings: `config/settings/base.py` + `dev.py` + `prod.py`
 - All Django apps: `apps/<app_name>/`
-- New features → new app inside `apps/` if it represents a domain boundary
-- Entry point: `manage.py` → `DJANGO_SETTINGS_MODULE=config.settings.dev`
-- Deployments: `wsgi.py` / `asgi.py` → `config.settings.prod`
+- New features → new app inside `apps/` if it represents a clear domain boundary
+- `manage.py` → `DJANGO_SETTINGS_MODULE=config.settings.dev`
+- `wsgi.py` / `asgi.py` → `config.settings.prod`
 
-## Database
-- Database: PostgreSQL only — NEVER suggest SQLite for any new work
+---
+
+## 3. Database
+- PostgreSQL only — NEVER SQLite for any new work
 - All PKs: `UUIDField(primary_key=True, default=uuid.uuid4, editable=False)`
-- Every model with tenant data: include `tenant_id = models.UUIDField(db_index=True)`
+- Every tenant-scoped model: `tenant_id = models.UUIDField(db_index=True)`
 - Always index `tenant_id` and any frequently filtered field
 - Migrations: small and incremental — no large data migrations without rollback plan
 
-## Models & ORM
+---
+
+## 4. Models — Universal Field Rules
+Apply to every major data model (not lookup/config tables):
+
+- **UUID PK** (see §3)
+- **tenant_id** on all tenant-scoped models (see §3)
+- **Soft delete triad:**
+  ```python
+  is_active   = models.BooleanField(default=True, db_index=True)
+  deleted_at  = models.DateTimeField(null=True, blank=True, db_index=True)
+  deleted_by  = models.ForeignKey(
+      settings.AUTH_USER_MODEL, null=True, blank=True,
+      on_delete=models.SET_NULL, related_name="+"
+  )
+  ```
+- **Timestamps:** `created_at` / `updated_at` via `auto_now_add` / `auto_now`
 - NEVER raw SQL — always use the Django ORM
-- Set `DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"` (already in base.py, do not override unless using UUID PKs)
 - Keep `models.py` thin — no business logic
 
-## Views & Business Logic
+---
+
+## 5. User Model
+- ALWAYS subclass `AbstractUser` in `apps/users/`
+- Set `USERNAME_FIELD = "email"` and `REQUIRED_FIELDS = []`
+- Provide a custom `UserManager` with `create_user(email, password, ...)` and `create_superuser(email, password, ...)`
+- Set `AUTH_USER_MODEL = "users.User"` in `config/settings/base.py` before the first migration
+- After creating the User model for the first time, run:
+  ```
+  uv run python manage.py makemigrations
+  uv run python manage.py migrate
+  uv run python manage.py createsuperuser
+  ```
+- Login/logout always uses **email + password**, never username
+
+---
+
+## 6. Views & Business Logic
 - CBVs for non-trivial logic, FBVs for simple endpoints
-- Views must stay thin — delegate to `services.py` or `selectors.py`
+- Views must stay thin — delegate to `services.py` / `selectors.py`
 - `services.py` — write/mutation logic
 - `selectors.py` — read/query logic
-- `tasks.py` — async/background work
+- `tasks.py` — async/background work (Celery or Django-Q)
+- Login failure → redirect to **homepage** (not a blank error)
+- After successful registration → skip email confirmation, redirect to **dashboard**
+- Unauthenticated access to protected pages → redirect to **login page**
 
-## App Structure (per app)
+---
+
+## 7. App Structure (per app)
 ```
 apps/<name>/
   models.py
@@ -41,7 +84,7 @@ apps/<name>/
   urls.py
   services.py
   selectors.py
-  tasks.py       # if needed
+  tasks.py        # if async work needed
   admin.py
   apps.py
   migrations/
@@ -52,25 +95,133 @@ apps/<name>/
     test_services.py
 ```
 
-## Security
+---
+
+## 8. Frontend — Tailwind + DaisyUI
+- ALWAYS use **Tailwind CSS** + **DaisyUI** for all templates
+- Default DaisyUI theme: **corporate** (light) / **night** (dark)
+- Default mode: **follow system** (`prefers-color-scheme`)
+- Theme preference stored in `localStorage` key `theme`
+- Language preference stored in `localStorage` key `lang`
+- Use DaisyUI **skeleton** component during form loads and theme switches to prevent layout shifts
+- Use DaisyUI **hero** component for auth pages (split-screen on desktop: inspirational image left, form right)
+- Auth forms: centered vertically + horizontally on desktop; `items-start` on mobile so keyboard doesn't overlap fields
+- Mobile: **Full-Width Buttons**; use "Top-to-Fill" standard for form fields
+- NEVER use a top-right hamburger menu on mobile — use **Bottom Navigation** or **Full-Screen Overlay** instead
+- All buttons, inputs, cards, alerts: DaisyUI components first, custom CSS only if DaisyUI has no equivalent
+
+---
+
+## 9. Anti-Flash Script (theme)
+Place this script in `<head>` of `base.html` **before any CSS or `<body>` tags**:
+```html
+<script>
+  (function () {
+    const stored = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const theme = stored || (prefersDark ? 'night' : 'corporate');
+    document.documentElement.setAttribute('data-theme', theme);
+  })();
+</script>
+```
+
+---
+
+## 10. Templates & Context Processors
+- Create a `context_processors.py` in `config/` (or a shared app) that injects into every template:
+  - `SITE_NAME` (from settings)
+  - `current_theme` (from request cookie or `localStorage` via initial render)
+- Register it in `TEMPLATES → OPTIONS → context_processors` in `base.py`
+- This ensures 404, 500, password-reset, and all error pages share the same look
+
+---
+
+## 11. Navigation Layout
+### Desktop (≥ lg breakpoint)
+- **Top navbar** with:
+  - Left: `H` (placeholder for logo) → links to homepage
+  - Centre: navigation links (currently: "Home" → homepage)
+  - Right: language selector → light/dark/system toggle → auth button
+    - Not authenticated: "Get started" → opens login modal/page with link to register
+    - Authenticated: "Leave" → logout
+- Use `<nav>` tag — never a generic `<div>` for navigation
+
+### Mobile (< lg breakpoint)
+- Bottom Navigation bar or Full-Screen Overlay
+- Same options as desktop, mobile-friendly UX
+- Hamburger icon (if used): must have `aria-label="Toggle menu"`
+
+---
+
+## 12. I18N
+- Supported locales: `en-us` (US English) and `nl-be` (Belgian Dutch)
+- Use Django's `i18n` framework: `USE_I18N = True`, `LANGUAGE_CODE = "en-us"`
+- Wrap all user-facing strings in `{% trans %}` / `_()` from the start
+- Language selector in navbar triggers locale switch and stores in `localStorage` key `lang`
+- Generate `.po` / `.mo` files with:
+  ```
+  uv run python manage.py makemessages -l nl_BE
+  uv run python manage.py compilemessages
+  ```
+
+---
+
+## 13. HTML Forms — General Rules
+- Always use the correct HTML input `type`: `type="email"` for emails, `type="password"` for passwords, `type="tel"` for phone numbers, etc.
+- Always label every input with `<label for="...">` or `aria-label`
+- Use `autocomplete` attributes on all auth fields (`autocomplete="email"`, `autocomplete="current-password"`, etc.)
+
+---
+
+## 14. Accessibility
+- Always use semantic HTML: `<nav>`, `<main>`, `<header>`, `<footer>`, `<section>`, `<article>`
+- NEVER use a generic `<div>` where a semantic tag exists
+- All interactive icons must have `aria-label`
+- Hamburger/menu toggle: `aria-label="Toggle menu"`, `aria-expanded` state
+- Colour contrast must meet WCAG AA minimum
+
+---
+
+## 15. Health Check
+- Expose a `GET /health/` endpoint (FBV, no auth required)
+- Returns `{"status": "ok", "db": "ok"}` — checks DB connectivity
+- Lives in `apps/core/views.py` or a minimal `apps/health/` app
+
+---
+
+## 16. Security
 - NEVER hardcode secrets — always `env("VAR_NAME")`
 - NEVER commit `.env` — only `.env.example`
-- Always apply in prod.py: SECURE_SSL_REDIRECT, SESSION_COOKIE_SECURE, CSRF_COOKIE_SECURE, HSTS
+- prod.py must have: `SECURE_SSL_REDIRECT`, `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE`, HSTS
 - Validate and sanitise all user input
 - CSRF protection on all state-changing endpoints
 
-## Code Quality
-- Linter/formatter: `ruff` (configured in pyproject.toml)
-- After ANY new app, model, or file: run `uv run ruff check --fix && uv run ruff format`
-- Line length: 88 chars
-- Imports: isort via ruff (first-party: config, apps)
-- Every new feature MUST include tests under `apps/<name>/tests/`
+---
 
-## Multi-Tenancy
-- Assume tenant isolation via `tenant_id` on every relevant model
+## 17. Multi-Tenancy
+- Tenant isolation via `tenant_id` on every relevant model
 - Never write cross-tenant queries unless explicitly instructed
-- PostgreSQL Row-Level Security (RLS) is the long-term goal for tenant isolation
+- PostgreSQL Row-Level Security (RLS) is the long-term isolation goal
 
-## Git
-- Commit messages: imperative mood, concise subject line + optional body
+---
+
+## 18. Background Tasks (Async)
+- Use a task queue (Celery + Redis, or Django-Q) for any async work
+- Required for: billing webhooks, email sending, long-running jobs
+- Tasks live in `apps/<name>/tasks.py`
+- NEVER block a web request with slow I/O
+
+---
+
+## 19. Code Quality
+- After ANY new app, model, or file: `uv run ruff check --fix && uv run ruff format`
+- Line length: 88 | Quote style: double | Import order: isort via ruff
+- First-party modules: `config`, `apps`
+- Every new feature MUST include tests under `apps/<name>/tests/`
+- Run tests: `uv run python manage.py test`
+
+---
+
+## 20. Git
+- Commit messages: imperative mood, concise subject + optional body
 - Never commit: `.env`, `db.sqlite3`, `__pycache__`, `.DS_Store`, `staticfiles/`
