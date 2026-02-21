@@ -1,238 +1,157 @@
-# Project Context: Django SaaS (Modern Stack)
+# Mission Log — saas-django
 
-## Tech Stack
-
-- **Package Manager:** `uv` (Strictly avoid `pip` or `venv` commands).
-- **Language:** Python: >=3.12 (target 3.14)
-- **Framework:** Django>= 6.0.x
-- **Environment:** macOS (Local development)
-
-## Critical Workflow Rules
-
-1. **Dependency Management:** Always use `uv add <pkg>` for new libraries and `uv run python manage.py <cmd>` for Django tasks.
-   uv sync
-   lock file is source of truth
-2. **Project Structure:** - Root: `saas-django/`
-   - Settings: `config/settings.py`
-   - Entry point: `manage.py`
-3. **Coding Style:** - Use **Class-Based Views (CBVs)** for complex logic.
-   - Use **Function-Based Views (FBVs)** for simple endpoints.
-   - Follow **DRY** (Don't Repeat Yourself) principles.
-4. **SaaS Architecture:** - Keep logic in `services.py` layers rather than bloated `models.py` or `views.py`.
-   - Prefer `ruff` for linting/formatting.
-   - "Ruff is configured in pyproject.toml with DJ and S rules enabled. Always run uv run ruff check --fix after generating new Django apps or models."
-
-## Intent Consistency
-
-- We are building a scalable SaaS.
-- Prioritize security (CSRF, XSS, SQLi) and performance (database indexing).
-- When asked to create a new feature, suggest a new Django "app" structure within the project.
-
-## Example Command Patterns
-
-- ✅ `uv run python manage.py migrate`
-- ✅ `uv add django-environ`
-- ❌ `pip install django-environ`
-
-# Project Context: Django SaaS (Modern Stack)
-
-## 1. Tech Stack
-
-- **Package Manager:** `uv`
-  - Never use `pip` or `venv` directly.
-  - Lock file (`uv.lock`) is the single source of truth.
-- **Language:** Python >=3.12 (target 3.14)
-- **Framework:** Django >=6.0,<6.1
-- **Database:** PostgreSQL (default assumption unless specified otherwise) Row-Level Security (RLS) will be added for tables that should guarantee tenant context only can be retrieved
-- **Environment:** macOS (local development)
+> **Purpose:** Phase-by-phase build plan and running decisions log.
+> Hard constraints live in `.clauderules`. This file is the *why* and *what next*.
 
 ---
 
-## 2. Dependency & Environment Workflow
+## Project Identity
 
-### Installing Dependencies
-
-- Add new dependency:
-  ```
-  uv add <package>
-  ```
-- Sync environment exactly to lock file:
-  ```
-  uv sync
-  ```
-
-### Running Commands
-
-Always prefix Django or Python commands with:
-
-```
-uv run <command>
-```
-
-Examples:
-
-- `uv run python manage.py migrate`
-- `uv run python manage.py runserver`
-- `uv run python manage.py makemigrations`
-- `uv run ruff check --fix`
-
-❌ Never use:
-
-- `pip install`
-- `python manage.py ...` (without `uv run`)
-- manual virtualenv activation
+| Field | Value |
+|---|---|
+| Product | Multi-tenant SaaS — Django 6 |
+| Stack | Python 3.14, Django >=6.0, PostgreSQL, uv, Ruff |
+| Repo | https://github.com/peterjgithub/saas-django |
+| Settings module (dev) | `config.settings.dev` |
+| Settings module (prod) | `config.settings.prod` |
+| Apps root | `apps/` |
 
 ---
 
-## 3. Project Structure
+## Architecture Decisions (ADRs)
 
-Root: `saas-django/`
+| # | Decision | Rationale |
+|---|---|---|
+| 1 | `uv` as package manager | Fast, lock-file first, no venv friction |
+| 2 | Split settings base/dev/prod | Clear env separation, no secrets in dev spill into prod |
+| 3 | `django-environ` for secrets | 12-factor, `.env` never committed |
+| 4 | `psycopg` (v3) for PostgreSQL | Modern async-ready driver |
+| 5 | UUID primary keys on all models | Avoids enumerable IDs, safe for multi-tenant |
+| 6 | `tenant_id` on all tenant-scoped models | Foundation for row-level security (RLS) |
+| 7 | Services/Selectors pattern | Thin views, testable business logic |
+| 8 | Ruff (DJ + S + B + E + F + I rules) | Single tool for lint + format + isort |
 
-Recommended structure:
+---
+
+## Current Structure
 
 ```
 saas-django/
-│
+├── .clauderules          ← Hard constraints for Claude
+├── ai_context.md         ← This file (Mission Log)
+├── .env                  ← Local secrets (git-ignored)
+├── .env.example          ← Template committed to git
 ├── manage.py
-├── pyproject.toml
+├── pyproject.toml        ← uv + ruff config
 ├── uv.lock
 ├── config/
 │   ├── settings/
-│   │   ├── base.py
-│   │   ├── dev.py
-│   │   └── prod.py
-│   └── urls.py
-└── apps/
-    └── <app_name>/
+│   │   ├── base.py       ← Shared settings, reads .env
+│   │   ├── dev.py        ← DEBUG=True, local DB
+│   │   └── prod.py       ← Security hardening
+│   ├── urls.py
+│   ├── wsgi.py
+│   └── asgi.py
+└── apps/                 ← All Django apps live here
 ```
 
-### Settings Rules
+---
 
-- Use environment variables for secrets.
-- No secrets in git.
-- Default settings module via:
-  ```
-  DJANGO_SETTINGS_MODULE=config.settings.dev
-  ```
+## Phase Plan
+
+### ✅ Phase 0 — Scaffold (DONE)
+- [x] uv project init
+- [x] Django 6 installed
+- [x] Split settings (base / dev / prod)
+- [x] PostgreSQL configured via `DATABASE_URL`
+- [x] Ruff configured
+- [x] `.env` excluded from git
+- [x] `apps/` directory created
+- [x] Pushed to GitHub
 
 ---
 
-## 4. Coding Standards
+### 🔲 Phase 1 — Auth & Tenancy Foundation
+Goal: Every subsequent feature can assume a logged-in user that belongs to a tenant.
 
-### Views
-
-- Use **Class-Based Views (CBVs)** for non-trivial logic.
-- Use **Function-Based Views (FBVs)** for simple endpoints.
-- Keep views thin.
-
-### Business Logic
-
-- Place domain/business logic in:
-  - `services.py`
-  - `selectors.py` (read/query logic)
-- Avoid bloated `models.py` or `views.py`.
-
-### Apps
-
-When implementing a new feature:
-
-- Prefer creating a new Django app inside `apps/` if it represents a clear domain boundary.
-- Each app may contain:
-  - `models.py`
-  - `views.py`
-  - `services.py`
-  - `selectors.py`
-  - `tasks.py`
-  - `tests/`
+- [ ] Create `apps/tenants/` — `Tenant` model (UUID PK, name, slug, created_at)
+- [ ] Create `apps/users/` — custom `User` model extending `AbstractUser`, linked to `Tenant`
+- [ ] `AUTH_USER_MODEL = "users.User"` in `base.py`
+- [ ] Initial migrations
+- [ ] Basic Django admin registration for both models
+- [ ] Tests: tenant creation, user creation, tenant isolation check
 
 ---
 
-## 5. SaaS Architecture Principles
+### 🔲 Phase 2 — Authentication UX
+Goal: Users can register, log in, log out, and reset their password.
 
-- Design for multi-tenancy (assume tenant isolation via `tenant_id` unless specified otherwise).
-- Always index:
-  - `tenant_id`
-  - frequently filtered fields.
-- Avoid cross-tenant queries unless explicitly required.
-
----
-
-## 6. Security Defaults
-
-Must enforce in production:
-
-- `SECURE_SSL_REDIRECT = True`
-- `SESSION_COOKIE_SECURE = True`
-- `CSRF_COOKIE_SECURE = True`
-- Proper `ALLOWED_HOSTS`
-- Proper `CSRF_TRUSTED_ORIGINS`
-
-Prevent:
-
-- CSRF
-- XSS
-- SQL injection (always use ORM)
-
-Never trust user input.
+- [ ] Choose auth approach: `django-allauth` (recommended) or custom
+- [ ] Login / logout / register views
+- [ ] Password reset flow
+- [ ] Email backend configured (console for dev, SMTP/SES for prod)
+- [ ] Tests: registration, login, password reset
 
 ---
 
-## 7. Database & Migrations
+### 🔲 Phase 3 — Subscription & Billing
+Goal: Tenants can subscribe to a plan and be billed.
 
-- Keep migrations small and incremental.
-- Avoid large data migrations without rollback strategy.
-- Review query performance for new features.
-- Use proper database indexes.
-
----
-
-## 8. Linting & Code Quality
-
-- Ruff is configured in `pyproject.toml` with Django (DJ) and security (S) rules enabled.
-- After generating models or apps, always run:
-
-  ```
-  uv run ruff check --fix
-  ```
-
-Optional but recommended:
-
-- Add pre-commit hooks for ruff and secret detection.
+- [ ] Create `apps/billing/` — `Plan`, `Subscription` models
+- [ ] Stripe integration (or chosen provider)
+- [ ] Webhook handler (idempotent)
+- [ ] Subscription status middleware (block access if inactive)
+- [ ] Tests: plan assignment, webhook handling
 
 ---
 
-## 9. Testing & Quality Gate
-
-Minimum requirements:
-
-- Every new feature must include tests.
-- Use Django test runner or pytest-django.
-- Run tests via:
-  ```
-  uv run python manage.py test
-  ```
-
-CI must:
-
-- Run `uv sync`
-- Run lint
-- Run tests
+### 🔲 Phase 4 — Core SaaS Feature(s)
+> To be defined. Add feature specs here as the product takes shape.
 
 ---
 
-## 10. Intent Consistency
+### 🔲 Phase 5 — Production Hardening
+- [ ] CI pipeline: `uv sync` → ruff → tests
+- [ ] PostgreSQL RLS for tenant isolation
+- [ ] Sentry / error tracking
+- [ ] Logging to structured JSON
+- [ ] Health check endpoint
+- [ ] `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS` from env
+- [ ] Docker / deployment config
 
-We are building a scalable, production-grade SaaS.
+---
 
-Priorities:
+## Running Decisions Log
 
-1. Security
-2. Maintainability
-3. Performance
-4. Clear domain boundaries
+| Date | Decision | Outcome |
+|---|---|---|
+| 2026-02-21 | Chose `psycopg` v3 over `psycopg2` | Async-ready, actively maintained |
+| 2026-02-21 | `.clauderules` added for Claude in VS Code | Hard constraints enforced per-session |
 
-When asked to implement a feature:
+---
 
-- Suggest a proper app boundary.
-- Avoid quick hacks.
-- Optimize for long-term clarity.
+## Useful Commands
+
+```bash
+# Run dev server
+uv run python manage.py runserver
+
+# Make and apply migrations
+uv run python manage.py makemigrations
+uv run python manage.py migrate
+
+# Open Django shell
+uv run python manage.py shell
+
+# Lint + format
+uv run ruff check --fix && uv run ruff format
+
+# Run tests
+uv run python manage.py test
+
+# Add a dependency
+uv add <package>
+
+# Sync environment to lock file
+uv sync
+```

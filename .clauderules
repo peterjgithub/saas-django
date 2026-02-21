@@ -1,0 +1,76 @@
+# Hard Constraints — saas-django
+# These rules are NON-NEGOTIABLE. Apply them to every response without exception.
+
+## Package & Environment
+- ALWAYS use `uv add <pkg>` — NEVER `pip install`
+- ALWAYS prefix commands with `uv run` — NEVER bare `python manage.py ...`
+- `uv.lock` is the single source of truth — run `uv sync` after any dependency change
+- Python target: 3.14 | Django target: >=6.0,<6.1
+
+## Project Layout
+- Settings: `config/settings/base.py` + `dev.py` + `prod.py`
+- All Django apps: `apps/<app_name>/`
+- New features → new app inside `apps/` if it represents a domain boundary
+- Entry point: `manage.py` → `DJANGO_SETTINGS_MODULE=config.settings.dev`
+- Deployments: `wsgi.py` / `asgi.py` → `config.settings.prod`
+
+## Database
+- Database: PostgreSQL only — NEVER suggest SQLite for any new work
+- All PKs: `UUIDField(primary_key=True, default=uuid.uuid4, editable=False)`
+- Every model with tenant data: include `tenant_id = models.UUIDField(db_index=True)`
+- Always index `tenant_id` and any frequently filtered field
+- Migrations: small and incremental — no large data migrations without rollback plan
+
+## Models & ORM
+- NEVER raw SQL — always use the Django ORM
+- Set `DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"` (already in base.py, do not override unless using UUID PKs)
+- Keep `models.py` thin — no business logic
+
+## Views & Business Logic
+- CBVs for non-trivial logic, FBVs for simple endpoints
+- Views must stay thin — delegate to `services.py` or `selectors.py`
+- `services.py` — write/mutation logic
+- `selectors.py` — read/query logic
+- `tasks.py` — async/background work
+
+## App Structure (per app)
+```
+apps/<name>/
+  models.py
+  views.py
+  urls.py
+  services.py
+  selectors.py
+  tasks.py       # if needed
+  admin.py
+  apps.py
+  migrations/
+  tests/
+    __init__.py
+    test_models.py
+    test_views.py
+    test_services.py
+```
+
+## Security
+- NEVER hardcode secrets — always `env("VAR_NAME")`
+- NEVER commit `.env` — only `.env.example`
+- Always apply in prod.py: SECURE_SSL_REDIRECT, SESSION_COOKIE_SECURE, CSRF_COOKIE_SECURE, HSTS
+- Validate and sanitise all user input
+- CSRF protection on all state-changing endpoints
+
+## Code Quality
+- Linter/formatter: `ruff` (configured in pyproject.toml)
+- After ANY new app, model, or file: run `uv run ruff check --fix && uv run ruff format`
+- Line length: 88 chars
+- Imports: isort via ruff (first-party: config, apps)
+- Every new feature MUST include tests under `apps/<name>/tests/`
+
+## Multi-Tenancy
+- Assume tenant isolation via `tenant_id` on every relevant model
+- Never write cross-tenant queries unless explicitly instructed
+- PostgreSQL Row-Level Security (RLS) is the long-term goal for tenant isolation
+
+## Git
+- Commit messages: imperative mood, concise subject line + optional body
+- Never commit: `.env`, `db.sqlite3`, `__pycache__`, `.DS_Store`, `staticfiles/`
