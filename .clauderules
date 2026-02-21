@@ -300,9 +300,10 @@ Register → Login → Middleware Check ──→ /profile/complete/   (Step 1: 
 
 **Step 2 — Tenant Creation (`/onboarding/create-tenant/`):**
 
-- User creates their first Workspace (Tenant): provide `name` and `organization`
+- User creates their first Workspace (Tenant): provide `organization` (workspace name)
 - Show the same DaisyUI **steps** progress indicator: `Profile → Workspace` (step 2 of 2)
-- On save: create `Tenant`, assign user as owner member → redirect to `/dashboard/`
+- On save: create `Tenant`, create `TenantMembership(role="owner", is_active=True)` → redirect to `/dashboard/`
+- The creating user is the **owner** of the tenant and can invite/remove members
 
 **Middleware (`ProfileCompleteMiddleware` in `apps/users/middleware.py`):**
 
@@ -311,7 +312,7 @@ Runs on every request **after** `AuthenticationMiddleware`. Only applies to
 
 1. If `profile_completed_at` is `None` AND `request.session.get("skip_profile_gate")` is not `True`:
    → redirect to `/profile/complete/?next=<original_url>`
-2. Else if user has no active `Tenant` membership:
+2. Else if user has no active `TenantMembership`:
    → redirect to `/onboarding/create-tenant/?next=<original_url>`
 3. Else: proceed normally.
 
@@ -323,7 +324,23 @@ Exempt from the gate (never redirected, even when checks fail):
 - `/health/`
 - Any URL matching `settings.PROFILE_GATE_EXEMPT_URLS` (a list in `base.py`, default `[]`)
 
+The middleware `TenantMembership` check must query `is_active=True` memberships only —
+a revoked member (`is_active=False`) has no active membership and is redirected to
+`/onboarding/create-tenant/`.
+
 Public pages (unauthenticated access allowed) are unaffected.
+
+### Tenant Member Management
+
+- `TenantMembership` roles: `owner` and `member` only. No `admin` role until a concrete
+  permission need arises.
+- `owner` capabilities: invite members by email, revoke access (`is_active=False`),
+  re-activate revoked members. An owner **cannot** revoke their own membership.
+- `member` capabilities: none — read access to tenant data only.
+- Member management UI lives at `/settings/members/` — `owner`-only; non-owners get 403.
+- Inviting an email that already has an active membership is a validation error.
+- Revoking sets `TenantMembership.is_active = False` (soft-revoke, audit trail preserved).
+- Invitation email: send synchronously via Django `send_mail` for now (no Celery yet).
 
 ---
 

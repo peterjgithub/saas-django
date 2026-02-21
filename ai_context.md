@@ -55,6 +55,9 @@
 | 31  | Never hard-delete User or UserProfile                            | Silent cascade risk; `is_active = False` is the only safe deactivation path                            |
 | 32  | `marketing_emails` only — no `product_updates`                   | Single opt-in field sufficient for now; extend when explicit consent categories are needed             |
 | 33  | WCAG AA accessibility built in from day one                      | aria-invalid + aria-describedby on all forms; skip-link; focus trap in modals; 44px min targets        |
+| 34  | `TenantMembership` join table instead of FK on `User`            | A user may belong to multiple workspaces; FK on User locks them to one and conflates identity with membership |
+| 35  | `Tenant` has only `organization` + UUID PK + base fields         | `name` was redundant with `organization`; `slug` deferred — UUID is sufficient for isolation until tenant-scoped URLs are needed |
+| 36  | `TenantMembership` roles: `owner` and `member` only              | `admin` role deferred — no concrete permission split yet; owner is the single privileged role; add granularity in Phase 5+ when real RBAC needs emerge |
 
 ---
 
@@ -146,25 +149,41 @@ class TimeStampedSoftDeleteModel(models.Model):
 
 #### 1b — Tenants
 
-- [ ] `apps/tenants/` — `Tenant` model: UUID PK, `name`, `slug`, `organization`
-      (company / legal entity name — nullable `CharField(max_length=200, blank=True)`),
-      `created_at`, `updated_at`
-- [ ] `Tenant` extends `TimeStampedSoftDeleteModel`
-- [ ] Admin registration
-- [ ] Tests: tenant creation, slug uniqueness
+- [ ] `apps/tenants/` — `Tenant` model:
+  - `id` — UUID PK
+  - `organization` — `CharField(max_length=200)` — workspace / company name (required)
+  - Extends `TimeStampedSoftDeleteModel` (gives `created_at`, `updated_at`, soft-delete)
+  - No `slug` — the UUID PK is the identifier; add a slug later if tenant-scoped URLs are needed
+- [ ] `TenantMembership` model — join table between `User` and `Tenant`:
+  - `id` — UUID PK
+  - `tenant` — `ForeignKey(Tenant)`
+  - `user` — `ForeignKey(settings.AUTH_USER_MODEL)`
+  - `role` — `CharField` choices: `owner` / `member`; default `member`
+    - `owner`: created the workspace; can invite/remove members and manage tenant settings
+    - `member`: regular workspace member; no admin capabilities
+    - > **No `admin` role at this stage** — `owner` is the single privileged role.
+      > Add granular roles (e.g. `admin`, `billing`) only when a concrete permission
+      > need arises (Phase 5+).
+  - `joined_at` — `DateTimeField(auto_now_add=True)`
+  - `is_active` — `BooleanField(default=True)` — set to `False` to revoke access without deleting
+  - Unique together: `(tenant, user)`
+- [ ] Admin registration for both models
+- [ ] Tests: tenant creation, membership creation, role assignment, uniqueness constraint,
+      owner can invite member, non-owner cannot invite
 
 #### 1c — Custom User
 
 - [ ] `apps/users/` — `User(AbstractUser)`:
   - `USERNAME_FIELD = "email"`, `REQUIRED_FIELDS = []`
   - Custom `UserManager` (`create_user`, `create_superuser`) using email
-  - `tenant = models.ForeignKey(Tenant, ...)`
   - Extends `TimeStampedSoftDeleteModel`
+  - **No `tenant` FK on `User`** — workspace membership goes through `TenantMembership`
+    (see Phase 1b); a user may belong to multiple tenants in the future
 - [ ] Set `AUTH_USER_MODEL = "users.User"` in `config/settings/base.py`
 - [ ] Migrations (`makemigrations` → `migrate`)
 - [ ] `createsuperuser` (email-based)
 - [ ] Admin registration
-- [ ] Tests: user creation, email uniqueness, tenant link, superuser creation
+- [ ] Tests: user creation, email uniqueness, superuser creation
 
 #### 1d — UserProfile
 
@@ -276,7 +295,7 @@ dashboard, and manage preferences — all via email.
   - Decision logic:
     1. `profile_completed_at IS NULL` **AND** `session["skip_profile_gate"]` is not `True`
        → redirect to `/profile/complete/?next=<url>`
-    2. Else if user has no active `Tenant` membership
+    2. Else if user has no active `TenantMembership` record
        → redirect to `/onboarding/create-tenant/?next=<url>`
     3. Else: pass through
   - Exempt (never redirected): `/profile/complete/`, `/onboarding/create-tenant/`,
@@ -295,8 +314,9 @@ dashboard, and manage preferences — all via email.
 - [ ] **Step 2 — Tenant creation (`/onboarding/create-tenant/`):**
   - Page title: **"Create your workspace"**
   - DaisyUI **steps** progress: `Profile → Workspace` (currently at step 2)
-  - Inputs: `name` (workspace name), `organization` (company / legal entity name)
-  - On save: create `Tenant`, assign user as owner → redirect to `/dashboard/`
+  - Input: `organization` (company / workspace name)
+  - On save: create `Tenant`, create `TenantMembership` with `role=owner` →
+    redirect to `/dashboard/`
 
 #### Dashboard
 
@@ -338,6 +358,35 @@ dashboard, and manage preferences — all via email.
 - [ ] Full profile update (subsequent saves stay on `/profile/`)
 - [ ] Marketing opt-in toggle
 - [ ] Password reset
+
+#### Tenant Member Management (`/settings/members/`)
+
+The user who completes Step 2 (workspace creation) becomes the `owner` of that tenant.
+As owner they can invite other users and revoke access.
+
+- [ ] **Members page (`/settings/members/`):** `owner`-only; lists all `TenantMembership`
+      records for the current tenant (active + inactive)
+- [ ] **Invite member:** owner enters an email address → create/lookup `User` →
+      create `TenantMembership(role="member", is_active=True)` → send invitation email
+      (queued via email backend; no Celery yet — use Django's `send_mail` synchronously
+      in dev, configure SMTP for prod)
+- [ ] **Revoke access:** owner sets `TenantMembership.is_active = False` for a member
+      (soft-revoke — the membership record is kept for audit; the user loses access
+      immediately because the middleware checks `is_active=True` memberships only)
+- [ ] **Re-activate:** owner can set `is_active = True` again to restore access
+- [ ] **Guard:** only `role=owner` members can access `/settings/members/`; any other
+      authenticated user hitting that URL gets a `403 Forbidden`
+- [ ] **Cannot self-revoke:** an owner cannot revoke their own membership
+      (prevents a workspace from becoming ownerless)
+- [ ] Tests:
+  - Owner can access members page; non-owner gets 403
+  - Owner can invite a new email → membership created
+  - Owner can invite an existing user → membership created
+  - Owner cannot invite a user who is already an active member
+  - Owner can revoke a member → `is_active=False`, member loses access
+  - Owner cannot revoke themselves
+  - Revoked member redirected by middleware (no active `TenantMembership`)
+  - Owner can re-activate a revoked member
 
 ---
 
@@ -431,6 +480,10 @@ These are valid ideas — implement only after Phase 7 is complete:
 | 2026-02-22 | Added `fr-be` (Belgian French) locale                    | Belgium is bilingual; French speakers are a core audience                                  |
 | 2026-02-22 | WCAG AA accessibility built in from Phase 2              | aria-invalid + aria-describedby on forms; skip-link; focus trap; 44px targets              |
 | 2026-02-22 | Never hard-delete User or UserProfile                    | Silent cascade risk; `is_active = False` is the only safe deactivation path                |
+| 2026-02-22 | `TenantMembership` join table, no FK on `User`           | FK locks user to one workspace; join table allows multi-tenant membership and role tracking |
+| 2026-02-22 | `Tenant` fields: UUID PK + `organization` only           | `name` merged into `organization`; `slug` deferred — add when tenant-scoped URLs needed    |
+| 2026-02-22 | `TenantMembership` roles: `owner` + `member` only        | `admin` deferred; owner is sole privileged role; prevents premature RBAC complexity        |
+| 2026-02-22 | Owner can invite/revoke members via `/settings/members/` | Tenant isolation requires membership management; soft-revoke preserves audit trail         |
 
 ---
 
