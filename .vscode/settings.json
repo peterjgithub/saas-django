@@ -1,0 +1,16 @@
+{
+  "python.defaultInterpreterPath": ".venv/bin/python",
+  "ruff.importStrategy": "fromEnvironment",
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
+    }
+  },
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[html][css][javascript]": {
+    "editor.formatOnSave": true
+  }
+}

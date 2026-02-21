@@ -1,0 +1,39 @@
+[project]
+name = "saas-django"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "django>=6.0.2",
+    "django-environ>=0.13.0",
+    "psycopg[binary]>=3.3.3",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.2",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py314"  # Changed from py312 to match your install
+
+[tool.ruff.lint]
+# "B" (Bugbear) is highly recommended for catching subtle logic errors in Python
+# E: pycodestyle, F: Pyflakes (Errors), I: isort (Imports)
+# DJ: Django, S: Security (Critical for SaaS), B: Bugbear (Common bugs)
+select = ["E", "F", "I", "DJ", "S", "B"]
+
+# Allow fixable violations to be fixed automatically
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.isort]
+# Ensure your project 'config' and 'apps' are recognized for import sorting
+known-first-party = ["config", "apps"]
+
+[tool.ruff.format]
+# Use double quotes, similar to Prettier's default
+quote-style = "double"
+indent-style = "space"
