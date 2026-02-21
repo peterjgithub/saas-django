@@ -92,7 +92,7 @@ class TimeStampedSoftDeleteModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_active  = models.BooleanField(default=True, db_index=True)
-    deleted_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
     deleted_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True,
         on_delete=models.SET_NULL, related_name="+"
@@ -100,6 +100,10 @@ class TimeStampedSoftDeleteModel(models.Model):
     class Meta:
         abstract = True
 ```
+
+> `is_active` is the field all live queries filter on — it gets the index.
+> `deleted_at` and `deleted_by` are audit-only fields; querying them is rare and
+> full-scan-acceptable. The `deleted_by` FK gets an implicit index from Django anyway.
 
 > **`created_by` / `updated_by` are NOT in the base model.** They are opt-in, added
 > only on models where attribution genuinely matters (e.g. `Document`, `Invoice`).
@@ -321,21 +325,21 @@ These are valid ideas — implement only after Phase 7 is complete:
 
 ## Running Decisions Log
 
-| Date       | Decision                                          | Outcome                                                |
-| ---------- | ------------------------------------------------- | ------------------------------------------------------ |
-| 2026-02-21 | Chose `psycopg` v3 over `psycopg2`                | Async-ready, actively maintained                       |
-| 2026-02-21 | `.clauderules` added for Claude in VS Code        | Hard constraints enforced per-session                  |
-| 2026-02-21 | Email as `USERNAME_FIELD`, no username            | Simpler UX, consistent with SaaS expectations          |
-| 2026-02-21 | Soft deletes on all major models                  | Safe recovery, audit trail, no data loss               |
-| 2026-02-21 | `created_by`/`updated_by` opt-in only             | Circular FK risk on `User`; add per-model where needed |
-| 2026-02-21 | `UserProfile` as separate OneToOneField model     | Keeps User minimal; profile never touches auth forms   |
-| 2026-02-21 | `display_name` nullable, derived from email       | Friendly name without forcing input at registration    |
-| 2026-02-21 | Store UTC, display in `UserProfile.timezone`      | Single DB truth; `zoneinfo` for conversion             |
-| 2026-02-21 | Navbar: display_name dropdown replaces "Leave"    | Named user with Profile + Logout dropdown menu         |
-| 2026-02-21 | Tailwind + DaisyUI corporate/night, follow-system | Consistent UI, zero-CSS-overhead, dark mode built-in   |
-| 2026-02-21 | Stripe deferred to Phase 6                        | Auth + UI shell are higher priority foundations        |
-| 2026-02-21 | Celery + Redis for async (tied to Stripe)         | No blocking web requests for billing events            |
-| 2026-02-21 | Registration → profile (not dashboard)            | Intentional onboarding; gate ensures profile is complete before app access |
+| Date       | Decision                                          | Outcome                                                                            |
+| ---------- | ------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| 2026-02-21 | Chose `psycopg` v3 over `psycopg2`                | Async-ready, actively maintained                                                   |
+| 2026-02-21 | `.clauderules` added for Claude in VS Code        | Hard constraints enforced per-session                                              |
+| 2026-02-21 | Email as `USERNAME_FIELD`, no username            | Simpler UX, consistent with SaaS expectations                                      |
+| 2026-02-21 | Soft deletes on all major models                  | Safe recovery, audit trail, no data loss                                           |
+| 2026-02-21 | `created_by`/`updated_by` opt-in only             | Circular FK risk on `User`; add per-model where needed                             |
+| 2026-02-21 | `UserProfile` as separate OneToOneField model     | Keeps User minimal; profile never touches auth forms                               |
+| 2026-02-21 | `display_name` nullable, derived from email       | Friendly name without forcing input at registration                                |
+| 2026-02-21 | Store UTC, display in `UserProfile.timezone`      | Single DB truth; `zoneinfo` for conversion                                         |
+| 2026-02-21 | Navbar: display_name dropdown replaces "Leave"    | Named user with Profile + Logout dropdown menu                                     |
+| 2026-02-21 | Tailwind + DaisyUI corporate/night, follow-system | Consistent UI, zero-CSS-overhead, dark mode built-in                               |
+| 2026-02-21 | Stripe deferred to Phase 6                        | Auth + UI shell are higher priority foundations                                    |
+| 2026-02-21 | Celery + Redis for async (tied to Stripe)         | No blocking web requests for billing events                                        |
+| 2026-02-21 | Registration → profile (not dashboard)            | Intentional onboarding; gate ensures profile is complete before app access         |
 | 2026-02-21 | `profile_completed_at` drives completion gate     | Single nullable timestamp; middleware exempt list keeps /logout, /health reachable |
 
 ---

@@ -42,12 +42,15 @@ Apply to every major data model (not lookup/config tables):
 - **Soft delete triad:**
   ```python
   is_active   = models.BooleanField(default=True, db_index=True)
-  deleted_at  = models.DateTimeField(null=True, blank=True, db_index=True)
+  deleted_at  = models.DateTimeField(null=True, blank=True)
   deleted_by  = models.ForeignKey(
       settings.AUTH_USER_MODEL, null=True, blank=True,
       on_delete=models.SET_NULL, related_name="+"
   )
   ```
+  > `is_active` is the field all live queries filter on — it gets the index.
+  > `deleted_at` and `deleted_by` are audit fields only; querying them is rare and
+  > full-scan-acceptable. Django adds an implicit index to the `deleted_by` FK anyway.
 - **Timestamps:** `created_at` / `updated_at` via `auto_now_add` / `auto_now`
 - **`created_by` / `updated_by`:** Do NOT add these to the abstract base model.
   They cause circular dependency risks (especially on `User` itself) and migration
@@ -108,8 +111,6 @@ class UserProfile(TimeStampedSoftDeleteModel):
     # Marketing
     marketing_emails    = models.BooleanField(default=False)
                           # newsletters
-    product_updates     = models.BooleanField(default=False)
-                          # product update emails
 ```
 
 **Auto-population on registration (signal):**
@@ -124,7 +125,7 @@ class UserProfile(TimeStampedSoftDeleteModel):
 **Profile form (`/profile/`):**
 
 - Editable fields: `display_name`, `language`, `timezone`, `country`, `currency`,
-  `theme`, `marketing_emails`, `product_updates`
+  `theme`, `marketing_emails`
 - Login required
 - Does NOT include email or password (those are in a separate settings section)
 - Theme preference in the profile form **also** updates `localStorage` key `theme`
@@ -143,7 +144,7 @@ class UserProfile(TimeStampedSoftDeleteModel):
 
 ## 6. Views & Business Logic
 
-- CBVs for non-trivial logic, FBVs for simple endpoints
+- CBVs (Class-Based Views) for non-trivial logic, FBVs (Function-Based Views) for simple endpoints
 - Views must stay thin — delegate to `services.py` / `selectors.py`
 - `services.py` — write/mutation logic
 - `selectors.py` — read/query logic
@@ -159,6 +160,7 @@ Implement `ProfileCompleteMiddleware` in `apps/users/middleware.py`.
 It runs on every request **after** `AuthenticationMiddleware`.
 
 Rules:
+
 - Only applies to **authenticated** users
 - A profile is considered **incomplete** if `UserProfile.profile_completed_at` is `None`
   - Add `profile_completed_at = models.DateTimeField(null=True, blank=True)` to `UserProfile`
