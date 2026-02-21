@@ -113,14 +113,16 @@ class UserProfile(TimeStampedSoftDeleteModel):
 ```
 
 **Auto-population on registration (signal):**
+
 - `display_name`: take the string left of `@` in the email; if it contains `.`, take
-  the string left of the first `.`  (e.g. `peter.janssens@...` → `peter`)
+  the string left of the first `.` (e.g. `peter.janssens@...` → `peter`)
 - `language` / `timezone` / `country`: attempt to detect from the browser's
   `Accept-Language` header and `Intl.DateTimeFormat().resolvedOptions().timeZone`
   (passed as a hidden field on the registration form)
 - All detected values are suggestions — the user can edit them at any time in `/profile/`
 
 **Profile form (`/profile/`):**
+
 - Editable fields: `display_name`, `language`, `timezone`, `country`, `currency`,
   `theme`, `marketing_emails`, `product_updates`
 - Login required
@@ -129,6 +131,7 @@ class UserProfile(TimeStampedSoftDeleteModel):
 - Language preference in the profile form **also** triggers a locale switch
 
 **Navbar (authenticated):**
+
 - Replace the static "Leave" text with the user's `display_name` (fall back to
   email local-part if `display_name` is null)
 - Clicking/tapping opens a **dropdown menu** with:
@@ -146,8 +149,31 @@ class UserProfile(TimeStampedSoftDeleteModel):
 - `selectors.py` — read/query logic
 - `tasks.py` — async/background work (Celery or Django-Q)
 - Login failure → redirect to **homepage** (not a blank error)
-- After successful registration → skip email confirmation, redirect to **dashboard**
+- After successful registration → skip email confirmation → redirect to **profile page**
+  with page title **"Complete your profile"**
 - Unauthenticated access to protected pages → redirect to **login page**
+
+### Profile Completion Gate (middleware)
+
+Implement `ProfileCompleteMiddleware` in `apps/users/middleware.py`.
+It runs on every request **after** `AuthenticationMiddleware`.
+
+Rules:
+- Only applies to **authenticated** users
+- A profile is considered **incomplete** if `UserProfile.profile_completed_at` is `None`
+  - Add `profile_completed_at = models.DateTimeField(null=True, blank=True)` to `UserProfile`
+  - Set it to `now()` on the first successful save of the profile form
+- If the profile is incomplete, redirect to `/profile/?next=<original_url>` with
+  page title **"Complete your profile"** — regardless of which protected URL was requested
+- Exempt URLs (never redirected, even when profile is incomplete):
+  - `/profile/` itself
+  - `/logout/`
+  - `/health/`
+  - Any URL matching `settings.PROFILE_GATE_EXEMPT_URLS` (a list, configurable in `base.py`)
+- Public pages (unauthenticated access allowed) are unaffected — the gate only
+  triggers for authenticated users with an incomplete profile
+- After the profile form is submitted and saved successfully for the first time,
+  set `profile_completed_at = now()` and redirect to `next` param (or `/dashboard/`)
 
 ---
 

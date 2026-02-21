@@ -20,32 +20,34 @@
 
 ## Architecture Decisions (ADRs)
 
-| #   | Decision                                         | Rationale                                               |
-| --- | ------------------------------------------------ | ------------------------------------------------------- |
-| 1   | `uv` as package manager                          | Fast, lock-file first, no venv friction                 |
-| 2   | Split settings base/dev/prod                     | Clear env separation, no secrets in dev spill into prod |
-| 3   | `django-environ` for secrets                     | 12-factor, `.env` never committed                       |
-| 4   | `psycopg` (v3) for PostgreSQL                    | Modern async-ready driver                               |
-| 5   | UUID primary keys on all models                  | Avoids enumerable IDs, safe for multi-tenant            |
-| 6   | `tenant_id` on all tenant-scoped models          | Foundation for row-level security (RLS)                 |
-| 7   | Soft deletes (`is_active`, `deleted_at`, `deleted_by`) | Safe data recovery, audit trail, no hard deletes  |
+| #   | Decision                                                | Rationale                                                                                             |
+| --- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| 1   | `uv` as package manager                                 | Fast, lock-file first, no venv friction                                                               |
+| 2   | Split settings base/dev/prod                            | Clear env separation, no secrets in dev spill into prod                                               |
+| 3   | `django-environ` for secrets                            | 12-factor, `.env` never committed                                                                     |
+| 4   | `psycopg` (v3) for PostgreSQL                           | Modern async-ready driver                                                                             |
+| 5   | UUID primary keys on all models                         | Avoids enumerable IDs, safe for multi-tenant                                                          |
+| 6   | `tenant_id` on all tenant-scoped models                 | Foundation for row-level security (RLS)                                                               |
+| 7   | Soft deletes (`is_active`, `deleted_at`, `deleted_by`)  | Safe data recovery, audit trail, no hard deletes                                                      |
 | 8   | `created_by`/`updated_by` are opt-in, not in base model | Circular FK risk on `User` itself; adds migration noise; add only where attribution genuinely matters |
-| 9   | Services/Selectors pattern                       | Thin views, testable business logic                     |
-| 10  | Ruff (DJ + S + B + E + F + I rules)              | Single tool for lint + format + isort                   |
-| 11  | Custom `User` model with `email` as `USERNAME_FIELD` | Email-based auth from day one, no username field   |
-| 12  | `UserProfile` as separate `OneToOneField` model  | Keeps `User` minimal; profile fields never touch auth/registration forms |
-| 13  | `display_name` nullable, auto-derived from email | Friendly name without forcing input at registration     |
-| 14  | Browser-detected locale/timezone on registration | Best-effort UX, always user-overridable in profile      |
-| 15  | Store UTC everywhere, display in user's local tz | Single source of truth in DB; `UserProfile.timezone` drives display |
-| 16  | `zoneinfo` (stdlib) for timezone conversion      | No extra dependency; Python 3.9+ built-in              |
-| 17  | Tailwind CSS + DaisyUI (corporate/night themes)  | Rapid, consistent UI with zero custom CSS overhead      |
-| 18  | Follow-system as default theme                   | Respects OS preference; stored in `localStorage`        |
-| 19  | Anti-flash script in `<head>`                    | Prevents white flash on dark-mode page load             |
-| 20  | Bottom Nav / Full-Screen Overlay on mobile       | Better UX than top-right hamburger                      |
-| 21  | Navbar auth control = display_name dropdown      | "Leave" replaced with named user + Profile/Logout menu  |
-| 22  | I18N: `en-us` + `nl-be`                          | Belgian Dutch as second locale from the start           |
-| 23  | Stripe deferred to Phase 6                       | Auth and UI foundations must be solid first             |
-| 24  | Background task queue (Celery + Redis)           | Required for Stripe webhooks; no blocking web requests  |
+| 9   | Services/Selectors pattern                              | Thin views, testable business logic                                                                   |
+| 10  | Ruff (DJ + S + B + E + F + I rules)                     | Single tool for lint + format + isort                                                                 |
+| 11  | Custom `User` model with `email` as `USERNAME_FIELD`    | Email-based auth from day one, no username field                                                      |
+| 12  | `UserProfile` as separate `OneToOneField` model         | Keeps `User` minimal; profile fields never touch auth/registration forms                              |
+| 13  | `display_name` nullable, auto-derived from email        | Friendly name without forcing input at registration                                                   |
+| 14  | Browser-detected locale/timezone on registration        | Best-effort UX, always user-overridable in profile                                                    |
+| 15  | Store UTC everywhere, display in user's local tz        | Single source of truth in DB; `UserProfile.timezone` drives display                                   |
+| 16  | `zoneinfo` (stdlib) for timezone conversion             | No extra dependency; Python 3.9+ built-in                                                             |
+| 17  | Tailwind CSS + DaisyUI (corporate/night themes)         | Rapid, consistent UI with zero custom CSS overhead                                                    |
+| 18  | Follow-system as default theme                          | Respects OS preference; stored in `localStorage`                                                      |
+| 19  | Anti-flash script in `<head>`                           | Prevents white flash on dark-mode page load                                                           |
+| 20  | Bottom Nav / Full-Screen Overlay on mobile              | Better UX than top-right hamburger                                                                    |
+| 21  | Navbar auth control = display_name dropdown             | "Leave" replaced with named user + Profile/Logout menu                                                |
+| 22  | I18N: `en-us` + `nl-be`                                 | Belgian Dutch as second locale from the start                                                         |
+| 23  | Stripe deferred to Phase 6                              | Auth and UI foundations must be solid first                                                           |
+| 24  | Background task queue (Celery + Redis)                  | Required for Stripe webhooks; no blocking web requests                                                |
+| 25  | Registration → profile page (not dashboard)             | Forces intentional onboarding; profile gate ensures completeness before app access                    |
+| 26  | `ProfileCompleteMiddleware` + `profile_completed_at`    | Single flag drives the gate; exempt list keeps logout/health reachable; `next` param preserves intent |
 
 ---
 
@@ -109,6 +111,7 @@ class TimeStampedSoftDeleteModel(models.Model):
 ## Phase Plan
 
 ### ✅ Phase 0 — Scaffold (DONE)
+
 - [x] uv project init, Django 6 installed
 - [x] Split settings (base / dev / prod)
 - [x] PostgreSQL configured via `DATABASE_URL`
@@ -125,17 +128,20 @@ class TimeStampedSoftDeleteModel(models.Model):
 **Goal:** Establish the shared base model, tenant model, and email-based custom User — everything else depends on this.
 
 #### 1a — Core app (shared primitives)
+
 - [ ] `uv run python manage.py startapp core` → move to `apps/core/`
 - [ ] Create `TimeStampedSoftDeleteModel` abstract base in `apps/core/models.py`
 - [ ] Register `apps.core` in `INSTALLED_APPS`
 
 #### 1b — Tenants
+
 - [ ] `apps/tenants/` — `Tenant` model: UUID PK, name, slug, `created_at`, `updated_at`
 - [ ] `Tenant` extends `TimeStampedSoftDeleteModel`
 - [ ] Admin registration
 - [ ] Tests: tenant creation, slug uniqueness
 
 #### 1c — Custom User
+
 - [ ] `apps/users/` — `User(AbstractUser)`:
   - `USERNAME_FIELD = "email"`, `REQUIRED_FIELDS = []`
   - Custom `UserManager` (`create_user`, `create_superuser`) using email
@@ -148,6 +154,7 @@ class TimeStampedSoftDeleteModel(models.Model):
 - [ ] Tests: user creation, email uniqueness, tenant link, superuser creation
 
 #### 1d — UserProfile
+
 - [ ] `UserProfile(TimeStampedSoftDeleteModel)` in `apps/users/models.py`:
   - `user` — `OneToOneField(User, related_name="profile")`
   - `display_name` — `CharField(max_length=100, blank=True, null=True)`
@@ -158,15 +165,18 @@ class TimeStampedSoftDeleteModel(models.Model):
   - `theme` — `CharField` choices: `corporate` / `night` / `system`; default `system`
   - `marketing_emails` — `BooleanField(default=False)`
   - `product_updates` — `BooleanField(default=False)`
+  - `profile_completed_at` — `DateTimeField(null=True, blank=True)` — `None` until the
+    user saves the profile form for the first time; drives the profile completion gate
 - [ ] `post_save` signal on `User` → auto-create `UserProfile`
 - [ ] Auto-populate `display_name` from email:
   - Take local-part (left of `@`); if it contains `.`, take left of first `.`
   - e.g. `peter.janssens@acme.com` → `peter`
 - [ ] Accept hidden fields `tz_detect` and `lang_detect` on the registration form
-  (populated via JS `Intl.DateTimeFormat().resolvedOptions().timeZone` and
-  `navigator.language`) to pre-fill `timezone` and `language`
+      (populated via JS `Intl.DateTimeFormat().resolvedOptions().timeZone` and
+      `navigator.language`) to pre-fill `timezone` and `language`
 - [ ] `UserProfile` is NEVER part of the registration form
-- [ ] Tests: profile auto-created, display_name derivation, signal idempotency
+- [ ] Tests: profile auto-created, display_name derivation, signal idempotency,
+      `profile_completed_at` is `None` on creation
 
 ---
 
@@ -191,7 +201,7 @@ class TimeStampedSoftDeleteModel(models.Model):
 - [ ] Register context processor in `base.py`
 - [ ] Light/dark/system toggle: stores in `localStorage` key `theme`, applies `data-theme` on `<html>`
 - [ ] Create `apps/core/templatetags/tz_tags.py` — custom template filter
-  `{{ value|localtime:request.user.profile.timezone }}` for UTC→local conversion
+      `{{ value|localtime:request.user.profile.timezone }}` for UTC→local conversion
 - [ ] Skeleton components on form loads and theme switch
 - [ ] Semantic HTML: `<main>`, `<header>`, `<footer>`, `<nav>`, `<section>`
 - [ ] Health check endpoint: `GET /health/` → `{"status": "ok", "db": "ok"}`
@@ -201,31 +211,52 @@ class TimeStampedSoftDeleteModel(models.Model):
 
 ### 🔲 Phase 3 — Auth UX: Login, Register, Dashboard & Profile
 
-**Goal:** Users can register, log in, access a protected dashboard, and manage their profile — all via email.
+**Goal:** Users can register, log in, complete their profile via a gate, access the dashboard, and manage preferences — all via email.
 
 - [ ] `apps/pages/` — public homepage (`/`) displaying "Home"
 - [ ] Login view (`/login/`): email + password; failure → redirect to homepage
 - [ ] Register view (`/register/`):
   - Fields: email + password only
   - Hidden fields: `tz_detect`, `lang_detect` (populated via JS, see Phase 1d)
-  - Success → skip email confirmation → auto-create profile → redirect to dashboard
+  - Success → skip email confirmation → auto-create profile → **redirect to `/profile/`**
+    with page title **"Complete your profile"**
 - [ ] Logout (`/logout/`): clears session → redirect to homepage
+- [ ] **`ProfileCompleteMiddleware`** in `apps/users/middleware.py`:
+  - Runs after `AuthenticationMiddleware` — add to `MIDDLEWARE` in `base.py`
+  - Authenticated user + `profile_completed_at` is `None` → redirect to
+    `/profile/?next=<original_url>` with title **"Complete your profile"**
+  - Exempt from the gate: `/profile/`, `/logout/`, `/health/`, and any URL in
+    `settings.PROFILE_GATE_EXEMPT_URLS`
+  - On first successful profile save: set `profile_completed_at = now()`,
+    redirect to `?next` param (default `/dashboard/`)
 - [ ] Dashboard view (`/dashboard/`): login required; displays "Welcome {display_name or email}";
-  unauthenticated → redirect to login
+      unauthenticated → redirect to login; incomplete profile → gate redirects to profile first
 - [ ] **Profile page (`/profile/`):** login required
+  - Title: **"Complete your profile"** when `profile_completed_at` is `None`;
+    **"Profile"** otherwise
   - Editable: `display_name`, `language`, `timezone`, `country`, `currency`, `theme`
   - Marketing section: `marketing_emails` opt-in, `product_updates` opt-in
+  - On first save: sets `profile_completed_at = now()` → redirects to `?next` or `/dashboard/`
+  - Subsequent saves: stays on `/profile/` with a success message
   - Theme change also updates `localStorage` key `theme`
   - Language change also triggers Django locale switch + updates `localStorage` key `lang`
   - Timezone uses IANA tz selector
   - Does NOT include email or password fields
 - [ ] Auth forms: DaisyUI **hero** + split-screen (desktop); full-width `items-start` (mobile)
-  Use correct HTML input types: `type="email"`, `type="password"`, `autocomplete` attributes
+      Use correct HTML input types: `type="email"`, `type="password"`, `autocomplete` attributes
 - [ ] Left-side nav (authenticated): "Dashboard" + "Profile" links
 - [ ] Email backend: `console` for dev, configurable SMTP/SES for prod
 - [ ] Password reset flow (forgot password)
-- [ ] Tests: register (profile auto-created, display_name derived), login (success + failure redirect),
-  logout, dashboard auth-gate, profile update, marketing prefs toggle, password reset
+- [ ] Tests:
+  - Register → redirected to profile with "Complete your profile" title
+  - Accessing `/dashboard/` with incomplete profile → redirected to `/profile/?next=/dashboard/`
+  - After first profile save → redirected to `/dashboard/`
+  - Accessing `/dashboard/` with complete profile → allowed through
+  - `/logout/` and `/health/` never intercepted by gate
+  - Login success + failure redirects
+  - Profile update (subsequent saves stay on profile page)
+  - Marketing prefs toggle
+  - Password reset
 
 ---
 
@@ -290,20 +321,22 @@ These are valid ideas — implement only after Phase 7 is complete:
 
 ## Running Decisions Log
 
-| Date       | Decision                                          | Outcome                                              |
-| ---------- | ------------------------------------------------- | ---------------------------------------------------- |
-| 2026-02-21 | Chose `psycopg` v3 over `psycopg2`                | Async-ready, actively maintained                     |
-| 2026-02-21 | `.clauderules` added for Claude in VS Code        | Hard constraints enforced per-session                |
-| 2026-02-21 | Email as `USERNAME_FIELD`, no username            | Simpler UX, consistent with SaaS expectations        |
-| 2026-02-21 | Soft deletes on all major models                  | Safe recovery, audit trail, no data loss             |
+| Date       | Decision                                          | Outcome                                                |
+| ---------- | ------------------------------------------------- | ------------------------------------------------------ |
+| 2026-02-21 | Chose `psycopg` v3 over `psycopg2`                | Async-ready, actively maintained                       |
+| 2026-02-21 | `.clauderules` added for Claude in VS Code        | Hard constraints enforced per-session                  |
+| 2026-02-21 | Email as `USERNAME_FIELD`, no username            | Simpler UX, consistent with SaaS expectations          |
+| 2026-02-21 | Soft deletes on all major models                  | Safe recovery, audit trail, no data loss               |
 | 2026-02-21 | `created_by`/`updated_by` opt-in only             | Circular FK risk on `User`; add per-model where needed |
-| 2026-02-21 | `UserProfile` as separate OneToOneField model     | Keeps User minimal; profile never touches auth forms |
-| 2026-02-21 | `display_name` nullable, derived from email       | Friendly name without forcing input at registration  |
-| 2026-02-21 | Store UTC, display in `UserProfile.timezone`      | Single DB truth; `zoneinfo` for conversion           |
-| 2026-02-21 | Navbar: display_name dropdown replaces "Leave"    | Named user with Profile + Logout dropdown menu       |
-| 2026-02-21 | Tailwind + DaisyUI corporate/night, follow-system | Consistent UI, zero-CSS-overhead, dark mode built-in |
-| 2026-02-21 | Stripe deferred to Phase 6                        | Auth + UI shell are higher priority foundations      |
-| 2026-02-21 | Celery + Redis for async (tied to Stripe)         | No blocking web requests for billing events          |
+| 2026-02-21 | `UserProfile` as separate OneToOneField model     | Keeps User minimal; profile never touches auth forms   |
+| 2026-02-21 | `display_name` nullable, derived from email       | Friendly name without forcing input at registration    |
+| 2026-02-21 | Store UTC, display in `UserProfile.timezone`      | Single DB truth; `zoneinfo` for conversion             |
+| 2026-02-21 | Navbar: display_name dropdown replaces "Leave"    | Named user with Profile + Logout dropdown menu         |
+| 2026-02-21 | Tailwind + DaisyUI corporate/night, follow-system | Consistent UI, zero-CSS-overhead, dark mode built-in   |
+| 2026-02-21 | Stripe deferred to Phase 6                        | Auth + UI shell are higher priority foundations        |
+| 2026-02-21 | Celery + Redis for async (tied to Stripe)         | No blocking web requests for billing events            |
+| 2026-02-21 | Registration → profile (not dashboard)            | Intentional onboarding; gate ensures profile is complete before app access |
+| 2026-02-21 | `profile_completed_at` drives completion gate     | Single nullable timestamp; middleware exempt list keeps /logout, /health reachable |
 
 ---
 
