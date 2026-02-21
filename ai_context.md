@@ -20,43 +20,43 @@
 
 ## Architecture Decisions (ADRs)
 
-| #   | Decision                                                         | Rationale                                                                                              |
-| --- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| 1   | `uv` as package manager                                          | Fast, lock-file first, no venv friction                                                                |
-| 2   | Split settings base/dev/prod                                     | Clear env separation, no secrets in dev spill into prod                                                |
-| 3   | `django-environ` for secrets                                     | 12-factor, `.env` never committed                                                                      |
-| 4   | `psycopg` (v3) for PostgreSQL                                    | Modern async-ready driver                                                                              |
-| 5   | UUID primary keys on all models                                  | Avoids enumerable IDs, safe for multi-tenant                                                           |
-| 6   | `tenant_id` on all tenant-scoped models                          | Foundation for row-level security (RLS)                                                                |
-| 7   | Soft deletes (`is_active`, `deleted_at`, `deleted_by`)           | Safe data recovery, audit trail, no hard deletes                                                       |
-| 8   | `created_by`/`updated_by` are opt-in, not in base model          | Circular FK risk on `User` itself; adds migration noise; add only where attribution genuinely matters  |
-| 9   | Services/Selectors pattern                                       | Thin views, testable business logic                                                                    |
-| 10  | Ruff (DJ + S + B + E + F + I rules)                              | Single tool for lint + format + isort                                                                  |
-| 11  | Custom `User` model with `email` as `USERNAME_FIELD`             | Email-based auth from day one, no username field                                                       |
-| 12  | `UserProfile` as separate `OneToOneField` model                  | Keeps `User` minimal; profile fields never touch auth/registration forms                               |
-| 13  | `display_name` nullable, auto-derived from email                 | Friendly name without forcing input at registration                                                    |
-| 14  | Browser-detected locale/timezone on registration                 | Best-effort UX, always user-overridable in profile                                                     |
-| 15  | Store UTC everywhere, display in user's local tz                 | Single source of truth in DB; `UserProfile.timezone` drives display                                    |
-| 16  | `zoneinfo` (stdlib) for timezone conversion                      | No extra dependency; Python 3.9+ built-in                                                              |
-| 17  | Tailwind CSS + DaisyUI (corporate/night themes)                  | Rapid, consistent UI with zero custom CSS overhead                                                     |
-| 18  | Follow-system as default theme                                   | Respects OS preference; stored in `localStorage`                                                       |
-| 19  | Anti-flash script in `<head>`                                    | Prevents white flash on dark-mode page load                                                            |
-| 20  | Bottom Nav / Full-Screen Overlay on mobile                       | Better UX than top-right hamburger                                                                     |
-| 21  | Navbar auth control = display_name dropdown                      | "Leave" replaced with named user + Profile/Logout menu                                                 |
-| 22  | I18N: `en-us` + `nl-be` + `fr-be`                                | Belgian Dutch and Belgian French as second and third locales from the start                            |
-| 23  | Stripe deferred to Phase 6                                       | Auth and UI foundations must be solid first                                                            |
-| 24  | Background task queue (Celery + Redis)                           | Required for Stripe webhooks; no blocking web requests                                                 |
-| 25  | Registration → profile page (not dashboard)                      | Forces intentional onboarding; profile gate ensures completeness before app access                     |
-| 26  | `ProfileCompleteMiddleware` + `profile_completed_at`             | Single flag drives the gate; exempt list keeps logout/health reachable; `next` param preserves intent  |
-| 27  | Two-step onboarding: Profile → Tenant                            | Separates personal setup from workspace setup; both can be skipped via session flag                    |
-| 28  | "Do this later" sets session flag, not DB flag                   | Avoids permanently marking a profile complete when the user skips; re-prompts next session             |
-| 29  | Reference data (Country/Language/Timezone/Currency) as DB models | FK references allow cross-filtering (e.g. languages for a country); data from `pycountry` + `zoneinfo` |
-| 30  | `UserProfile` localisation fields use FK not CharField           | Referential integrity, consistent display names, and filterable dropdowns without duplication          |
-| 31  | Never hard-delete User or UserProfile                            | Silent cascade risk; `is_active = False` is the only safe deactivation path                            |
-| 32  | `marketing_emails` only — no `product_updates`                   | Single opt-in field sufficient for now; extend when explicit consent categories are needed             |
-| 33  | WCAG AA accessibility built in from day one                      | aria-invalid + aria-describedby on all forms; skip-link; focus trap in modals; 44px min targets        |
-| 34  | `TenantMembership` join table instead of FK on `User`            | A user may belong to multiple workspaces; FK on User locks them to one and conflates identity with membership |
-| 35  | `Tenant` has only `organization` + UUID PK + base fields         | `name` was redundant with `organization`; `slug` deferred — UUID is sufficient for isolation until tenant-scoped URLs are needed |
+| #   | Decision                                                         | Rationale                                                                                                                                              |
+| --- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | `uv` as package manager                                          | Fast, lock-file first, no venv friction                                                                                                                |
+| 2   | Split settings base/dev/prod                                     | Clear env separation, no secrets in dev spill into prod                                                                                                |
+| 3   | `django-environ` for secrets                                     | 12-factor, `.env` never committed                                                                                                                      |
+| 4   | `psycopg` (v3) for PostgreSQL                                    | Modern async-ready driver                                                                                                                              |
+| 5   | UUID primary keys on all models                                  | Avoids enumerable IDs, safe for multi-tenant                                                                                                           |
+| 6   | `tenant_id` on all tenant-scoped models                          | Foundation for row-level security (RLS)                                                                                                                |
+| 7   | Soft deletes (`is_active`, `deleted_at`, `deleted_by`)           | Safe data recovery, audit trail, no hard deletes                                                                                                       |
+| 8   | `created_by`/`updated_by` are opt-in, not in base model          | Circular FK risk on `User` itself; adds migration noise; add only where attribution genuinely matters                                                  |
+| 9   | Services/Selectors pattern                                       | Thin views, testable business logic                                                                                                                    |
+| 10  | Ruff (DJ + S + B + E + F + I rules)                              | Single tool for lint + format + isort                                                                                                                  |
+| 11  | Custom `User` model with `email` as `USERNAME_FIELD`             | Email-based auth from day one, no username field                                                                                                       |
+| 12  | `UserProfile` as separate `OneToOneField` model                  | Keeps `User` minimal; profile fields never touch auth/registration forms                                                                               |
+| 13  | `display_name` nullable, auto-derived from email                 | Friendly name without forcing input at registration                                                                                                    |
+| 14  | Browser-detected locale/timezone on registration                 | Best-effort UX, always user-overridable in profile                                                                                                     |
+| 15  | Store UTC everywhere, display in user's local tz                 | Single source of truth in DB; `UserProfile.timezone` drives display                                                                                    |
+| 16  | `zoneinfo` (stdlib) for timezone conversion                      | No extra dependency; Python 3.9+ built-in                                                                                                              |
+| 17  | Tailwind CSS + DaisyUI (corporate/night themes)                  | Rapid, consistent UI with zero custom CSS overhead                                                                                                     |
+| 18  | Follow-system as default theme                                   | Respects OS preference; stored in `localStorage`                                                                                                       |
+| 19  | Anti-flash script in `<head>`                                    | Prevents white flash on dark-mode page load                                                                                                            |
+| 20  | Bottom Nav / Full-Screen Overlay on mobile                       | Better UX than top-right hamburger                                                                                                                     |
+| 21  | Navbar auth control = display_name dropdown                      | "Leave" replaced with named user + Profile/Logout menu                                                                                                 |
+| 22  | I18N: `en-us` + `nl-be` + `fr-be`                                | Belgian Dutch and Belgian French as second and third locales from the start                                                                            |
+| 23  | Stripe deferred to Phase 6                                       | Auth and UI foundations must be solid first                                                                                                            |
+| 24  | Background task queue (Celery + Redis)                           | Required for Stripe webhooks; no blocking web requests                                                                                                 |
+| 25  | Registration → profile page (not dashboard)                      | Forces intentional onboarding; profile gate ensures completeness before app access                                                                     |
+| 26  | `ProfileCompleteMiddleware` + `profile_completed_at`             | Single flag drives the gate; exempt list keeps logout/health reachable; `next` param preserves intent                                                  |
+| 27  | Two-step onboarding: Profile → Tenant                            | Separates personal setup from workspace setup; both can be skipped via session flag                                                                    |
+| 28  | "Do this later" sets session flag, not DB flag                   | Avoids permanently marking a profile complete when the user skips; re-prompts next session                                                             |
+| 29  | Reference data (Country/Language/Timezone/Currency) as DB models | FK references allow cross-filtering (e.g. languages for a country); data from `pycountry` + `zoneinfo`                                                 |
+| 30  | `UserProfile` localisation fields use FK not CharField           | Referential integrity, consistent display names, and filterable dropdowns without duplication                                                          |
+| 31  | Never hard-delete User or UserProfile                            | Silent cascade risk; `is_active = False` is the only safe deactivation path                                                                            |
+| 32  | `marketing_emails` only — no `product_updates`                   | Single opt-in field sufficient for now; extend when explicit consent categories are needed                                                             |
+| 33  | WCAG AA accessibility built in from day one                      | aria-invalid + aria-describedby on all forms; skip-link; focus trap in modals; 44px min targets                                                        |
+| 34  | `TenantMembership` join table instead of FK on `User`            | A user may belong to multiple workspaces; FK on User locks them to one and conflates identity with membership                                          |
+| 35  | `Tenant` has only `organization` + UUID PK + base fields         | `name` was redundant with `organization`; `slug` deferred — UUID is sufficient for isolation until tenant-scoped URLs are needed                       |
 | 36  | `TenantMembership` roles: `owner` and `member` only              | `admin` role deferred — no concrete permission split yet; owner is the single privileged role; add granularity in Phase 5+ when real RBAC needs emerge |
 
 ---
@@ -147,7 +147,22 @@ class TimeStampedSoftDeleteModel(models.Model):
 - [ ] Create `TimeStampedSoftDeleteModel` abstract base in `apps/core/models.py`
 - [ ] Register `apps.core` in `INSTALLED_APPS`
 
-#### 1b — Tenants
+#### 1b — Reference Data (ISO tables)
+
+- [ ] In `apps/core/models.py`: create `Country`, `Language`, `Timezone`, `Currency`
+      models as specified in `.clauderules §5b`
+- [ ] `ManyToManyField` relationships:
+  - `Language.countries` → `Country`
+  - `Timezone.countries` → `Country`
+  - `Currency.countries` → `Country`
+- [ ] Management command: `apps/core/management/commands/load_reference_data.py`
+  - `uv add pycountry`
+  - Loads all countries, languages, currencies from `pycountry`
+  - Loads timezones from `zoneinfo.available_timezones()` with UTC offset calculation
+  - Idempotent (`update_or_create`)
+- [ ] Run after migrations: `uv run python manage.py load_reference_data`
+- [ ] Tests: command creates records, FK filtering works (languages for Belgium, etc.)
+#### 1c — Tenants
 
 - [ ] `apps/tenants/` — `Tenant` model:
   - `id` — UUID PK
@@ -171,21 +186,23 @@ class TimeStampedSoftDeleteModel(models.Model):
 - [ ] Tests: tenant creation, membership creation, role assignment, uniqueness constraint,
       owner can invite member, non-owner cannot invite
 
-#### 1c — Custom User
+#### 1d — Custom User
 
 - [ ] `apps/users/` — `User(AbstractUser)`:
   - `USERNAME_FIELD = "email"`, `REQUIRED_FIELDS = []`
   - Custom `UserManager` (`create_user`, `create_superuser`) using email
   - Extends `TimeStampedSoftDeleteModel`
   - **No `tenant` FK on `User`** — workspace membership goes through `TenantMembership`
-    (see Phase 1b); a user may belong to multiple tenants in the future
+    (see Phase 1c); a user may belong to multiple tenants in the future
 - [ ] Set `AUTH_USER_MODEL = "users.User"` in `config/settings/base.py`
 - [ ] Migrations (`makemigrations` → `migrate`)
 - [ ] `createsuperuser` (email-based)
 - [ ] Admin registration
 - [ ] Tests: user creation, email uniqueness, superuser creation
 
-#### 1d — UserProfile
+#### 1e — UserProfile
+
+> **Depends on 1b** (core reference tables must be migrated first) and **1d** (User model).
 
 - [ ] `UserProfile(TimeStampedSoftDeleteModel)` in `apps/users/models.py`:
   - `user` — `OneToOneField(User, related_name="profile")`
@@ -210,21 +227,6 @@ class TimeStampedSoftDeleteModel(models.Model):
 - [ ] Tests: profile auto-created, display_name derivation, signal idempotency,
       `profile_completed_at` is `None` on creation
 
-#### 1e — Reference Data (ISO tables)
-
-- [ ] In `apps/core/models.py`: create `Country`, `Language`, `Timezone`, `Currency`
-      models as specified in `.clauderules §5b`
-- [ ] `ManyToManyField` relationships:
-  - `Language.countries` → `Country`
-  - `Timezone.countries` → `Country`
-  - `Currency.countries` → `Country`
-- [ ] Management command: `apps/core/management/commands/load_reference_data.py`
-  - `uv add pycountry`
-  - Loads all countries, languages, currencies from `pycountry`
-  - Loads timezones from `zoneinfo.available_timezones()` with UTC offset calculation
-  - Idempotent (`update_or_create`)
-- [ ] Run after migrations: `uv run python manage.py load_reference_data`
-- [ ] Tests: command creates records, FK filtering works (languages for Belgium, etc.)
 
 ---
 
@@ -256,6 +258,8 @@ class TimeStampedSoftDeleteModel(models.Model):
       until focused): `<a href="#main-content" class="sr-only focus:not-sr-only …">Skip to main content</a>`
 - [ ] `<html lang="{{ LANGUAGE_CODE }}">` — dynamic, not hardcoded
 - [ ] Health check endpoint: `GET /health/` → `{"status": "ok", "db": "ok"}`
+- [ ] `apps/pages/` — public homepage (`/`) with a minimal placeholder; used by
+      the cancel-link on the login page and as the unauthenticated landing page
 - [ ] Tests: health check 200, context processor injects vars, timezone filter,
       skip-link is first focusable element
 
@@ -265,8 +269,6 @@ class TimeStampedSoftDeleteModel(models.Model):
 
 **Goal:** Users can register, log in, complete a two-step onboarding gate, access the
 dashboard, and manage preferences — all via email.
-
-- [ ] `apps/pages/` — public homepage (`/`) displaying "Home"
 
 #### Login
 
@@ -317,6 +319,11 @@ dashboard, and manage preferences — all via email.
   - Input: `organization` (company / workspace name)
   - On save: create `Tenant`, create `TenantMembership` with `role=owner` →
     redirect to `/dashboard/`
+  - > **No "Do this later" on Step 2.** The session `skip_profile_gate` flag
+    > already bypasses Step 1; Step 2 (workspace creation) is the minimum
+    > requirement for the app to be usable and cannot be permanently skipped.
+    > If the user closes the browser, the middleware will redirect them back
+    > to `/onboarding/create-tenant/` on next login.
 
 #### Dashboard
 
@@ -343,21 +350,6 @@ dashboard, and manage preferences — all via email.
 - [ ] Left-side nav (authenticated): "Dashboard" + "Profile" links
 - [ ] Email backend: `console` for dev, configurable SMTP/SES for prod
 - [ ] Password reset flow (forgot password)
-
-#### Tests
-
-- [ ] Register → redirected to `/profile/complete/` with "Complete your profile" title
-- [ ] Login failure → stays on login form with inline error; no redirect
-- [ ] Login cancel link → redirects to homepage
-- [ ] Accessing `/dashboard/` with incomplete profile (no skip) → redirected to `/profile/complete/?next=/dashboard/`
-- [ ] "Do this later" sets session flag → subsequent requests pass Step 1 check
-- [ ] After Step 1 save → redirected to `/onboarding/create-tenant/`
-- [ ] After Step 2 save → redirected to `/dashboard/`
-- [ ] Accessing `/dashboard/` with complete profile and tenant → allowed through
-- [ ] `/logout/` and `/health/` never intercepted by gate
-- [ ] Full profile update (subsequent saves stay on `/profile/`)
-- [ ] Marketing opt-in toggle
-- [ ] Password reset
 
 #### Tenant Member Management (`/settings/members/`)
 
@@ -387,6 +379,22 @@ As owner they can invite other users and revoke access.
   - Owner cannot revoke themselves
   - Revoked member redirected by middleware (no active `TenantMembership`)
   - Owner can re-activate a revoked member
+
+#### Tests
+
+- [ ] Register → redirected to `/profile/complete/` with "Complete your profile" title
+- [ ] Login failure → stays on login form with inline error; no redirect
+- [ ] Login cancel link → redirects to homepage
+- [ ] Accessing `/dashboard/` with incomplete profile (no skip) → redirected to `/profile/complete/?next=/dashboard/`
+- [ ] "Do this later" sets session flag → subsequent requests pass Step 1 check
+- [ ] After Step 1 save → redirected to `/onboarding/create-tenant/`
+- [ ] After Step 2 save → redirected to `/dashboard/`
+- [ ] Accessing `/dashboard/` with complete profile and tenant → allowed through
+- [ ] `/logout/` and `/health/` never intercepted by gate
+- [ ] Full profile update (subsequent saves stay on `/profile/`)
+- [ ] Marketing opt-in toggle
+- [ ] Password reset
+
 
 ---
 
@@ -457,33 +465,33 @@ These are valid ideas — implement only after Phase 7 is complete:
 
 ## Running Decisions Log
 
-| Date       | Decision                                                 | Outcome                                                                                    |
-| ---------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| 2026-02-21 | Chose `psycopg` v3 over `psycopg2`                       | Async-ready, actively maintained                                                           |
-| 2026-02-21 | `.clauderules` added for Claude in VS Code               | Hard constraints enforced per-session                                                      |
-| 2026-02-21 | Email as `USERNAME_FIELD`, no username                   | Simpler UX, consistent with SaaS expectations                                              |
-| 2026-02-21 | Soft deletes on all major models                         | Safe recovery, audit trail, no data loss                                                   |
-| 2026-02-21 | `created_by`/`updated_by` opt-in only                    | Circular FK risk on `User`; add per-model where needed                                     |
-| 2026-02-21 | `UserProfile` as separate OneToOneField model            | Keeps User minimal; profile never touches auth forms                                       |
-| 2026-02-21 | `display_name` nullable, derived from email              | Friendly name without forcing input at registration                                        |
-| 2026-02-21 | Store UTC, display in `UserProfile.timezone`             | Single DB truth; `zoneinfo` for conversion                                                 |
-| 2026-02-21 | Navbar: display_name dropdown replaces "Leave"           | Named user with Profile + Logout dropdown menu                                             |
-| 2026-02-21 | Tailwind + DaisyUI corporate/night, follow-system        | Consistent UI, zero-CSS-overhead, dark mode built-in                                       |
-| 2026-02-21 | Stripe deferred to Phase 6                               | Auth + UI shell are higher priority foundations                                            |
-| 2026-02-21 | Celery + Redis for async (tied to Stripe)                | No blocking web requests for billing events                                                |
-| 2026-02-21 | Registration → profile (not dashboard)                   | Intentional onboarding; gate ensures profile is complete before app access                 |
-| 2026-02-21 | `profile_completed_at` drives completion gate            | Single nullable timestamp; middleware exempt list keeps /logout, /health reachable         |
-| 2026-02-22 | Two-step onboarding: Profile → Tenant                    | Personal setup separated from workspace creation; skip session flag avoids nagging         |
-| 2026-02-22 | Login failure stays on form (not redirect)               | Redirect loses context; inline error with aria role="alert" is correct UX + a11y           |
-| 2026-02-22 | Reference data models in core (Country/Lang/Tz/Currency) | FK references allow filtered dropdowns (e.g. languages for Belgium); data from `pycountry` |
-| 2026-02-22 | `product_updates` field removed                          | Single `marketing_emails` opt-in sufficient for Phase 1; extend when legally required      |
-| 2026-02-22 | Added `fr-be` (Belgian French) locale                    | Belgium is bilingual; French speakers are a core audience                                  |
-| 2026-02-22 | WCAG AA accessibility built in from Phase 2              | aria-invalid + aria-describedby on forms; skip-link; focus trap; 44px targets              |
-| 2026-02-22 | Never hard-delete User or UserProfile                    | Silent cascade risk; `is_active = False` is the only safe deactivation path                |
+| Date       | Decision                                                 | Outcome                                                                                     |
+| ---------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| 2026-02-21 | Chose `psycopg` v3 over `psycopg2`                       | Async-ready, actively maintained                                                            |
+| 2026-02-21 | `.clauderules` added for Claude in VS Code               | Hard constraints enforced per-session                                                       |
+| 2026-02-21 | Email as `USERNAME_FIELD`, no username                   | Simpler UX, consistent with SaaS expectations                                               |
+| 2026-02-21 | Soft deletes on all major models                         | Safe recovery, audit trail, no data loss                                                    |
+| 2026-02-21 | `created_by`/`updated_by` opt-in only                    | Circular FK risk on `User`; add per-model where needed                                      |
+| 2026-02-21 | `UserProfile` as separate OneToOneField model            | Keeps User minimal; profile never touches auth forms                                        |
+| 2026-02-21 | `display_name` nullable, derived from email              | Friendly name without forcing input at registration                                         |
+| 2026-02-21 | Store UTC, display in `UserProfile.timezone`             | Single DB truth; `zoneinfo` for conversion                                                  |
+| 2026-02-21 | Navbar: display_name dropdown replaces "Leave"           | Named user with Profile + Logout dropdown menu                                              |
+| 2026-02-21 | Tailwind + DaisyUI corporate/night, follow-system        | Consistent UI, zero-CSS-overhead, dark mode built-in                                        |
+| 2026-02-21 | Stripe deferred to Phase 6                               | Auth + UI shell are higher priority foundations                                             |
+| 2026-02-21 | Celery + Redis for async (tied to Stripe)                | No blocking web requests for billing events                                                 |
+| 2026-02-21 | Registration → profile (not dashboard)                   | Intentional onboarding; gate ensures profile is complete before app access                  |
+| 2026-02-21 | `profile_completed_at` drives completion gate            | Single nullable timestamp; middleware exempt list keeps /logout, /health reachable          |
+| 2026-02-22 | Two-step onboarding: Profile → Tenant                    | Personal setup separated from workspace creation; skip session flag avoids nagging          |
+| 2026-02-22 | Login failure stays on form (not redirect)               | Redirect loses context; inline error with aria role="alert" is correct UX + a11y            |
+| 2026-02-22 | Reference data models in core (Country/Lang/Tz/Currency) | FK references allow filtered dropdowns (e.g. languages for Belgium); data from `pycountry`  |
+| 2026-02-22 | `product_updates` field removed                          | Single `marketing_emails` opt-in sufficient for Phase 1; extend when legally required       |
+| 2026-02-22 | Added `fr-be` (Belgian French) locale                    | Belgium is bilingual; French speakers are a core audience                                   |
+| 2026-02-22 | WCAG AA accessibility built in from Phase 2              | aria-invalid + aria-describedby on forms; skip-link; focus trap; 44px targets               |
+| 2026-02-22 | Never hard-delete User or UserProfile                    | Silent cascade risk; `is_active = False` is the only safe deactivation path                 |
 | 2026-02-22 | `TenantMembership` join table, no FK on `User`           | FK locks user to one workspace; join table allows multi-tenant membership and role tracking |
-| 2026-02-22 | `Tenant` fields: UUID PK + `organization` only           | `name` merged into `organization`; `slug` deferred — add when tenant-scoped URLs needed    |
-| 2026-02-22 | `TenantMembership` roles: `owner` + `member` only        | `admin` deferred; owner is sole privileged role; prevents premature RBAC complexity        |
-| 2026-02-22 | Owner can invite/revoke members via `/settings/members/` | Tenant isolation requires membership management; soft-revoke preserves audit trail         |
+| 2026-02-22 | `Tenant` fields: UUID PK + `organization` only           | `name` merged into `organization`; `slug` deferred — add when tenant-scoped URLs needed     |
+| 2026-02-22 | `TenantMembership` roles: `owner` + `member` only        | `admin` deferred; owner is sole privileged role; prevents premature RBAC complexity         |
+| 2026-02-22 | Owner can invite/revoke members via `/settings/members/` | Tenant isolation requires membership management; soft-revoke preserves audit trail          |
 
 ---
 

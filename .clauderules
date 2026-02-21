@@ -151,14 +151,8 @@ class UserProfile(TimeStampedSoftDeleteModel):
 - Theme preference in the profile form **also** updates `localStorage` key `theme`
 - Language preference in the profile form **also** triggers a locale switch
 
-**Navbar (authenticated):**
-
-- Replace the static "Leave" text with the user's `display_name` (fall back to
-  email local-part if `display_name` is null)
-- Clicking/tapping opens a **dropdown menu** with:
-  - "Profile" → `/profile/`
-  - "Logout" → `/logout/`
-- On mobile: same options available in the bottom nav / full-screen overlay user section
+**Navbar:** see §11 for the full navigation layout spec, including the authenticated
+`display_name` dropdown, mobile bottom nav, and aria requirements.
 
 ---
 
@@ -253,6 +247,45 @@ Populate from `pycountry` (PyPI) in the `load_reference_data` management command
 - Countries, languages, currencies: `pycountry.countries`, `pycountry.languages`, `pycountry.currencies`
 - Timezones: `zoneinfo.available_timezones()` + `zoneinfo.ZoneInfo` for offset calculation
 - Run the command once after initial migrations and in CI seed steps
+
+---
+
+## 5c. Tenants & Membership Models
+
+`Tenant` and `TenantMembership` live in `apps/tenants/`.
+
+### Tenant
+
+```python
+class Tenant(TimeStampedSoftDeleteModel):
+    id           = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organization = models.CharField(max_length=200)   # workspace / company name (required)
+    # No slug — UUID PK is the identifier; add slug only if tenant-scoped URLs are needed
+```
+
+### TenantMembership
+
+```python
+class TenantMembership(models.Model):
+    id       = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tenant   = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name="memberships")
+    user     = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                   related_name="memberships")
+    role     = models.CharField(max_length=20,
+                   choices=[("owner", "Owner"), ("member", "Member")],
+                   default="member")
+    joined_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)     # False = revoked, not deleted
+
+    class Meta:
+        unique_together = [("tenant", "user")]
+```
+
+> **No `admin` role** — `owner` is the single privileged role.
+> Add granular roles (e.g. `billing`) only when a concrete permission need arises (Phase 5+).
+
+> **No `tenant` FK on `User`** — workspace membership goes through `TenantMembership` only.
+> A user may belong to multiple tenants; the FK would lock them to one.
 
 ---
 
@@ -564,7 +597,7 @@ Place this script in `<head>` of `base.html` **before any CSS or `<body>` tags**
 
 ---
 
-## 17a. Date & Time — Store UTC, Display Local
+## 18. Date & Time — Store UTC, Display Local
 
 - `USE_TZ = True` in `base.py` (already set by Django default) — NEVER disable
 - All `DateTimeField` values are stored in UTC in the database
@@ -578,16 +611,18 @@ Place this script in `<head>` of `base.html` **before any CSS or `<body>` tags**
 
 ---
 
-## 18. Background Tasks (Async)
+## 19. Background Tasks (Async)
 
 - Use a task queue (Celery + Redis, or Django-Q) for any async work
-- Required for: billing webhooks, email sending, long-running jobs
+- Required for: billing webhooks, long-running jobs, and eventually email sending
 - Tasks live in `apps/<name>/tasks.py`
 - NEVER block a web request with slow I/O
+- **Phase 3 exception:** invitation emails use Django `send_mail` synchronously —
+  Celery is deferred to Phase 6. Replace with a task once Celery is installed.
 
 ---
 
-## 19. Code Quality
+## 20. Code Quality
 
 - After ANY new app, model, or file: `uv run ruff check --fix && uv run ruff format`
 - Line length: 88 | Quote style: double | Import order: isort via ruff
@@ -597,7 +632,7 @@ Place this script in `<head>` of `base.html` **before any CSS or `<body>` tags**
 
 ---
 
-## 20. Git
+## 21. Git
 
 - Commit messages: imperative mood, concise subject + optional body
 - Never commit: `.env`, `db.sqlite3`, `__pycache__`, `.DS_Store`, `staticfiles/`

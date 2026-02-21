@@ -21,6 +21,8 @@ Key rules summary (full detail in `.clauderules`):
 - PostgreSQL only — never SQLite
 - UUID PKs on every model
 - `tenant_id` on every tenant-scoped model
+- **NO `tenant` FK on `User`** — workspace membership goes through `TenantMembership` join table only
+- `TenantMembership` roles: `owner` and `member` only — no `admin` role yet
 - Soft deletes on all major models: `is_active`, `deleted_at`, `deleted_by`
 - **NEVER hard-delete a `User` or `UserProfile`** — set `is_active = False` only
 - Custom `User` model: `AbstractUser`, `USERNAME_FIELD = "email"`, custom `UserManager`
@@ -34,6 +36,9 @@ Key rules summary (full detail in `.clauderules`):
 - Login **cancel** link → redirect to homepage
 - Registration success → `/profile/complete/` (two-step onboarding: profile → tenant)
 - "Do this later" sets `session["skip_profile_gate"]` — does NOT permanently complete profile
+- Step 2 (workspace creation) cannot be skipped — minimum requirement for app access
+- Workspace creator gets `TenantMembership(role="owner")` — can invite/revoke members at `/settings/members/`
+- Owner cannot self-revoke; revoking sets `TenantMembership.is_active = False` (soft-revoke)
 - I18N: `en-us` + `nl-be` + `fr-be`; wrap all strings in `{% trans %}` / `_()`
 - `<html lang="{{ LANGUAGE_CODE }}">` — never hardcoded
 - WCAG AA: `aria-invalid`, `aria-describedby`, skip-to-content link, focus trap in modals, 44px min touch targets
