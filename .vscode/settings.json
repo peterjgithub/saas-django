@@ -27,8 +27,8 @@
 
   // ── Claude (Anthropic) in VS Code ──────────────────────────────────────
   // .clauderules is auto-detected by the Claude extension as the rules file.
-  // ai_context.md is attached as a context file for every chat session.
-  "claude.contextFiles": ["ai_context.md"],
+  // AGENTS.md is attached as a context file for every chat session.
+  "claude.contextFiles": ["AGENTS.md"],
 
   // ── GitHub Copilot (fallback / parallel use) ───────────────────────────
   // Instructions are read from .github/copilot-instructions.md automatically.
