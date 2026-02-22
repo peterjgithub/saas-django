@@ -34,7 +34,7 @@ from apps.users.forms import (
     RegisterForm,
     TenantCreateForm,
 )
-from apps.users.geo import get_client_ip, lookup_from_ip
+from apps.users.geo import country_code_from_timezone, get_client_ip, lookup_from_ip
 from apps.users.models import UserProfile
 from apps.users.services import (
     authenticate_user,
@@ -249,6 +249,17 @@ def profile_complete_view(request):
             country_obj = Country.objects.filter(code__iexact=sess_country).first()
             if country_obj:
                 initial["country"] = country_obj.pk
+
+        # Fallback: infer country from the browser timezone when locale gave no
+        # region subtag (e.g. navigator.language = "en" or "nl" without "-BE").
+        if not initial.get("country") and not profile.country_id:
+            tz_name = sess_tz or geo.get("timezone", "")
+            if tz_name:
+                cc = country_code_from_timezone(tz_name)
+                if cc:
+                    country_obj = Country.objects.filter(code=cc).first()
+                    if country_obj:
+                        initial["country"] = country_obj.pk
 
         form = ProfileCompleteForm(instance=profile, initial=initial)
 
