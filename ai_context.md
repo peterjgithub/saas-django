@@ -58,6 +58,7 @@
 | 34  | `TenantMembership` join table instead of FK on `User`            | A user may belong to multiple workspaces; FK on User locks them to one and conflates identity with membership                                          |
 | 35  | `Tenant` has only `organization` + UUID PK + base fields         | `name` was redundant with `organization`; `slug` deferred — UUID is sufficient for isolation until tenant-scoped URLs are needed                       |
 | 36  | `TenantMembership` roles: `owner` and `member` only              | `admin` role deferred — no concrete permission split yet; owner is the single privileged role; add granularity in Phase 5+ when real RBAC needs emerge |
+| 37  | Audit actor fields (`deleted_by`, opt-in `created_by`/`updated_by`) use `UUIDField` not `ForeignKey` | No FK constraint check on every write; no implicit index; no circular dependency on `User`; no JOIN overhead when reading audit data. Integrity enforced at the service layer. Add `db_index` per-model only if a query pattern warrants it. |
 
 ---
 
@@ -103,22 +104,28 @@ class TimeStampedSoftDeleteModel(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     is_active  = models.BooleanField(default=True, db_index=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
-    deleted_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True,
-        on_delete=models.SET_NULL, related_name="+"
-    )
+    deleted_by = models.UUIDField(null=True, blank=True)
+    # deleted_by stores the acting user's UUID — no FK, no DB constraint, no implicit index.
+    # Resolve to a User object in the service layer when needed:
+    #   User.objects.get(pk=instance.deleted_by)
     class Meta:
         abstract = True
 ```
 
 > `is_active` is the field all live queries filter on — it gets the index.
-> `deleted_at` and `deleted_by` are audit-only fields; querying them is rare and
-> full-scan-acceptable. The `deleted_by` FK gets an implicit index from Django anyway.
+> `deleted_at` and `deleted_by` are audit-only; querying them is rare.
+
+> **Hybrid integrity approach:** `deleted_by` (and the opt-in `created_by`/`updated_by`)
+> use `UUIDField` instead of `ForeignKey`. This eliminates FK constraint checks on every
+> write, removes the implicit index, removes circular dependency on `User`, and removes
+> `JOIN` overhead when reading audit data. Integrity is enforced at the application layer
+> (service functions always set these from a validated `request.user`). Add a `db_index`
+> per-model only if a concrete query pattern warrants it.
 
 > **`created_by` / `updated_by` are NOT in the base model.** They are opt-in, added
 > only on models where attribution genuinely matters (e.g. `Document`, `Invoice`).
-> This avoids circular FK dependencies — especially on `User` itself — and keeps
-> migrations clean. Document the decision with a comment on each opt-in model.
+> Use `UUIDField` — same rationale as `deleted_by`. Document the decision with a
+> comment on each opt-in model.
 
 ---
 
@@ -492,6 +499,7 @@ These are valid ideas — implement only after Phase 7 is complete:
 | 2026-02-22 | `Tenant` fields: UUID PK + `organization` only           | `name` merged into `organization`; `slug` deferred — add when tenant-scoped URLs needed     |
 | 2026-02-22 | `TenantMembership` roles: `owner` + `member` only        | `admin` deferred; owner is sole privileged role; prevents premature RBAC complexity         |
 | 2026-02-22 | Owner can invite/revoke members via `/settings/members/` | Tenant isolation requires membership management; soft-revoke preserves audit trail          |
+| 2026-02-22 | Audit actor fields use `UUIDField` not `ForeignKey`      | Hybrid integrity: no FK constraint, no implicit index, no circular dep on `User`; service layer owns integrity; index per-model on demand |
 
 ---
 

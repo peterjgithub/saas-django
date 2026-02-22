@@ -24,6 +24,7 @@ Key rules summary (full detail in `.clauderules`):
 - **NO `tenant` FK on `User`** — workspace membership goes through `TenantMembership` join table only
 - `TenantMembership` roles: `owner` and `member` only — no `admin` role yet
 - Soft deletes on all major models: `is_active`, `deleted_at`, `deleted_by`
+- `deleted_by` / `created_by` / `updated_by` are **`UUIDField`** (not `ForeignKey`) — no FK constraint, no implicit index; resolve to a `User` in the service layer
 - **NEVER hard-delete a `User` or `UserProfile`** — set `is_active = False` only
 - Custom `User` model: `AbstractUser`, `USERNAME_FIELD = "email"`, custom `UserManager`
 - After first User migration: run `createsuperuser`

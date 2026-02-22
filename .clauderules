@@ -43,19 +43,27 @@ Apply to every major data model (not lookup/config tables):
   ```python
   is_active   = models.BooleanField(default=True, db_index=True)
   deleted_at  = models.DateTimeField(null=True, blank=True)
-  deleted_by  = models.ForeignKey(
-      settings.AUTH_USER_MODEL, null=True, blank=True,
-      on_delete=models.SET_NULL, related_name="+"
-  )
+  deleted_by  = models.UUIDField(null=True, blank=True)
+               # stores the acting user's UUID — no FK, no constraint, no implicit index
   ```
   > `is_active` is the field all live queries filter on — it gets the index.
-  > `deleted_at` and `deleted_by` are audit fields only; querying them is rare and
-  > full-scan-acceptable. Django adds an implicit index to the `deleted_by` FK anyway.
+  > `deleted_at` and `deleted_by` are audit fields only; querying them is rare.
+  > `deleted_by` is a bare `UUIDField`: no JOIN overhead, no FK constraint check on
+  > every write, no circular dependency on `User`. Resolve to a user object in the
+  > service layer when needed (`User.objects.get(pk=deleted_by)`).
+  > Do **not** add a `db_index` on `deleted_by` — add it per-model only if a query
+  > pattern emerges that genuinely needs it.
 - **Timestamps:** `created_at` / `updated_at` via `auto_now_add` / `auto_now`
 - **`created_by` / `updated_by`:** Do NOT add these to the abstract base model.
-  They cause circular dependency risks (especially on `User` itself) and migration
-  complexity. Add them **opt-in**, only on models where attribution genuinely matters
-  (e.g. a `Document` or `Invoice`). Document the decision per model in a comment.
+  Add them **opt-in**, only on models where attribution genuinely matters
+  (e.g. a `Document` or `Invoice`). Use `UUIDField` — same rationale as `deleted_by`:
+  no FK, no constraint, no index unless explicitly needed.
+  ```python
+  # opt-in example (add directly on the model, not in the base):
+  created_by = models.UUIDField(null=True, blank=True)  # set once in the service layer
+  updated_by = models.UUIDField(null=True, blank=True)  # updated on every mutation
+  ```
+  Document the decision per model in a comment.
 - NEVER raw SQL — always use the Django ORM
 - Keep `models.py` thin — no business logic
 
