@@ -39,6 +39,7 @@ urlpatterns = [
         ),
         name="password_reset_complete",
     ),
+    path("i18n/", include("django.conf.urls.i18n")),
     path("", include("apps.pages.urls")),
     path("", include("apps.users.urls")),
 ]

@@ -34,6 +34,7 @@ _ALWAYS_EXEMPT = {
     "/password-reset/confirm/",
     "/password-reset/complete/",
     "/theme/set/",
+    "/i18n/set_language/",
 }
 
 

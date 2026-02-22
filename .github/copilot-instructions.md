@@ -50,6 +50,7 @@ Key rules summary (full detail in `.clauderules`):
 - Workspace creator gets `role="admin"` on their `UserProfile` — can invite/revoke members at `/settings/members/`
 - Admin cannot self-revoke; revoking sets `UserProfile.is_active = False` + `tenant_revoked_at = now()` (soft-revoke); `tenant` FK is never cleared
 - I18N: `en-us` + `nl-be` + `fr-be`; wrap all strings in `trans` template tag / `_()`
+- Locale directories are `locale/nl/` and `locale/fr/` (matching `LANGUAGES` codes `"nl"` and `"fr"`); never use `nl_BE`/`fr_BE` directory names — they won't be found by `LocaleMiddleware`
 - `<html lang="LANGUAGE_CODE">` — use the context variable, never hardcode a language
 - WCAG AA: `aria-invalid`, `aria-describedby`, skip-to-content link, focus trap in modals, 44px min touch targets
 - Stripe and Celery deferred to Phase 6 — do not add earlier

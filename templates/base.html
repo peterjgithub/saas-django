@@ -60,6 +60,45 @@
       </div>
 
       <div class="navbar-end gap-2">
+        {# Language switcher — desktop #}
+        <div class="dropdown dropdown-end">
+          <button tabindex="0" class="btn btn-ghost btn-sm gap-1" aria-label="{% trans 'Select language' %}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="size-4" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
+            </svg>
+            <span class="uppercase text-xs font-medium">{{ LANGUAGE_CODE|slice:":2" }}</span>
+          </button>
+          <ul tabindex="0"
+              class="dropdown-content menu bg-base-200 rounded-box shadow-md w-32 mt-1 p-1 z-50">
+            <li>
+              <form method="post" action="{% url 'set_language' %}">
+                {% csrf_token %}
+                <input type="hidden" name="language" value="en">
+                <input type="hidden" name="next" value="{{ request.path }}">
+                <button type="submit" class="w-full text-left">🇬🇧 English</button>
+              </form>
+            </li>
+            <li>
+              <form method="post" action="{% url 'set_language' %}">
+                {% csrf_token %}
+                <input type="hidden" name="language" value="nl">
+                <input type="hidden" name="next" value="{{ request.path }}">
+                <button type="submit" class="w-full text-left">🇧🇪 Nederlands</button>
+              </form>
+            </li>
+            <li>
+              <form method="post" action="{% url 'set_language' %}">
+                {% csrf_token %}
+                <input type="hidden" name="language" value="fr">
+                <input type="hidden" name="next" value="{{ request.path }}">
+                <button type="submit" class="w-full text-left">🇧🇪 Français</button>
+              </form>
+            </li>
+          </ul>
+        </div>
+
         <button id="theme-toggle"
                 class="btn btn-ghost btn-sm btn-circle"
                 aria-label="{% trans 'Cycle colour theme' %}"
@@ -232,6 +271,31 @@
           {% trans "Admin" %}
         </a>
         {% endif %}
+        <div class="divider my-1"></div>
+        {# Language switcher row #}
+        <div class="flex items-center justify-between px-1">
+          <span class="text-sm">{% trans "Language" %}</span>
+          <div class="flex gap-1">
+            <form method="post" action="{% url 'set_language' %}">
+              {% csrf_token %}
+              <input type="hidden" name="language" value="en">
+              <input type="hidden" name="next" value="{{ request.path }}">
+              <button type="submit" class="btn btn-ghost btn-xs" title="English">🇬🇧</button>
+            </form>
+            <form method="post" action="{% url 'set_language' %}">
+              {% csrf_token %}
+              <input type="hidden" name="language" value="nl">
+              <input type="hidden" name="next" value="{{ request.path }}">
+              <button type="submit" class="btn btn-ghost btn-xs" title="Nederlands">🇧🇪 NL</button>
+            </form>
+            <form method="post" action="{% url 'set_language' %}">
+              {% csrf_token %}
+              <input type="hidden" name="language" value="fr">
+              <input type="hidden" name="next" value="{{ request.path }}">
+              <button type="submit" class="btn btn-ghost btn-xs" title="Français">🇧🇪 FR</button>
+            </form>
+          </div>
+        </div>
         <div class="divider my-1"></div>
         {# Theme toggle row #}
         <div class="flex items-center justify-between px-1">
