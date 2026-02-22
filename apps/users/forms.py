@@ -129,13 +129,12 @@ class TenantCreateForm(forms.Form):
 
 
 class ProfileSettingsForm(forms.ModelForm):
-    """Full profile preferences — everything except email and password."""
+    """Full profile preferences — everything except email, password, and language."""
 
     class Meta:
         model = UserProfile
         fields = [
             "display_name",
-            "language",
             "timezone",
             "country",
             "currency",
@@ -151,13 +150,6 @@ class ProfileSettingsForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["language"].queryset = Language.objects.all().order_by("name")
-        self.fields["language"].empty_label = _("Select language")
-        self.fields["language"].widget.attrs.update(
-            {"class": "select w-full text-base"}
-        )
-        self.fields["language"].required = False
-
         self.fields["timezone"].queryset = Timezone.objects.all().order_by("name")
         self.fields["timezone"].empty_label = _("Select timezone")
         self.fields["timezone"].widget.attrs.update(

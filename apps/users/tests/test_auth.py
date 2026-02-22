@@ -503,84 +503,69 @@ class SetThemeViewTest(TestCase):
 
 class LanguageCookieSyncTest(TestCase):
     """
-    Verify that saving a language preference in the profile form (or onboarding)
-    sets the django_language cookie so LocaleMiddleware picks it up on the next
-    request — without relying on the removed LANGUAGE_SESSION_KEY.
+    Language switching now goes through Django's built-in set_language view
+    (same mechanism as the navbar/profile language buttons).
+
+    The profile form no longer has a language field — saving other profile
+    preferences must not clobber the active locale cookie.
     """
 
     LANG_COOKIE = "django_language"
 
     def setUp(self):
-        from apps.core.models import Language
         from apps.tenants.models import Tenant
 
-        # Create minimal Language rows — no need for the full reference dataset.
-        self.nl_lang = Language.objects.create(code="nl", name="Dutch")
-        self.fr_lang = Language.objects.create(code="fr", name="French")
         tenant = Tenant.objects.create(organization="Test Corp")
         self.user = _make_user(
             email="langtest@example.com", complete=True, tenant=tenant
         )
         self.client.force_login(self.user)
 
-    def test_profile_save_nl_sets_cookie_nl_be(self):
-        """Saving language=nl in the full profile form sets django_language=nl-be."""
+    def test_set_language_nl_sets_cookie_nl_be(self):
+        """POSTing nl-be to set_language sets django_language=nl-be."""
         response = self.client.post(
-            reverse("users:profile"),
-            {
-                "display_name": "Test",
-                "language": self.nl_lang.pk,
-                "theme": "system",
-                "marketing_emails": "",
-            },
+            reverse("set_language"),
+            {"language": "nl-be", "next": reverse("users:profile")},
         )
-        # Expect a redirect (success)
-        self.assertEqual(response.status_code, 302)
+        self.assertIn(response.status_code, [302, 200])
         self.assertEqual(response.cookies.get(self.LANG_COOKIE).value, "nl-be")
 
-    def test_profile_save_fr_sets_cookie_fr_be(self):
-        """Saving language=fr in the full profile form sets django_language=fr-be."""
+    def test_set_language_fr_sets_cookie_fr_be(self):
+        """POSTing fr-be to set_language sets django_language=fr-be."""
         response = self.client.post(
-            reverse("users:profile"),
-            {
-                "display_name": "Test",
-                "language": self.fr_lang.pk,
-                "theme": "system",
-                "marketing_emails": "",
-            },
+            reverse("set_language"),
+            {"language": "fr-be", "next": reverse("users:profile")},
         )
-        self.assertEqual(response.status_code, 302)
+        self.assertIn(response.status_code, [302, 200])
         self.assertEqual(response.cookies.get(self.LANG_COOKIE).value, "fr-be")
 
-    def test_profile_save_no_language_sets_cookie_en(self):
-        """Clearing language (blank) in the profile form sets django_language=en."""
+    def test_profile_save_preserves_active_locale(self):
+        """
+        Saving the profile form (no language field) must not reset the locale.
+        After switching to nl-be the profile save should keep the nl-be cookie.
+        """
+        # First switch to Dutch via set_language.
+        self.client.post(
+            reverse("set_language"),
+            {"language": "nl-be", "next": reverse("users:profile")},
+        )
+        # Now save the profile form — no language field.
         response = self.client.post(
             reverse("users:profile"),
-            {
-                "display_name": "Test",
-                "language": "",
-                "theme": "system",
-                "marketing_emails": "",
-            },
+            {"display_name": "Test", "theme": "system", "marketing_emails": ""},
         )
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.cookies.get(self.LANG_COOKIE).value, "en")
+        # Cookie must still carry nl-be (the form must not have reset it to en).
+        self.assertEqual(response.cookies.get(self.LANG_COOKIE).value, "nl-be")
 
     def test_profile_save_nl_changes_ui_language(self):
-        """After saving nl the next page load is in Dutch (cookie round-trip)."""
-        # Save Dutch preference — this sets the cookie on the response.
-        # follow=True ensures the test client picks up the Set-Cookie header.
-        response = self.client.post(
-            reverse("users:profile"),
-            {
-                "display_name": "Test",
-                "language": self.nl_lang.pk,
-                "theme": "system",
-                "marketing_emails": "",
-            },
-            follow=True,
+        """After switching to Dutch the next page load is in Dutch."""
+        # Switch language via set_language then follow the redirect.
+        self.client.post(
+            reverse("set_language"),
+            {"language": "nl-be", "next": reverse("users:profile")},
         )
-        # After the redirect the client carries django_language=nl-be.
-        # The final page (profile page itself) should render in Dutch.
+        # Load the profile page — it should now render in Dutch.
+        response = self.client.get(reverse("users:profile"))
         # "Wijzigingen opslaan" = "Save changes" in Dutch.
         self.assertContains(response, "Wijzigingen opslaan")

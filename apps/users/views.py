@@ -23,7 +23,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.utils.translation import activate
+from django.utils.translation import activate, get_language
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_POST
 
@@ -380,9 +380,10 @@ def profile_view(request):
         form = ProfileSettingsForm(request.POST, instance=profile)
         if form.is_valid():
             form.save()
-            # Sync Django locale to the newly saved language preference.
-            profile.refresh_from_db()
-            locale = locale_code_for_language(profile.language)
+            # Preserve the current active locale (set by LocaleMiddleware from the
+            # django_language cookie) — language is now changed via the navbar/profile
+            # language buttons (set_language), not through this form.
+            locale = get_language() or "en"
             messages.success(request, _("Your profile has been updated."))
             return _apply_language(locale, redirect("users:profile"))
     else:
