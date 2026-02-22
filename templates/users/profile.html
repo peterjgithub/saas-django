@@ -169,7 +169,7 @@
 
 {% block extra_js %}
 <script>
-  {# After a profile save the page reloads — sync localStorage to the newly saved theme #}
+  // After a profile save the page reloads — sync localStorage to the newly saved theme.
   (function () {
     var saved = '{{ saved_theme|escapejs }}';
     if (saved) {

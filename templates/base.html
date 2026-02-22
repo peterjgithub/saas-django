@@ -12,22 +12,20 @@
   <script>
     (function () {
       {% if user.is_authenticated %}
-      {# Server-side preference wins — overrides any stale localStorage value. #}
-      var serverTheme = '{{ current_theme }}';  {# "corporate" | "night" | "system" #}
+      // Server-side preference wins — overrides any stale localStorage value.
+      var serverTheme = '{{ current_theme }}'; // "corporate" | "night" | "system"
       var stored = localStorage.getItem('theme');
-      {# Only trust localStorage if the user hasn't saved a server preference yet #}
-      var pref = (serverTheme && serverTheme !== 'system') ? serverTheme
-                 : (serverTheme === 'system') ? 'system'
-                 : (stored || 'system');
+      // serverTheme is always set for authenticated users; trust it directly.
+      var pref = serverTheme || stored || 'system';
       {% else %}
-      {# Unauthenticated — localStorage only #}
+      // Unauthenticated — localStorage only.
       var pref = localStorage.getItem('theme') || 'system';
       {% endif %}
       var resolved = (pref === 'night') ? 'night'
                      : (pref === 'corporate') ? 'corporate'
                      : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'night' : 'corporate');
       document.documentElement.setAttribute('data-theme', resolved);
-      {# Store the logical pref (may be "system"), not the resolved value #}
+      // Store the logical pref (may be "system"), not the resolved value.
       localStorage.setItem('theme', pref);
     })();
   </script>
@@ -290,13 +288,12 @@
     <p>© {% now "Y" %} {{ SITE_NAME }}</p>
   </footer>
 
-  {# THEME TOGGLE SCRIPT
-     Pref values:  "corporate" | "night" | "system"
-     Cycle order:  corporate → night → system → corporate …
-     Resolved:     system → read prefers-color-scheme at runtime
-     Persistence:  localStorage always; POST to /theme/set/ when authenticated.
-  #}
+  {# THEME TOGGLE SCRIPT #}
   <script>
+    // Theme toggle — pref values: "corporate" | "night" | "system"
+    // Cycle order:  corporate → night → system → corporate …
+    // "system" resolves prefers-color-scheme at runtime.
+    // Persistence: localStorage always; POST to /theme/set/ when authenticated.
     (function () {
       var btn        = document.getElementById('theme-toggle');
       var btnMobile  = document.getElementById('theme-toggle-mobile');
@@ -318,7 +315,7 @@
       function resolveTheme(pref) {
         if (pref === 'night')     return 'night';
         if (pref === 'corporate') return 'corporate';
-        {# "system" — read OS preference at runtime #}
+        // "system" — read OS preference at runtime
         return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'night' : 'corporate';
       }
 
@@ -329,11 +326,11 @@
       }
 
       function updateIcons(pref) {
-        {# sun = currently dark → clicking goes to system #}
+        // sun = currently dark → clicking goes to system
         var showSun    = pref === 'night';
-        {# moon = currently light → clicking goes to dark #}
+        // moon = currently light → clicking goes to dark
         var showMoon   = pref === 'corporate';
-        {# monitor = currently system → clicking goes to light #}
+        // monitor = currently system → clicking goes to light
         var showSystem = pref === 'system';
         if (icons.sun)          icons.sun.classList.toggle('hidden', !showSun);
         if (icons.moon)         icons.moon.classList.toggle('hidden', !showMoon);
@@ -358,10 +355,10 @@
         }
       }
 
-      {# Initialise icons from current pref stored in localStorage #}
+      // Initialise icons from current pref stored in localStorage.
       updateIcons(localStorage.getItem('theme') || 'system');
 
-      {# Listen for OS preference changes while page is open (system mode only) #}
+      // Re-apply when OS preference changes while the page is open (system mode only).
       window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
         var pref = localStorage.getItem('theme') || 'system';
         if (pref === 'system') {
