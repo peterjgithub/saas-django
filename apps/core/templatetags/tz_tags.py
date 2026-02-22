@@ -50,3 +50,22 @@ def localtime(value, tz):
         value = django_timezone.make_aware(value, ZoneInfo("UTC"))
 
     return value.astimezone(zone)
+
+
+@register.filter
+def flag_emoji(country_code: str) -> str:
+    """
+    Convert an ISO 3166-1 alpha-2 country code to a flag emoji.
+
+    Each letter is mapped to the corresponding Regional Indicator Symbol
+    (U+1F1E6–U+1F1FF).  Unknown or empty codes return an empty string.
+
+    Usage:
+        {{ country.code|flag_emoji }}
+    """
+    if not country_code or len(country_code) != 2:
+        return ""
+    try:
+        return "".join(chr(0x1F1E6 + ord(c.upper()) - ord("A")) for c in country_code)
+    except TypeError, ValueError:
+        return ""

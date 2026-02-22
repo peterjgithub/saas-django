@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n tz_tags %}
 
 {% block title %}{% trans "Complete your profile" %} — {{ SITE_NAME }}{% endblock %}
 
@@ -113,7 +113,7 @@
               <option value="">{% trans "— Select your country —" %}</option>
               {% for c in form.country.field.queryset %}
               <option value="{{ c.pk }}" {% if form.country.value|stringformat:"s" == c.pk|stringformat:"s" %}selected{% endif %}>
-                {{ c.flag_emoji }} {{ c.name }}
+                {{ c.code|flag_emoji }} {{ c.name }}
               </option>
               {% endfor %}
             </select>

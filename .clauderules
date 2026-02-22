@@ -530,6 +530,7 @@ apps/<name>/
 Place this script in `<head>` of `base.html` **before any CSS or `<body>` tags**.
 
 **Three-state preference model:** `"corporate"` (light) | `"night"` (dark) | `"system"` (follow OS).
+
 - `localStorage` key `theme` always stores the logical pref (may be `"system"`).
 - For **authenticated users** the server injects their saved `UserProfile.theme` via
   `{{ current_theme }}` (from `config/context_processors.py`). This wins over any
