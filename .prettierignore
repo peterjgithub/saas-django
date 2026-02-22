@@ -1,0 +1,3 @@
+# Django templates — Prettier does not understand {% %} template tags
+# and will collapse them onto single lines, breaking the Django parser.
+templates/

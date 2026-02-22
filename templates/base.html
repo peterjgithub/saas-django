@@ -1,448 +1,267 @@
-{% load i18n %}<!doctype html>
+{% load i18n %}<!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE }}" data-theme="">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}{{ SITE_NAME }}{% endblock %}</title>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}{{ SITE_NAME }}{% endblock %}</title>
 
-    {# ------------------------------------------------------------------ #} {#
-    Anti-flash: apply saved theme BEFORE any CSS loads to prevent FOUC #} {#
-    ------------------------------------------------------------------ #}
-    <script>
-      (function () {
-        var saved = localStorage.getItem("theme");
-        var theme =
-          saved === "corporate" || saved === "night"
-            ? saved
-            : window.matchMedia("(prefers-color-scheme: dark)").matches
-              ? "night"
-              : "corporate";
-        document.documentElement.setAttribute("data-theme", theme);
-      })();
-    </script>
+  {# Anti-flash: apply saved theme BEFORE any CSS loads to prevent FOUC #}
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var theme = (saved === 'corporate' || saved === 'night') ? saved
+                  : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'night' : 'corporate');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
 
-    {# DaisyUI + Tailwind via CDN (dev). Swap for compiled output in prod. #}
-    <link
-      href="https://cdn.jsdelivr.net/npm/daisyui@5"
-      rel="stylesheet"
-      type="text/css"
-    />
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  {# DaisyUI + Tailwind via CDN (dev). Swap for compiled output in prod. #}
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
-    {% block extra_head %}{% endblock %}
-  </head>
+  {% block extra_head %}{% endblock %}
+</head>
 
-  <body class="min-h-screen flex flex-col bg-base-100 text-base-content">
-    {# ------------------------------------------------------------------ #} {#
-    Skip-to-content — first focusable element, WCAG AA #} {#
-    ------------------------------------------------------------------ #}
-    <a
-      href="#main-content"
-      class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:rounded focus:bg-primary focus:text-primary-content focus:outline-none focus:ring-2 focus:ring-primary-focus"
-    >
-      {% trans "Skip to main content" %}
-    </a>
+<body class="min-h-screen flex flex-col bg-base-100 text-base-content">
 
-    {# ================================================================== #} {#
-    DESKTOP NAVBAR #} {#
-    ================================================================== #}
-    <header class="hidden md:block sticky top-0 z-40 w-full">
-      <nav
-        class="navbar bg-base-200 shadow-sm px-4"
-        aria-label="{% trans 'Main navigation' %}"
-      >
-        {# Logo / brand — left #}
-        <div class="navbar-start">
-          <a
-            href="{% url 'pages:home' %}"
-            class="btn btn-ghost text-xl font-bold"
-          >
-            {{ SITE_NAME }}
-          </a>
-        </div>
+  {# Skip-to-content — first focusable element, WCAG AA #}
+  <a href="#main-content"
+     class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50
+            focus:px-4 focus:py-2 focus:rounded focus:bg-primary focus:text-primary-content
+            focus:outline-none focus:ring-2 focus:ring-primary-focus">
+    {% trans "Skip to main content" %}
+  </a>
 
-        {# Centre nav links (extend via block) #}
-        <div class="navbar-center hidden lg:flex">
-          {% block nav_centre %}{% endblock %}
-        </div>
+  {# DESKTOP NAVBAR #}
+  <header class="hidden md:block sticky top-0 z-40 w-full">
+    <nav class="navbar bg-base-200 shadow-sm px-4" aria-label="{% trans 'Main navigation' %}">
 
-        {# Controls — right #}
-        <div class="navbar-end gap-2">
-          {# Theme toggle #}
-          <button
-            id="theme-toggle"
-            class="btn btn-ghost btn-sm btn-circle"
-            aria-label="{% trans 'Toggle colour theme' %}"
-            title="{% trans 'Toggle light / dark' %}"
-          >
-            {# Sun icon (shown in dark mode) #}
-            <svg
-              id="icon-sun"
-              xmlns="http://www.w3.org/2000/svg"
-              class="size-5 hidden"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="2"
-              aria-hidden="true"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364-.707.707M6.343 17.657l-.707.707
-                     M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"
-              />
-            </svg>
-            {# Moon icon (shown in light mode) #}
-            <svg
-              id="icon-moon"
-              xmlns="http://www.w3.org/2000/svg"
-              class="size-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="2"
-              aria-hidden="true"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
-              />
-            </svg>
-          </button>
+      <div class="navbar-start">
+        <a href="{% url 'pages:home' %}" class="btn btn-ghost text-xl font-bold">
+          {{ SITE_NAME }}
+        </a>
+      </div>
 
-          {# Auth control #} {% if user.is_authenticated %}
+      <div class="navbar-center hidden lg:flex">
+        {% block nav_centre %}{% endblock %}
+      </div>
+
+      <div class="navbar-end gap-2">
+        <button id="theme-toggle"
+                class="btn btn-ghost btn-sm btn-circle"
+                aria-label="{% trans 'Toggle colour theme' %}"
+                title="{% trans 'Toggle light / dark' %}">
+          <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" class="size-5 hidden" fill="none"
+               viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/>
+          </svg>
+          <svg id="icon-moon" xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none"
+               viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
+
+        {% if user.is_authenticated %}
           <div class="dropdown dropdown-end">
-            <button
-              tabindex="0"
-              class="btn btn-ghost btn-sm gap-1"
-              aria-haspopup="true"
-              aria-label="{% trans 'User menu' %}"
-            >
+            <button tabindex="0" class="btn btn-ghost btn-sm gap-1"
+                    aria-haspopup="true" aria-label="{% trans 'User menu' %}">
               <span class="max-w-[10rem] truncate">
                 {{ user.profile.display_name|default:user.email }}
               </span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="size-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
-                aria-hidden="true"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M19 9l-7 7-7-7"
-                />
+              <svg xmlns="http://www.w3.org/2000/svg" class="size-4" fill="none"
+                   viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
               </svg>
             </button>
-            <ul
-              tabindex="0"
-              class="dropdown-content menu bg-base-200 rounded-box shadow-md w-44 mt-1 p-1 z-50"
-            >
-              <li>
-                <a href="{% url 'users:profile' %}">{% trans "Profile" %}</a>
-              </li>
+            <ul tabindex="0"
+                class="dropdown-content menu bg-base-200 rounded-box shadow-md w-44 mt-1 p-1 z-50">
+              <li><a href="{% url 'users:profile' %}">{% trans "Profile" %}</a></li>
               <li>
                 <form method="post" action="{% url 'users:logout' %}">
                   {% csrf_token %}
-                  <button type="submit" class="w-full text-left">
-                    {% trans "Log out" %}
-                  </button>
+                  <button type="submit" class="w-full text-left">{% trans "Log out" %}</button>
                 </form>
               </li>
             </ul>
           </div>
-          {% else %}
+        {% else %}
           <a href="{% url 'users:login' %}" class="btn btn-primary btn-sm">
             {% trans "Get started" %}
           </a>
-          {% endif %}
-        </div>
-      </nav>
-    </header>
+        {% endif %}
+      </div>
+    </nav>
+  </header>
 
-    {# ================================================================== #} {#
-    PAGE LAYOUT — sidebar (auth) + main #} {#
-    ================================================================== #}
-    <div class="flex flex-1 overflow-hidden">
-      {# Left sidebar — authenticated only, desktop #} {% if
-      user.is_authenticated %}
-      <aside
-        class="hidden md:flex flex-col w-56 shrink-0 bg-base-200 border-r border-base-300 py-4"
-        aria-label="{% trans 'Sidebar navigation' %}"
-      >
-        <nav class="flex flex-col gap-1 px-2">
-          {% block sidebar_nav %}
-          <a
-            href="{% url 'pages:dashboard' %}"
-            class="btn btn-ghost btn-sm justify-start gap-2"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="size-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="2"
-              aria-hidden="true"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3
-                       m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-              />
+  {# PAGE LAYOUT — sidebar + main #}
+  <div class="flex flex-1 overflow-hidden">
+
+    {% if user.is_authenticated %}
+    <aside class="hidden md:flex flex-col w-56 shrink-0 bg-base-200 border-r border-base-300 py-4"
+           aria-label="{% trans 'Sidebar navigation' %}">
+      <nav class="flex flex-col gap-1 px-2">
+        {% block sidebar_nav %}
+          <a href="{% url 'pages:dashboard' %}" class="btn btn-ghost btn-sm justify-start gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="size-4" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
             </svg>
             {% trans "Dashboard" %}
           </a>
-          <a
-            href="{% url 'users:profile' %}"
-            class="btn btn-ghost btn-sm justify-start gap-2"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="size-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="2"
-              aria-hidden="true"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804
-                       M15 10a3 3 0 11-6 0 3 3 0 016 0z"
-              />
+          <a href="{% url 'users:profile' %}" class="btn btn-ghost btn-sm justify-start gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="size-4" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"/>
             </svg>
             {% trans "Profile" %}
           </a>
-          {% endblock sidebar_nav %}
-        </nav>
-      </aside>
-      {% endif %} {# Main content area #}
-      <main
-        id="main-content"
-        class="flex-1 overflow-y-auto p-4 md:p-8"
-        tabindex="-1"
-      >
-        {# Flash messages #} {% if messages %}
-        <section
-          aria-live="polite"
-          aria-atomic="true"
-          class="mb-4 flex flex-col gap-2"
-        >
+        {% endblock sidebar_nav %}
+      </nav>
+    </aside>
+    {% endif %}
+
+    <main id="main-content" class="flex-1 overflow-y-auto p-4 md:p-8" tabindex="-1">
+      {% if messages %}
+        <section aria-live="polite" aria-atomic="true" class="mb-4 flex flex-col gap-2">
           {% for message in messages %}
-          <div
-            role="alert"
-            class="alert {% if message.tags == 'error' %}alert-error {% elif message.tags == 'success' %}alert-success {% elif message.tags == 'warning' %}alert-warning {% else %}alert-info{% endif %}"
-          >
-            <span>{{ message }}</span>
-          </div>
+            <div role="alert"
+                 class="alert {% if message.tags == 'error' %}alert-error{% elif message.tags == 'success' %}alert-success{% elif message.tags == 'warning' %}alert-warning{% else %}alert-info{% endif %}">
+              <span>{{ message }}</span>
+            </div>
           {% endfor %}
         </section>
-        {% endif %} {% block content %}{% endblock %}
-      </main>
-    </div>
+      {% endif %}
 
-    {# ================================================================== #} {#
-    MOBILE BOTTOM NAV #} {#
-    ================================================================== #}
-    <nav
-      class="md:hidden btm-nav btm-nav-sm z-40 bg-base-200 border-t border-base-300"
-      aria-label="{% trans 'Mobile navigation' %}"
-    >
-      <a href="{% url 'pages:home' %}" class="btm-nav-item">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="size-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          stroke-width="2"
-          aria-hidden="true"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10
-                 a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-          />
-        </svg>
-        <span class="btm-nav-label text-xs">{% trans "Home" %}</span>
-      </a>
+      {% block content %}{% endblock %}
+    </main>
+  </div>
 
-      {% if user.is_authenticated %}
+  {# MOBILE BOTTOM NAV #}
+  <nav class="md:hidden btm-nav btm-nav-sm z-40 bg-base-200 border-t border-base-300"
+       aria-label="{% trans 'Mobile navigation' %}">
+    <a href="{% url 'pages:home' %}" class="btm-nav-item">
+      <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none"
+           viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round"
+              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+      </svg>
+      <span class="btm-nav-label text-xs">{% trans "Home" %}</span>
+    </a>
+
+    {% if user.is_authenticated %}
       <a href="{% url 'pages:dashboard' %}" class="btm-nav-item">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="size-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          stroke-width="2"
-          aria-hidden="true"
-        >
-          <rect x="3" y="3" width="7" height="7" rx="1" />
-          <rect x="14" y="3" width="7" height="7" rx="1" />
-          <rect x="3" y="14" width="7" height="7" rx="1" />
-          <rect x="14" y="14" width="7" height="7" rx="1" />
+        <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none"
+             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <rect x="3" y="3" width="7" height="7" rx="1"/>
+          <rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/>
+          <rect x="14" y="14" width="7" height="7" rx="1"/>
         </svg>
         <span class="btm-nav-label text-xs">{% trans "Dashboard" %}</span>
       </a>
-
-      {# Mobile user menu trigger #}
-      <button
-        class="btm-nav-item"
-        aria-haspopup="dialog"
-        aria-label="{% trans 'Toggle menu' %}"
-        onclick="document.getElementById('mobile-overlay').showModal()"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="size-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          stroke-width="2"
-          aria-hidden="true"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M4 6h16M4 12h16M4 18h16"
-          />
+      <button class="btm-nav-item"
+              aria-haspopup="dialog"
+              aria-label="{% trans 'Toggle menu' %}"
+              onclick="document.getElementById('mobile-overlay').showModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none"
+             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
         </svg>
         <span class="btm-nav-label text-xs">{% trans "Menu" %}</span>
       </button>
-      {% else %}
+    {% else %}
       <a href="{% url 'users:login' %}" class="btm-nav-item">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="size-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          stroke-width="2"
-          aria-hidden="true"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7
-                   a3 3 0 013 3v1"
-          />
+        <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none"
+             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
         </svg>
         <span class="btm-nav-label text-xs">{% trans "Sign in" %}</span>
       </a>
-      {% endif %}
-    </nav>
+    {% endif %}
+  </nav>
 
-    {# ================================================================== #} {#
-    MOBILE FULL-SCREEN OVERLAY (DaisyUI modal / dialog) #} {#
-    ================================================================== #} {% if
-    user.is_authenticated %}
-    <dialog
-      id="mobile-overlay"
-      class="modal modal-bottom sm:modal-middle"
-      aria-label="{% trans 'Navigation menu' %}"
-    >
-      <div class="modal-box">
-        <h3 class="font-bold text-lg mb-4">
-          {{ user.profile.display_name|default:user.email }}
-        </h3>
-        <nav class="flex flex-col gap-2" aria-label="{% trans 'Mobile menu' %}">
-          <a
-            href="{% url 'pages:dashboard' %}"
-            class="btn btn-ghost justify-start"
-            onclick="document.getElementById('mobile-overlay').close()"
-          >
-            {% trans "Dashboard" %}
-          </a>
-          <a
-            href="{% url 'users:profile' %}"
-            class="btn btn-ghost justify-start"
-            onclick="document.getElementById('mobile-overlay').close()"
-          >
-            {% trans "Profile" %}
-          </a>
-          <div class="divider my-1"></div>
-          <form method="post" action="{% url 'users:logout' %}">
-            {% csrf_token %}
-            <button
-              type="submit"
-              class="btn btn-ghost justify-start w-full text-error"
-            >
-              {% trans "Log out" %}
-            </button>
-          </form>
-        </nav>
-        <div class="modal-action mt-4">
-          <button
-            class="btn btn-sm btn-ghost"
-            onclick="document.getElementById('mobile-overlay').close()"
-          >
-            {% trans "Close" %}
+  {# MOBILE FULL-SCREEN OVERLAY #}
+  {% if user.is_authenticated %}
+  <dialog id="mobile-overlay" class="modal modal-bottom sm:modal-middle"
+          aria-label="{% trans 'Navigation menu' %}">
+    <div class="modal-box">
+      <h3 class="font-bold text-lg mb-4">
+        {{ user.profile.display_name|default:user.email }}
+      </h3>
+      <nav class="flex flex-col gap-2" aria-label="{% trans 'Mobile menu' %}">
+        <a href="{% url 'pages:dashboard' %}" class="btn btn-ghost justify-start"
+           onclick="document.getElementById('mobile-overlay').close()">
+          {% trans "Dashboard" %}
+        </a>
+        <a href="{% url 'users:profile' %}" class="btn btn-ghost justify-start"
+           onclick="document.getElementById('mobile-overlay').close()">
+          {% trans "Profile" %}
+        </a>
+        <div class="divider my-1"></div>
+        <form method="post" action="{% url 'users:logout' %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-ghost justify-start w-full text-error">
+            {% trans "Log out" %}
           </button>
-        </div>
+        </form>
+      </nav>
+      <div class="modal-action mt-4">
+        <button class="btn btn-sm btn-ghost"
+                onclick="document.getElementById('mobile-overlay').close()">
+          {% trans "Close" %}
+        </button>
       </div>
-      {# Click outside to close #}
-      <form method="dialog" class="modal-backdrop">
-        <button>{% trans "Close" %}</button>
-      </form>
-    </dialog>
-    {% endif %} {#
-    ================================================================== #} {#
-    FOOTER #} {#
-    ================================================================== #}
-    <footer
-      class="hidden md:block footer footer-center py-4 bg-base-200 text-base-content/60 text-xs border-t border-base-300"
-    >
-      <p>© {% now "Y" %} {{ SITE_NAME }}</p>
-    </footer>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button>{% trans "Close" %}</button>
+    </form>
+  </dialog>
+  {% endif %}
 
-    {# ================================================================== #} {#
-    THEME TOGGLE SCRIPT #} {#
-    ================================================================== #}
-    <script>
-      (function () {
-        var btn = document.getElementById("theme-toggle");
-        var sunIcon = document.getElementById("icon-sun");
-        var moonIcon = document.getElementById("icon-moon");
-        var html = document.documentElement;
+  {# FOOTER #}
+  <footer class="hidden md:block footer footer-center py-4 bg-base-200 text-base-content/60 text-xs border-t border-base-300">
+    <p>© {% now "Y" %} {{ SITE_NAME }}</p>
+  </footer>
 
-        function currentTheme() {
-          return html.getAttribute("data-theme") || "corporate";
+  {# THEME TOGGLE SCRIPT #}
+  <script>
+    (function () {
+      var btn = document.getElementById('theme-toggle');
+      var sunIcon = document.getElementById('icon-sun');
+      var moonIcon = document.getElementById('icon-moon');
+      var html = document.documentElement;
+
+      function currentTheme() {
+        return html.getAttribute('data-theme') || 'corporate';
+      }
+
+      function applyTheme(theme) {
+        html.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+        if (theme === 'night') {
+          sunIcon.classList.remove('hidden');
+          moonIcon.classList.add('hidden');
+        } else {
+          sunIcon.classList.add('hidden');
+          moonIcon.classList.remove('hidden');
         }
+      }
 
-        function applyTheme(theme) {
-          html.setAttribute("data-theme", theme);
-          localStorage.setItem("theme", theme);
-          // Update icons
-          if (theme === "night") {
-            sunIcon.classList.remove("hidden");
-            moonIcon.classList.add("hidden");
-          } else {
-            sunIcon.classList.add("hidden");
-            moonIcon.classList.remove("hidden");
-          }
-        }
+      applyTheme(currentTheme());
 
-        // Sync icons on page load
-        applyTheme(currentTheme());
+      if (btn) {
+        btn.addEventListener('click', function () {
+          applyTheme(currentTheme() === 'night' ? 'corporate' : 'night');
+        });
+      }
+    })();
+  </script>
 
-        if (btn) {
-          btn.addEventListener("click", function () {
-            applyTheme(currentTheme() === "night" ? "corporate" : "night");
-          });
-        }
-      })();
-    </script>
-
-    {% block extra_js %}{% endblock %}
-  </body>
+  {% block extra_js %}{% endblock %}
+</body>
 </html>

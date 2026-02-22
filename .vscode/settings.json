@@ -15,8 +15,13 @@
 
   // Web formatting
   "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "[html][css][javascript]": {
+  "[css][javascript]": {
     "editor.formatOnSave": true
+  },
+  // HTML: disable format-on-save — Prettier breaks Django {% %} template tags.
+  // Use .prettierignore (templates/) as a second layer of protection.
+  "[html]": {
+    "editor.formatOnSave": false
   },
 
   // .clauderules is plain-text but uses Markdown conventions (headings, fenced

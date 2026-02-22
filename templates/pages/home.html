@@ -1,5 +1,9 @@
-{% extends "base.html" %} {% load i18n %} {% block title %}{{ SITE_NAME }} — {%
-trans "The modern SaaS starter" %}{% endblock %} {% block content %}
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ SITE_NAME }} — {% trans "The modern SaaS starter" %}{% endblock %}
+
+{% block content %}
 <section class="hero min-h-[60vh]">
   <div class="hero-content text-center">
     <div class="max-w-xl">
@@ -8,13 +12,13 @@ trans "The modern SaaS starter" %}{% endblock %} {% block content %}
         {% trans "A multi-tenant SaaS platform built for teams." %}
       </p>
       {% if user.is_authenticated %}
-      <a href="{% url 'pages:dashboard' %}" class="btn btn-primary btn-lg">
-        {% trans "Go to dashboard" %}
-      </a>
+        <a href="{% url 'pages:dashboard' %}" class="btn btn-primary btn-lg">
+          {% trans "Go to dashboard" %}
+        </a>
       {% else %}
-      <a href="{% url 'users:login' %}" class="btn btn-primary btn-lg">
-        {% trans "Get started" %}
-      </a>
+        <a href="{% url 'users:login' %}" class="btn btn-primary btn-lg">
+          {% trans "Get started" %}
+        </a>
       {% endif %}
     </div>
   </div>

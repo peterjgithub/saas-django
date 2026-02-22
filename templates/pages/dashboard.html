@@ -1,28 +1,21 @@
-{% extends "base.html" %} {% load i18n %} {% block title %}{% trans "Dashboard"
-%} — {{ SITE_NAME }}{% endblock %} {% block content %}
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Dashboard" %} — {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
 <div class="max-w-4xl mx-auto">
   <h1 class="text-3xl font-bold mb-6">
-    {% trans "Welcome" %}{% if user.profile.display_name %}, {{
-    user.profile.display_name }}{% endif %}!
+    {% trans "Welcome" %}{% if user.profile.display_name %}, {{ user.profile.display_name }}{% endif %}!
   </h1>
 
   <div class="alert alert-info mb-6">
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      class="size-5 shrink-0"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      aria-hidden="true"
-    >
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" class="size-5 shrink-0" fill="none"
+         viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
     </svg>
-    <span> {% trans "Dashboard content coming in Phase 3." %} </span>
+    <span>{% trans "Dashboard content coming in Phase 3." %}</span>
   </div>
 </div>
 {% endblock %}
