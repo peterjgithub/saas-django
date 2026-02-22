@@ -5,10 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}{{ SITE_NAME }}{% endblock %}</title>
 
-  {# Anti-flash: apply theme BEFORE any CSS loads to prevent FOUC.
-     For authenticated users the server injects their saved preference so the
-     correct theme is used even in a fresh browser / incognito window.
-     For unauthenticated users localStorage is the only source of truth. #}
+  {# Anti-flash #}
   <script>
     (function () {
       {% if user.is_authenticated %}
