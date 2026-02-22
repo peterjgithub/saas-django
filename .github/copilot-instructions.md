@@ -49,18 +49,18 @@ Key rules summary (full detail in `.clauderules`):
 - Step 2 (workspace creation) cannot be skipped — minimum requirement for app access
 - Workspace creator gets `role="admin"` on their `UserProfile` — can invite/revoke members at `/settings/members/`
 - Admin cannot self-revoke; revoking sets `UserProfile.is_active = False` + `tenant_revoked_at = now()` (soft-revoke); `tenant` FK is never cleared
-- I18N: `en-us` + `nl-be` + `fr-be`; wrap all strings in `{% trans %}` / `_()`
-- `<html lang="{{ LANGUAGE_CODE }}">` — never hardcoded
+- I18N: `en-us` + `nl-be` + `fr-be`; wrap all strings in `trans` template tag / `_()`
+- `<html lang="LANGUAGE_CODE">` — use the context variable, never hardcode a language
 - WCAG AA: `aria-invalid`, `aria-describedby`, skip-to-content link, focus trap in modals, 44px min touch targets
 - Stripe and Celery deferred to Phase 6 — do not add earlier
 - Run `uv run ruff check --fix && uv run ruff format` after every code change
 - Every feature needs tests under `apps/<name>/tests/`
-- **NEVER let Prettier format `templates/`** — it breaks Django `{% %}` tags (`TemplateSyntaxError`); `.prettierignore` lists `templates/` and `.vscode/settings.json` disables HTML format-on-save — do not remove either
-- **NEVER put `{# #}` Django template comments inside or adjacent to `<script>` blocks** — multi-line `{# #}` adjacent to `<script>` tags render as literal visible text in the browser; use `//` JS comments inside scripts instead
+- **NEVER let Prettier format `templates/`** — it breaks Django template tags (`TemplateSyntaxError`); `.prettierignore` lists `templates/` and `.vscode/settings.json` disables HTML format-on-save — do not remove either
+- **NEVER put Django template comments inside or adjacent to script blocks** — the hash-brace comment syntax adjacent to script tags renders as literal visible text in the browser; use JS line comments (`//`) inside scripts instead
 - **DaisyUI 5 forms:** `form-control` is **removed** — use the new `fieldset` + `label` component syntax for all form fields. `label` now goes inside `fieldset`. See: https://daisyui.com/components/fieldset/
 - **`<body>` must be `h-screen flex flex-col overflow-hidden`** — never `min-h-screen`; this viewport-locks the layout so the sidebar never scrolls away when main content is long; sidebar and main each scroll independently via `overflow-y-auto`
-- **Left sidebar:** Dashboard at top; Admin link pinned to bottom via `mt-auto` + `border-t` — only shown when `{% if user.is_staff %}`; Profile link is **NOT** in the sidebar (it lives in the top-right `display_name` dropdown only)
+- **Left sidebar:** Dashboard at top; Admin link pinned to bottom via `mt-auto` + `border-t` — only shown to `is_staff` users; Profile link is **NOT** in the sidebar (it lives in the top-right `display_name` dropdown only)
 - **Top-right dropdown (authenticated):** `display_name` → Profile + Logout **only** — Admin link is **not** in this dropdown
 - `admin.site.site_url = "/dashboard/"` set in `config/urls.py` (one-liner before `urlpatterns`) — no custom `AdminSite` subclass needed
-- **Theme toggle:** 3-state cycle `corporate → night → system`; `localStorage` key `theme` always stores the logical pref; for authenticated users `{{ current_theme }}` (from `UserProfile.theme`) is injected server-side into the anti-flash script so a fresh browser/incognito gets the right theme on first paint; `POST /theme/set/` (`users:set_theme`) persists preference to DB for authenticated users
+- **Theme toggle:** 3-state cycle `corporate → night → system`; `localStorage` key `theme` always stores the logical pref; for authenticated users the current theme (from `UserProfile.theme`) is injected server-side into the anti-flash script so a fresh browser/incognito gets the right theme on first paint; `POST /theme/set/` (`users:set_theme`) persists preference to DB for authenticated users
 - **After completing each phase** (tests passing, ruff clean): `git add -A && git commit -m "feat: Phase N — <summary>" && git push` — do not wait to be asked

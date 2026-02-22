@@ -567,6 +567,38 @@ As admin they can invite other users and revoke access.
       (which render as literal visible text in the browser) with single-line `{# label #}` labels
 - [x] **107 tests total** (96 Phase 1–3 + 11 new `SetThemeViewTest`), all passing; ruff clean
 
+#### Post-Phase 3 smart onboarding (commits `6f046b4`, `3c91a9a`, `70460c2`, `6a799fa`, `fd99496`)
+
+- [x] **IP geolocation + browser hints** — `apps/users/geo.py` added:
+  - `get_client_ip(request)` — extracts real IP honouring `X-Forwarded-For`
+  - `_is_private(ip)` — RFC-1918 + loopback check (covers all of `172.16–172.31`)
+  - `lookup_from_ip(ip)` — queries `ip-api.com`; skipped on private/localhost IPs
+  - `country_code_from_timezone(iana_tz)` — infers alpha-2 country code from IANA tz
+    name when locale has no region subtag (e.g. English browser with `Europe/Brussels` → `BE`);
+    uses `_TZ_COUNTRY_PREFERENCE` dict for ambiguous zones (`Europe/Brussels` → `"BE"`, etc.)
+  - `_COUNTRY_LANG` — maps alpha-2 → primary BCP-47 language code for smart language default
+- [x] **Smart onboarding defaults in `profile_complete_view`** — three-layer country detection
+    (priority order: saved profile → browser `country_detect` → timezone inference → IP geo);
+    similarly for language and timezone; session keys `tz_detect`, `lang_detect`, `country_detect`
+    carry browser hints from registration through to the profile step
+- [x] **`country_detect` browser hidden field** — `register.html` JS extracts region subtag from
+    `navigator.language` (`"nl-BE"` → `"BE"`) and writes it to `<input name="country_detect">`;
+    `RegisterForm` and `ProfileCompleteForm` accept this field
+- [x] **Email-derived org name suggestion** — `onboarding_step2.html` pre-fills the
+    `organization` field with the user's email local-part domain (e.g. `user@acme.com` → `"Acme"`)
+    via JS when the field is empty; dismissed once user edits it
+- [x] **`flag_emoji` template filter** — added to `apps/core/templatetags/tz_tags.py`;
+    converts alpha-2 country code to flag emoji using Unicode Regional Indicator Symbols
+    (U+1F1E6–U+1F1FF); used as `{{ country.code|flag_emoji }}` — **not** stored in the DB
+- [x] **Profile page select comparison fix** — `profile.html` compared `form.field.value`
+    (int) against `pk|stringformat:"s"` (str); `int == str` is always `False` in Django
+    templates; fixed all four selects (language, timezone, country, currency) with
+    `|stringformat:"s"` on both sides
+- [x] **`tz.label` fix** — `profile.html` and `onboarding_step1.html` referenced
+    `{{ tz.offset_label }}` which does not exist; corrected to `{{ tz.label }}`
+- [x] **Python 3 except syntax** — `except A, B:` (Python 2 syntax, silently catches only `A`
+    and binds `B` as the variable) replaced with `except (A, B):` in `views.py` and `tz_tags.py`
+
 ---
 
 ### 🔲 Phase 4 — I18N: US English + Belgian Dutch + Belgian French
@@ -683,6 +715,12 @@ These are valid ideas — implement only after Phase 7 is complete:
 | 2026-02-22 | Server-side theme seed for authenticated users                                               | `{{ current_theme }}` from `UserProfile.theme` injected into anti-flash script; auth user's saved pref wins over stale `localStorage` on fresh browser/incognito. Unauthenticated: `localStorage` only.            |
 | 2026-02-22 | `POST /theme/set/` saves theme to `UserProfile` for authenticated users                      | AJAX endpoint (`users:set_theme`); called by toggle JS on every click; unauthenticated returns `200 ok` no DB write; exempt from `ProfileCompleteMiddleware` via `_ALWAYS_EXEMPT`                                  |
 | 2026-02-22 | `{# #}` Django template comments must not appear inside or adjacent to `<script>` blocks     | Multi-line `{# #}` adjacent to `<script>` tags render as literal visible text; use `//` JS comments inside scripts and single-line `{# label #}` outside — rule added to `.clauderules`, `copilot-instructions.md` |
+| 2026-02-22 | Country detection: 3-layer pipeline (browser locale → tz inference → IP geo)                  | IP geo skipped on private IPs; `navigator.language` region subtag covers most cases; `country_code_from_timezone()` handles English browsers; `_TZ_COUNTRY_PREFERENCE` resolves ambiguous zones                     |
+| 2026-02-22 | `flag_emoji` is a computed template filter, not a DB field                                    | `{{ country.code\|flag_emoji }}` in `tz_tags.py` — Unicode Regional Indicator Symbols (U+1F1E6–U+1F1FF); never stored in `Country` model                                                                            |
+| 2026-02-22 | `Timezone.label` not `Timezone.offset_label` — template field name corrected                  | Model has `label` (e.g. "Europe/Brussels (UTC+01:00)") and `offset_seconds` (int); `offset_std`/`offset_dst`/`offset_label` do not exist; fixed in `profile.html` and `onboarding_step1.html`                       |
+| 2026-02-22 | Django template FK comparison: both sides must be `\|stringformat:"s"`                         | `form.field.value` returns `int` for FK fields; `pk\|stringformat:"s"` returns `str`; `int == str` is always `False` in Django templates; all four selects (language/timezone/country/currency) fixed in `profile.html` |
+| 2026-02-22 | `except A, B:` is Python 2 syntax — always use `except (A, B):`                               | `except A, B:` is valid Python 3 but silently catches only `A` and binds `B` as the exception variable; found and fixed multiple times in `views.py` and `tz_tags.py` — use tuple syntax always                     |
+| 2026-02-22 | `_is_private` uses second-octet int check for 172.16–172.31                                   | Previous string-prefix approach (`172.2`) matched 172.20–172.29 but missed 172.16–172.19 and 172.30–172.31 (wrong range); replaced with `int(ip.split(".")[1])` and `16 <= second_octet <= 31`                      |
 
 ---
 

@@ -268,11 +268,14 @@ by end-users and have no soft-delete — they are controlled vocabulary.
 
 ```python
 class Country(models.Model):
-    code        = models.CharField(max_length=2, primary_key=True)   # ISO 3166-1 alpha-2
-    code_3      = models.CharField(max_length=3, unique=True)        # ISO 3166-1 alpha-3
-    numeric     = models.CharField(max_length=3, unique=True)        # ISO 3166-1 numeric
-    name        = models.CharField(max_length=100)
-    flag_emoji  = models.CharField(max_length=10, blank=True)
+    code    = models.CharField(max_length=2, unique=True)    # ISO 3166-1 alpha-2 (e.g. "BE")
+    code3   = models.CharField(max_length=3, unique=True)    # ISO 3166-1 alpha-3 (e.g. "BEL")
+    name    = models.CharField(max_length=200)
+    numeric = models.CharField(max_length=3, blank=True)     # ISO 3166-1 numeric
+
+    # Auto-integer PK (Category C — no UUID, no soft-delete).
+    # flag_emoji is NOT stored in the DB — compute it in templates via the
+    # {{ country.code|flag_emoji }} filter defined in core/templatetags/tz_tags.py.
 
     class Meta:
         ordering = ["name"]
@@ -283,45 +286,45 @@ class Country(models.Model):
 
 ```python
 class Language(models.Model):
-    code        = models.CharField(max_length=10, primary_key=True)  # BCP 47 / IANA tag (e.g. "en-US", "nl-BE", "fr-BE")
-    name        = models.CharField(max_length=100)                   # native name
-    name_en     = models.CharField(max_length=100)                   # English name
-    countries   = models.ManyToManyField("core.Country", blank=True,
-                      related_name="languages")
-                  # e.g. "nl-BE" links to Belgium; allows filtering:
-                  #   Language.objects.filter(countries__code="BE")
+    code      = models.CharField(max_length=8, unique=True)  # BCP-47 / ISO 639-2/3 (e.g. "nld", "fra")
+    name      = models.CharField(max_length=200)             # display name (from pycountry)
+    countries = models.ManyToManyField("core.Country", blank=True, related_name="languages")
+    # allows filtering: Language.objects.filter(countries__code="BE")
+
+    # Auto-integer PK. There is NO name_en field.
 
     class Meta:
-        ordering = ["name_en"]
+        ordering = ["name"]
 ```
 
 ### Timezone (`core.Timezone`)
 
 ```python
 class Timezone(models.Model):
-    name        = models.CharField(max_length=100, primary_key=True) # IANA tz (e.g. "Europe/Brussels")
-    offset_std  = models.SmallIntegerField()                         # UTC offset in minutes (standard time)
-    offset_dst  = models.SmallIntegerField(null=True, blank=True)    # UTC offset in minutes (DST, null if no DST)
-    countries   = models.ManyToManyField("core.Country", blank=True,
-                      related_name="timezones")
-                  # allows filtering: Timezone.objects.filter(countries__code="BE")
+    name           = models.CharField(max_length=100, unique=True)  # IANA tz (e.g. "Europe/Brussels")
+    label          = models.CharField(max_length=200)               # human label: "Europe/Brussels (UTC+01:00)"
+    offset_seconds = models.IntegerField(default=0)                 # raw UTC offset for ordering/display
+    countries      = models.ManyToManyField("core.Country", blank=True, related_name="timezones")
+    # allows filtering: Timezone.objects.filter(countries__code="BE")
+
+    # Auto-integer PK. There are NO offset_std / offset_dst fields — use offset_seconds.
+    # In templates use {{ tz.label }}, not {{ tz.offset_label }} (that field does not exist).
 
     class Meta:
-        ordering = ["offset_std", "name"]
+        ordering = ["offset_seconds", "name"]
 ```
 
 ### Currency (`core.Currency`)
 
 ```python
 class Currency(models.Model):
-    code        = models.CharField(max_length=3, primary_key=True)   # ISO 4217 alphabetic (e.g. "EUR")
-    numeric     = models.CharField(max_length=3, unique=True)        # ISO 4217 numeric
-    name        = models.CharField(max_length=100)
-    symbol      = models.CharField(max_length=10, blank=True)        # "€", "$", "£"
-    decimals    = models.SmallIntegerField(default=2)                # minor units
-    countries   = models.ManyToManyField("core.Country", blank=True,
-                      related_name="currencies")
-                  # allows filtering: Currency.objects.filter(countries__code="BE")
+    code      = models.CharField(max_length=3, unique=True)  # ISO 4217 alphabetic (e.g. "EUR")
+    name      = models.CharField(max_length=200)
+    numeric   = models.CharField(max_length=3, blank=True)   # ISO 4217 numeric
+    countries = models.ManyToManyField("core.Country", blank=True, related_name="currencies")
+    # allows filtering: Currency.objects.filter(countries__code="BE")
+
+    # Auto-integer PK. There are NO symbol or decimals fields.
 
     class Meta:
         ordering = ["code"]

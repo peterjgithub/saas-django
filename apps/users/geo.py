@@ -171,20 +171,19 @@ def country_code_from_timezone(tz_name: str) -> str:
 
 def _is_private(ip: str) -> bool:
     """Return True for loopback / RFC-1918 / link-local addresses."""
-    return (
-        ip.startswith("127.")
-        or ip == "::1"
-        or ip.startswith("10.")
-        or ip.startswith("192.168.")
-        or ip.startswith("172.16.")
-        or ip.startswith("172.17.")
-        or ip.startswith("172.18.")
-        or ip.startswith("172.19.")
-        or ip.startswith("172.2")
-        or ip.startswith("172.30.")
-        or ip.startswith("172.31.")
-        or ip == "localhost"
-    )
+    if ip.startswith("127.") or ip == "::1" or ip == "localhost":
+        return True
+    if ip.startswith("10.") or ip.startswith("192.168."):
+        return True
+    # 172.16.0.0/12 — covers 172.16.x.x through 172.31.x.x
+    if ip.startswith("172."):
+        try:
+            second_octet = int(ip.split(".")[1])
+            if 16 <= second_octet <= 31:
+                return True
+        except IndexError, ValueError:
+            pass
+    return False
 
 
 def get_client_ip(request) -> str:
