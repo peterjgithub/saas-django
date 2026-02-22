@@ -68,6 +68,7 @@ class TenantScopedModel(models.Model):
 > Add `db_index` on an actor field only if a concrete query pattern warrants it.
 
 Rules:
+
 - `tenant_id` is always indexed (drives PostgreSQL RLS and query isolation)
 - `is_active` is always indexed (all live queries filter on it)
 - `created_by` / `updated_by` / `deleted_by` are **not** indexed by default
@@ -131,8 +132,6 @@ or `TimeStampedAuditModel`.
   `deleted_by` here means "the admin who deactivated this account" — that admin
   always exists before the deactivation write.
 - **NEVER hard-delete a `User`** — set `is_active = False` only.
-
-
 
 ---
 
@@ -222,11 +221,11 @@ class UserProfile(TimeStampedAuditModel):
                  # record of which organisation the user belonged/belongs to.
     role       = models.CharField(
                      max_length=20,
-                     choices=[("owner", "Owner"), ("member", "Member")],
+                     choices=[("admin", "Admin"), ("member", "Member")],
                      default="member",
                      blank=True
                  )
-                 # "owner"  — created the workspace; can invite/revoke members
+                 # "admin"  — can manage members, billing, and tenant settings
                  # "member" — regular member; read access only
                  # Blank when tenant is null (pre-onboarding)
     tenant_joined_at  = models.DateTimeField(null=True, blank=True)
@@ -377,18 +376,18 @@ class Tenant(TimeStampedAuditModel):
 
 **Revocation lifecycle:**
 
-| Action | `is_active` | `tenant_revoked_at` | `deleted_by` | `tenant` FK |
-|---|---|---|---|---|
-| Active member | `True` | `None` | `None` | set |
-| Revoked | `False` | `now()` | owner UUID | set (unchanged) |
-| Re-engaged | `True` | `None` | `None` | set (unchanged) |
-| Anonymised (future) | `False` | set | set | set (unchanged) |
+| Action              | `is_active` | `tenant_revoked_at` | `deleted_by` | `tenant` FK     |
+| ------------------- | ----------- | ------------------- | ------------ | --------------- |
+| Active member       | `True`      | `None`              | `None`       | set             |
+| Revoked             | `False`     | `now()`             | admin UUID   | set (unchanged) |
+| Re-engaged          | `True`      | `None`              | `None`       | set (unchanged) |
+| Anonymised (future) | `False`     | set                 | set          | set (unchanged) |
 
-**Owner constraint:** The owner of a tenant cannot revoke themselves.
+**Owner constraint:** The admin of a tenant cannot revoke themselves.
 Enforced at the service layer — `services.revoke_member()` raises if
 `profile.user == request.user`.
 
-**Member management UI** lives at `/settings/members/` — `owner`-only (403 for members).
+**Member management UI** lives at `/settings/members/` — `admin`-only (403 for members).
 Queries: `UserProfile.objects.filter(tenant=request.user.profile.tenant)`.
 
 ---
@@ -439,9 +438,9 @@ Register → Login → Middleware Check ──→ /profile/complete/   (Step 1: 
 
 - User creates their first Workspace (Tenant): provide `organization` (workspace name)
 - Show the same DaisyUI **steps** progress indicator: `Profile → Workspace` (step 2 of 2)
-- On save: create `Tenant`, set `profile.tenant = tenant`, `profile.role = "owner"`,
+- On save: create `Tenant`, set `profile.tenant = tenant`, `profile.role = "admin"`,
   `profile.tenant_joined_at = now()`, `profile.is_active = True` → redirect to `/dashboard/`
-- The creating user is the **owner** of the tenant and can invite/remove members
+- The creating user is the **admin** of the tenant and can invite/remove members
 
 **Middleware (`ProfileCompleteMiddleware` in `apps/users/middleware.py`):**
 
@@ -471,12 +470,12 @@ Public pages (unauthenticated access allowed) are unaffected.
 
 - One user belongs to exactly one tenant — enforced at the service layer.
   A second workspace requires a new user account with a different email address.
-- `role` values: `owner` and `member` only. No `admin` role until a concrete
+- `role` values: `admin` and `member` only. No additional roles until a concrete
   permission need arises.
-- `owner` capabilities: invite members by email, revoke access, re-engage revoked members.
-  An owner **cannot** revoke themselves.
+- `admin` capabilities: invite members by email, revoke access, re-engage revoked members,
+  manage tenant billing and settings. An admin **cannot** revoke themselves.
 - `member` capabilities: none — read access to tenant data only.
-- Member management UI lives at `/settings/members/` — `owner`-only; non-owners get 403.
+- Member management UI lives at `/settings/members/` — `admin`-only; non-admins get 403.
 - **Invite:** owner enters an email → look up or create `User` + `UserProfile` →
   set `profile.tenant`, `profile.role = "member"`, `profile.tenant_joined_at = now()`,
   `profile.is_active = True` → send invitation email via `send_mail` (no Celery yet).

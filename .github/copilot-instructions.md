@@ -22,15 +22,14 @@ Key rules summary (full detail in `.clauderules`):
 - UUID PKs on every model
 - `tenant_id` on every tenant-scoped model
 - **NO `tenant` FK on `User`** — workspace membership goes through `UserProfile` only
-- `UserProfile` roles: `owner` and `member` only — no `admin` role yet
+- `UserProfile` roles: `admin` and `member` only — no `owner` role; `admin` manages members, billing, and tenant settings
 - Soft deletes on all major models: `is_active`, `deleted_at`, `deleted_by`
 - `deleted_by` / `created_by` / `updated_by` are **`UUIDField`** (not `ForeignKey`) — no FK constraint, no implicit index; resolve to a `User` in the service layer
 - **Three model categories — always use the correct base class:**
   - **`TenantScopedModel`** (Category A) — all tenant-scoped business data (invoices, docs, etc.);
     extends `TimeStampedAuditModel` and adds `tenant_id` (UUID, indexed)
   - **`TimeStampedAuditModel`** (Category B) — non-tenant audited data (`UserProfile`,
-    `Tenant`); full audit trail: `created_by`, `updated_by`, `deleted_by`,
-    `created_at`, `updated_at`, `is_active`, `deleted_at` — all standard, not opt-in
+    `Tenant`); full audit trail: `created_by`, `updated_by`, `deleted_by`,    `created_at`, `updated_at`, `is_active`, `deleted_at` — all standard, not opt-in
   - **Plain `models.Model`** (Category C) — reference/lookup tables only (`Country`, `Language`,
     `Timezone`, `Currency`); no soft-delete, no audit fields
   - **`User` is the sole exception** — extends `AbstractUser` only; has `deleted_at` / `deleted_by`
@@ -48,8 +47,8 @@ Key rules summary (full detail in `.clauderules`):
 - Registration success → `/profile/complete/` (two-step onboarding: profile → tenant)
 - "Do this later" sets `session["skip_profile_gate"]` — does NOT permanently complete profile
 - Step 2 (workspace creation) cannot be skipped — minimum requirement for app access
-- Workspace creator gets `role="owner"` on their `UserProfile` — can invite/revoke members at `/settings/members/`
-- Owner cannot self-revoke; revoking sets `UserProfile.is_active = False` + `tenant_revoked_at = now()` (soft-revoke); `tenant` FK is never cleared
+- Workspace creator gets `role="admin"` on their `UserProfile` — can invite/revoke members at `/settings/members/`
+- Admin cannot self-revoke; revoking sets `UserProfile.is_active = False` + `tenant_revoked_at = now()` (soft-revoke); `tenant` FK is never cleared
 - I18N: `en-us` + `nl-be` + `fr-be`; wrap all strings in `{% trans %}` / `_()`
 - `<html lang="{{ LANGUAGE_CODE }}">` — never hardcoded
 - WCAG AA: `aria-invalid`, `aria-describedby`, skip-to-content link, focus trap in modals, 44px min touch targets
