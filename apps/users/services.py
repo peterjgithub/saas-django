@@ -257,6 +257,32 @@ def promote_to_admin(admin_profile: UserProfile, target_profile: UserProfile) ->
     target_profile.save(update_fields=["role", "updated_by"])
 
 
+def set_member_role(
+    admin_profile: UserProfile,
+    target_profile: UserProfile,
+    role: str,
+) -> None:
+    """
+    Set the role of a member to 'admin' or 'member'.
+
+    - Only a current admin may change roles.
+    - The target must belong to the same tenant.
+    - An admin cannot demote themselves.
+    - Idempotent — no-op if the role is already set to the requested value.
+    """
+    if role not in ("admin", "member"):
+        raise ValueError(_("Invalid role."))
+    if target_profile.tenant_id != admin_profile.tenant_id:
+        raise ValueError(_("That member does not belong to your tenant."))
+    if admin_profile.pk == target_profile.pk and role == "member":
+        raise ValueError(_("You cannot remove your own admin role."))
+    if target_profile.role == role:
+        return  # already the requested role — idempotent
+    target_profile.role = role
+    target_profile.updated_by = admin_profile.user.pk
+    target_profile.save(update_fields=["role", "updated_by"])
+
+
 def deactivate_member(admin_profile: UserProfile, target_profile: UserProfile) -> None:
     """
     Deactivate a member account (soft-revoke: profile.is_active = False).
@@ -287,5 +313,6 @@ __all__ = [
     "revoke_member",
     "reengage_member",
     "promote_to_admin",
+    "set_member_role",
     "deactivate_member",
 ]

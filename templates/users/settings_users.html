@@ -53,7 +53,6 @@
             <th>{% trans "Name" %}</th>
             <th>{% trans "Role" %}</th>
             <th>{% trans "Status" %}</th>
-            <th class="text-right">{% trans "Actions" %}</th>
           </tr>
         </thead>
         <tbody>
@@ -61,70 +60,77 @@
           <tr>
             <td>{{ member.user.email }}</td>
             <td>{{ member.display_name|default:"—" }}</td>
+
+            {# Role column: clickable dropdown badge (admin can change roles) #}
             <td>
-              {% if member.role == "admin" %}
-              <span class="badge badge-primary badge-sm">{% trans "Admin" %}</span>
-              {% else %}
-              <span class="badge badge-ghost badge-sm">{% trans "Member" %}</span>
-              {% endif %}
-            </td>
-            <td>
-              {% if member.is_active %}
-              <span class="badge badge-success badge-sm">{% trans "Active" %}</span>
-              {% else %}
-              <span class="badge badge-error badge-sm">{% trans "Inactive" %}</span>
-              {% endif %}
-            </td>
-            <td class="text-right">
               {% if member.pk != admin_profile.pk %}
-              <div class="flex gap-1 justify-end flex-wrap">
+              <details class="dropdown">
+                <summary class="badge cursor-pointer select-none gap-1
+                  {% if member.role == 'admin' %}badge-primary{% else %}badge-ghost{% endif %}">
+                  {% if member.role == "admin" %}{% trans "Admin" %}{% else %}{% trans "Member" %}{% endif %}
+                  <svg xmlns="http://www.w3.org/2000/svg" class="size-3" viewBox="0 0 20 20"
+                       fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                          d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                          clip-rule="evenodd"/>
+                  </svg>
+                </summary>
+                <ul class="dropdown-content menu menu-sm bg-base-100 rounded-box shadow-lg z-10 w-40 p-1">
+                  {% if member.role != "admin" %}
+                  <li>
+                    <form method="post" action="{% url 'users:settings_users' %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="set_role">
+                      <input type="hidden" name="profile_id" value="{{ member.pk }}">
+                      <input type="hidden" name="role" value="admin">
+                      <button type="submit" class="w-full text-left">{% trans "Set as Admin" %}</button>
+                    </form>
+                  </li>
+                  {% else %}
+                  <li>
+                    <form method="post" action="{% url 'users:settings_users' %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="set_role">
+                      <input type="hidden" name="profile_id" value="{{ member.pk }}">
+                      <input type="hidden" name="role" value="member">
+                      <button type="submit" class="w-full text-left">{% trans "Set as Member" %}</button>
+                    </form>
+                  </li>
+                  {% endif %}
+                </ul>
+              </details>
+              {% else %}
+              {# "You" row — cannot change own role #}
+              <span class="badge {% if member.role == 'admin' %}badge-primary{% else %}badge-ghost{% endif %}">
+                {% if member.role == "admin" %}{% trans "Admin" %}{% else %}{% trans "Member" %}{% endif %}
+              </span>
+              {% endif %}
+            </td>
 
-                {% if member.is_active and member.role != "admin" %}
-                <form method="post" action="{% url 'users:settings_users' %}">
-                  {% csrf_token %}
-                  <input type="hidden" name="action" value="promote">
-                  <input type="hidden" name="profile_id" value="{{ member.pk }}">
-                  <button type="submit"
-                          class="btn btn-ghost btn-xs min-h-[44px]"
-                          title="{% trans 'Promote to admin' %}">
-                    {% trans "Promote to admin" %}
-                  </button>
-                </form>
-                {% endif %}
-
-                {% if member.is_active %}
-                <form method="post" action="{% url 'users:settings_users' %}">
-                  {% csrf_token %}
-                  <input type="hidden" name="action" value="deactivate">
-                  <input type="hidden" name="profile_id" value="{{ member.pk }}">
-                  <button type="submit"
-                          class="btn btn-ghost btn-xs text-error min-h-[44px]"
-                          title="{% trans 'Deactivate' %}">
-                    {% trans "Deactivate" %}
-                  </button>
-                </form>
-                {% else %}
-                <form method="post" action="{% url 'users:settings_users' %}">
-                  {% csrf_token %}
-                  <input type="hidden" name="action" value="reengage">
-                  <input type="hidden" name="profile_id" value="{{ member.pk }}">
-                  <button type="submit"
-                          class="btn btn-ghost btn-xs min-h-[44px]"
-                          title="{% trans 'Re-activate' %}">
-                    {% trans "Re-activate" %}
-                  </button>
-                </form>
-                {% endif %}
-
-              </div>
+            {# Status column: toggle switch — submits confirm-gated form via JS #}
+            <td>
+              {% if member.pk != admin_profile.pk %}
+              <form method="post" action="{% url 'users:settings_users' %}"
+                    id="toggle-form-{{ member.pk }}">
+                {% csrf_token %}
+                <input type="hidden" name="action"
+                       value="{% if member.is_active %}deactivate{% else %}reengage{% endif %}">
+                <input type="hidden" name="profile_id" value="{{ member.pk }}">
+                <input type="checkbox"
+                       class="toggle toggle-success toggle-sm"
+                       {% if member.is_active %}checked{% endif %}
+                       aria-label="{% if member.is_active %}{% trans 'Deactivate' %}{% else %}{% trans 'Activate' %}{% endif %} {{ member.user.email }}"
+                       onchange="confirmToggle(this, '{{ member.pk }}', '{{ member.user.email|escapejs }}', {{ member.is_active|lower }})">
+              </form>
               {% else %}
               <span class="text-base-content/40 text-sm">{% trans "You" %}</span>
               {% endif %}
             </td>
+
           </tr>
           {% empty %}
           <tr>
-            <td colspan="5" class="text-center text-base-content/60 py-6">
+            <td colspan="4" class="text-center text-base-content/60 py-6">
               {% trans "No members yet." %}
             </td>
           </tr>
@@ -136,4 +142,20 @@
   </div>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function confirmToggle(checkbox, profileId, email, currentlyActive) {
+  var msg = currentlyActive
+    ? "{% trans 'Are you sure you want to deactivate this user?' %} (" + email + ")"
+    : "{% trans 'Activate this user?' %} (" + email + ")";
+  if (window.confirm(msg)) {
+    document.getElementById("toggle-form-" + profileId).submit();
+  } else {
+    // Revert the checkbox to its previous state without submitting
+    checkbox.checked = currentlyActive;
+  }
+}
+</script>
 {% endblock %}

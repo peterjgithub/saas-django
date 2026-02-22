@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: saas-django\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-22 22:18+0000\n"
+"POT-Creation-Date: 2026-02-22 22:47+0000\n"
 "PO-Revision-Date: 2026-02-22 18:06+0000\n"
 "Last-Translator: saas-django\n"
 "Language-Team: Dutch (Belgium)\n"
@@ -94,7 +94,7 @@ msgstr "Selecteer uw tijdzone"
 msgid "Select your country"
 msgstr "Selecteer uw land"
 
-#: apps/users/forms.py:113 apps/users/forms.py:193
+#: apps/users/forms.py:113 apps/users/forms.py:191
 #: templates/users/onboarding_step2.html:38
 msgid "Organisation name"
 msgstr "Organisatienaam"
@@ -121,7 +121,7 @@ msgstr "E-mailadres"
 msgid "colleague@example.com"
 msgstr "collega@voorbeeld.com"
 
-#: apps/users/forms.py:195
+#: apps/users/forms.py:193
 msgid "Logo"
 msgstr ""
 
@@ -162,12 +162,14 @@ msgid "Follow system"
 msgstr "Systeemvoorkeur volgen"
 
 #: apps/users/models.py:104 templates/users/members.html:69
-#: templates/users/settings_users.html:66
+#: templates/users/settings_users.html:70
+#: templates/users/settings_users.html:105
 msgid "Admin"
 msgstr "Beheerder"
 
 #: apps/users/models.py:105 templates/users/members.html:71
-#: templates/users/settings_users.html:68
+#: templates/users/settings_users.html:70
+#: templates/users/settings_users.html:105
 msgid "Member"
 msgstr "Lid"
 
@@ -251,59 +253,75 @@ msgid "You cannot revoke your own access."
 msgstr "U kunt uw eigen toegang niet intrekken."
 
 #: apps/users/services.py:219 apps/users/services.py:232
-#: apps/users/services.py:252 apps/users/services.py:272
+#: apps/users/services.py:252 apps/users/services.py:276
+#: apps/users/services.py:298
 msgid "That member does not belong to your tenant."
 msgstr "Dat lid behoort niet tot uw organisatie."
 
-#: apps/users/services.py:270
-#, fuzzy
+#: apps/users/services.py:274
+msgid "Invalid role."
+msgstr "Ongeldige rol."
+
+#: apps/users/services.py:278
+msgid "You cannot remove your own admin role."
+msgstr "U kunt uw eigen beheerdersrol niet verwijderen."
+
+#: apps/users/services.py:296
 msgid "You cannot deactivate your own account."
 msgstr "U kunt uw eigen account niet deactiveren."
 
-#: apps/users/views.py:118
+#: apps/users/views.py:119
 msgid "Incorrect email or password. Please try again."
 msgstr "Onjuist e-mailadres of wachtwoord. Probeer het opnieuw."
 
-#: apps/users/views.py:370
+#: apps/users/views.py:371
 msgid "Your profile has been updated."
 msgstr "Uw profiel is bijgewerkt."
 
-#: apps/users/views.py:440 apps/users/views.py:558
+#: apps/users/views.py:441 apps/users/views.py:559
 #, python-format
 msgid "%(email)s has been added to your workspace."
 msgstr "%(email)s is toegevoegd aan uw werkruimte."
 
-#: apps/users/views.py:462
+#: apps/users/views.py:463
 #, python-format
 msgid "%(email)s has been removed from the workspace."
 msgstr "%(email)s is verwijderd uit de werkruimte."
 
-#: apps/users/views.py:480
+#: apps/users/views.py:481
 #, python-format
 msgid "%(email)s has been re-added to the workspace."
 msgstr "%(email)s is opnieuw toegevoegd aan de werkruimte."
 
-#: apps/users/views.py:576
+#: apps/users/views.py:577
 msgid "Member not found."
 msgstr "Lid niet gevonden."
 
-#: apps/users/views.py:584
+#: apps/users/views.py:585
+#, python-format
 msgid "%(email)s has been promoted to admin."
 msgstr "%(email)s is beheerder gemaakt."
 
-#: apps/users/views.py:593
+#: apps/users/views.py:597
+#, python-format
+msgid "%(email)s is now %(role)s."
+msgstr "%(email)s is nu %(role)s."
+
+#: apps/users/views.py:606
+#, python-format
 msgid "%(email)s has been deactivated."
 msgstr "%(email)s is gedeactiveerd."
 
-#: apps/users/views.py:600
-msgid "%(email)s has been re-activated."
-msgstr "%(email)s is opnieuw geactiveerd."
+#: apps/users/views.py:613
+#, python-format
+msgid "%(email)s has been activated."
+msgstr "%(email)s is geactiveerd."
 
-#: apps/users/views.py:607
+#: apps/users/views.py:620
 msgid "Unknown action."
 msgstr "Onbekende actie."
 
-#: apps/users/views.py:637
+#: apps/users/views.py:650
 msgid "Organisation settings saved."
 msgstr "Organisatie-instellingen opgeslagen."
 
@@ -350,7 +368,7 @@ msgstr "Aan de slag"
 msgid "Sidebar navigation"
 msgstr "Zijbalknavigatie"
 
-#: templates/base.html:193 templates/base.html:289
+#: templates/base.html:195 templates/base.html:289
 #: templates/users/settings_base.html:4 templates/users/settings_base.html:9
 msgid "Settings"
 msgstr "Instellingen"
@@ -491,11 +509,11 @@ msgstr "Rol"
 msgid "Status"
 msgstr "Status"
 
-#: templates/users/members.html:59 templates/users/settings_users.html:56
+#: templates/users/members.html:59
 msgid "Actions"
 msgstr "Acties"
 
-#: templates/users/members.html:76 templates/users/settings_users.html:73
+#: templates/users/members.html:76
 msgid "Active"
 msgstr "Actief"
 
@@ -515,7 +533,7 @@ msgstr "Intrekken"
 msgid "Re-engage"
 msgstr "Heractiveren"
 
-#: templates/users/members.html:103 templates/users/settings_users.html:121
+#: templates/users/members.html:103 templates/users/settings_users.html:126
 msgid "You"
 msgstr "U"
 
@@ -750,28 +768,45 @@ msgstr "Een nieuw lid uitnodigen"
 msgid "Invite"
 msgstr "Uitnodigen"
 
-#: templates/users/settings_users.html:75
-msgid "Inactive"
-msgstr "Inactief"
+#: templates/users/settings_users.html:86
+msgid "Set as Admin"
+msgstr "Instellen als beheerder"
 
-#: templates/users/settings_users.html:89
-#: templates/users/settings_users.html:90
-msgid "Promote to admin"
-msgstr "Beheerder maken"
+#: templates/users/settings_users.html:96
+msgid "Set as Member"
+msgstr "Instellen als lid"
 
-#: templates/users/settings_users.html:102
-#: templates/users/settings_users.html:103
+#: templates/users/settings_users.html:122
 msgid "Deactivate"
 msgstr "Deactiveren"
 
-#: templates/users/settings_users.html:113
-#: templates/users/settings_users.html:114
-msgid "Re-activate"
-msgstr "Heractiveren"
+#: templates/users/settings_users.html:122
+msgid "Activate"
+msgstr "Activeren"
 
-#: templates/users/settings_users.html:128
+#: templates/users/settings_users.html:134
 msgid "No members yet."
 msgstr "Nog geen leden."
+
+#: templates/users/settings_users.html:151
+msgid "Are you sure you want to deactivate this user?"
+msgstr "Weet u zeker dat u deze gebruiker wilt deactiveren?"
+
+#: templates/users/settings_users.html:152
+msgid "Activate this user?"
+msgstr "Deze gebruiker activeren?"
+
+#~ msgid "%(email)s has been re-activated."
+#~ msgstr "%(email)s is opnieuw geactiveerd."
+
+#~ msgid "Inactive"
+#~ msgstr "Inactief"
+
+#~ msgid "Promote to admin"
+#~ msgstr "Beheerder maken"
+
+#~ msgid "Re-activate"
+#~ msgstr "Heractiveren"
 
 #~ msgid "Select your language"
 #~ msgstr "Selecteer uw taal"

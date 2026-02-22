@@ -55,6 +55,7 @@ from apps.users.services import (
     reengage_member,
     register_user,
     revoke_member,
+    set_member_role,
 )
 
 logger = logging.getLogger(__name__)
@@ -566,7 +567,7 @@ def settings_users_view(request):
                         messages.error(request, error)
             return redirect("users:settings_users")
 
-        if action in ("promote", "deactivate", "reengage"):
+        if action in ("promote", "deactivate", "reengage", "set_role"):
             profile_id = request.POST.get("profile_id", "")
             try:
                 target = UserProfile.objects.get(
@@ -584,6 +585,18 @@ def settings_users_view(request):
                         _("%(email)s has been promoted to admin.")
                         % {"email": target.user.email},
                     )
+                elif action == "set_role":
+                    role = request.POST.get("role", "")
+                    set_member_role(
+                        admin_profile=admin_profile,
+                        target_profile=target,
+                        role=role,
+                    )
+                    messages.success(
+                        request,
+                        _("%(email)s is now %(role)s.")
+                        % {"email": target.user.email, "role": role},
+                    )
                 elif action == "deactivate":
                     deactivate_member(
                         admin_profile=admin_profile, target_profile=target
@@ -597,7 +610,7 @@ def settings_users_view(request):
                     reengage_member(admin_profile=admin_profile, target_profile=target)
                     messages.success(
                         request,
-                        _("%(email)s has been re-activated.")
+                        _("%(email)s has been activated.")
                         % {"email": target.user.email},
                     )
             except ValueError as exc:

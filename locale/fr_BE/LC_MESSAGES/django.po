@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: saas-django\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-22 22:18+0000\n"
+"POT-Creation-Date: 2026-02-22 22:47+0000\n"
 "PO-Revision-Date: 2026-02-22 18:06+0000\n"
 "Last-Translator: saas-django\n"
 "Language-Team: French (Belgium)\n"
@@ -94,7 +94,7 @@ msgstr "Sélectionnez votre fuseau horaire"
 msgid "Select your country"
 msgstr "Sélectionnez votre pays"
 
-#: apps/users/forms.py:113 apps/users/forms.py:193
+#: apps/users/forms.py:113 apps/users/forms.py:191
 #: templates/users/onboarding_step2.html:38
 msgid "Organisation name"
 msgstr "Nom de l'organisation"
@@ -121,7 +121,7 @@ msgstr "Adresse e-mail"
 msgid "colleague@example.com"
 msgstr "collègue@exemple.com"
 
-#: apps/users/forms.py:195
+#: apps/users/forms.py:193
 msgid "Logo"
 msgstr ""
 
@@ -162,12 +162,14 @@ msgid "Follow system"
 msgstr "Suivre le système"
 
 #: apps/users/models.py:104 templates/users/members.html:69
-#: templates/users/settings_users.html:66
+#: templates/users/settings_users.html:70
+#: templates/users/settings_users.html:105
 msgid "Admin"
 msgstr "Administrateur"
 
 #: apps/users/models.py:105 templates/users/members.html:71
-#: templates/users/settings_users.html:68
+#: templates/users/settings_users.html:70
+#: templates/users/settings_users.html:105
 msgid "Member"
 msgstr "Membre"
 
@@ -251,58 +253,75 @@ msgid "You cannot revoke your own access."
 msgstr "Vous ne pouvez pas révoquer votre propre accès."
 
 #: apps/users/services.py:219 apps/users/services.py:232
-#: apps/users/services.py:252 apps/users/services.py:272
+#: apps/users/services.py:252 apps/users/services.py:276
+#: apps/users/services.py:298
 msgid "That member does not belong to your tenant."
 msgstr "Ce membre n'appartient pas à votre organisation."
 
-#: apps/users/services.py:270
+#: apps/users/services.py:274
+msgid "Invalid role."
+msgstr "Rôle invalide."
+
+#: apps/users/services.py:278
+msgid "You cannot remove your own admin role."
+msgstr "Vous ne pouvez pas supprimer votre propre rôle d'administrateur."
+
+#: apps/users/services.py:296
 msgid "You cannot deactivate your own account."
 msgstr "Vous ne pouvez pas désactiver votre propre compte."
 
-#: apps/users/views.py:118
+#: apps/users/views.py:119
 msgid "Incorrect email or password. Please try again."
 msgstr "E-mail ou mot de passe incorrect. Veuillez réessayer."
 
-#: apps/users/views.py:370
+#: apps/users/views.py:371
 msgid "Your profile has been updated."
 msgstr "Votre profil a été mis à jour."
 
-#: apps/users/views.py:440 apps/users/views.py:558
+#: apps/users/views.py:441 apps/users/views.py:559
 #, python-format
 msgid "%(email)s has been added to your workspace."
 msgstr "%(email)s a été ajouté à votre espace de travail."
 
-#: apps/users/views.py:462
+#: apps/users/views.py:463
 #, python-format
 msgid "%(email)s has been removed from the workspace."
 msgstr "%(email)s a été supprimé de l'espace de travail."
 
-#: apps/users/views.py:480
+#: apps/users/views.py:481
 #, python-format
 msgid "%(email)s has been re-added to the workspace."
 msgstr "%(email)s a été réajouté à l'espace de travail."
 
-#: apps/users/views.py:576
+#: apps/users/views.py:577
 msgid "Member not found."
 msgstr "Membre introuvable."
 
-#: apps/users/views.py:584
+#: apps/users/views.py:585
+#, python-format
 msgid "%(email)s has been promoted to admin."
 msgstr "%(email)s a été promu administrateur."
 
-#: apps/users/views.py:593
+#: apps/users/views.py:597
+#, python-format
+msgid "%(email)s is now %(role)s."
+msgstr "%(email)s est maintenant %(role)s."
+
+#: apps/users/views.py:606
+#, python-format
 msgid "%(email)s has been deactivated."
 msgstr "%(email)s a été désactivé."
 
-#: apps/users/views.py:600
-msgid "%(email)s has been re-activated."
-msgstr "%(email)s a été réactivé."
+#: apps/users/views.py:613
+#, python-format
+msgid "%(email)s has been activated."
+msgstr "%(email)s a été activé."
 
-#: apps/users/views.py:607
+#: apps/users/views.py:620
 msgid "Unknown action."
 msgstr "Action inconnue."
 
-#: apps/users/views.py:637
+#: apps/users/views.py:650
 msgid "Organisation settings saved."
 msgstr "Paramètres de l'organisation enregistrés."
 
@@ -349,7 +368,7 @@ msgstr "Commencer"
 msgid "Sidebar navigation"
 msgstr "Navigation latérale"
 
-#: templates/base.html:193 templates/base.html:289
+#: templates/base.html:195 templates/base.html:289
 #: templates/users/settings_base.html:4 templates/users/settings_base.html:9
 msgid "Settings"
 msgstr "Paramètres"
@@ -491,11 +510,11 @@ msgstr "Rôle"
 msgid "Status"
 msgstr "Statut"
 
-#: templates/users/members.html:59 templates/users/settings_users.html:56
+#: templates/users/members.html:59
 msgid "Actions"
 msgstr "Actions"
 
-#: templates/users/members.html:76 templates/users/settings_users.html:73
+#: templates/users/members.html:76
 msgid "Active"
 msgstr "Actif"
 
@@ -515,7 +534,7 @@ msgstr "Révoquer"
 msgid "Re-engage"
 msgstr "Réactiver"
 
-#: templates/users/members.html:103 templates/users/settings_users.html:121
+#: templates/users/members.html:103 templates/users/settings_users.html:126
 msgid "You"
 msgstr "Vous"
 
@@ -732,7 +751,9 @@ msgstr "Facturation — bientôt disponible"
 #: templates/users/settings_billing.html:20
 msgid ""
 "Subscription management and invoicing will be available in a future update."
-msgstr "La gestion des abonnements et la facturation seront disponibles dans une prochaine mise à jour."
+msgstr ""
+"La gestion des abonnements et la facturation seront disponibles dans une "
+"prochaine mise à jour."
 
 #: templates/users/settings_general.html:9
 msgid "Organisation"
@@ -755,28 +776,45 @@ msgstr "Inviter un nouveau membre"
 msgid "Invite"
 msgstr "Inviter"
 
-#: templates/users/settings_users.html:75
-msgid "Inactive"
-msgstr "Inactif"
+#: templates/users/settings_users.html:86
+msgid "Set as Admin"
+msgstr "Définir comme administrateur"
 
-#: templates/users/settings_users.html:89
-#: templates/users/settings_users.html:90
-msgid "Promote to admin"
-msgstr "Promouvoir en administrateur"
+#: templates/users/settings_users.html:96
+msgid "Set as Member"
+msgstr "Définir comme membre"
 
-#: templates/users/settings_users.html:102
-#: templates/users/settings_users.html:103
+#: templates/users/settings_users.html:122
 msgid "Deactivate"
 msgstr "Désactiver"
 
-#: templates/users/settings_users.html:113
-#: templates/users/settings_users.html:114
-msgid "Re-activate"
-msgstr "Réactiver"
+#: templates/users/settings_users.html:122
+msgid "Activate"
+msgstr "Activer"
 
-#: templates/users/settings_users.html:128
+#: templates/users/settings_users.html:134
 msgid "No members yet."
 msgstr "Aucun membre pour l'instant."
+
+#: templates/users/settings_users.html:151
+msgid "Are you sure you want to deactivate this user?"
+msgstr "Êtes-vous sûr de vouloir désactiver cet utilisateur ?"
+
+#: templates/users/settings_users.html:152
+msgid "Activate this user?"
+msgstr "Activer cet utilisateur ?"
+
+#~ msgid "%(email)s has been re-activated."
+#~ msgstr "%(email)s a été réactivé."
+
+#~ msgid "Inactive"
+#~ msgstr "Inactif"
+
+#~ msgid "Promote to admin"
+#~ msgstr "Promouvoir en administrateur"
+
+#~ msgid "Re-activate"
+#~ msgstr "Réactiver"
 
 #~ msgid "Select your language"
 #~ msgstr "Sélectionnez votre langue"

@@ -3,7 +3,7 @@ Phase 5 organisation settings tests.
 
 Covers:
 - /settings/ redirect
-- /settings/users/ — access control, invite, promote, deactivate, reengage
+- /settings/users/ — access control, invite, promote, set_role, deactivate, reengage
 - /settings/general/ — access control, save org name
 - /settings/billing/ — access control, placeholder renders
 """
@@ -186,6 +186,91 @@ class SettingsUsersPromoteTest(TestCase):
         # Should show error — member not found in this tenant
         messages = list(response.context["messages"])
         self.assertTrue(any("not found" in str(m).lower() for m in messages))
+
+
+# ---------------------------------------------------------------------------
+# /settings/users/ — set_role action (promote/demote via dropdown)
+# ---------------------------------------------------------------------------
+
+
+class SettingsUsersSetRoleTest(TestCase):
+    def setUp(self):
+        self.admin, self.tenant = _make_admin()
+        self.member = _make_member(self.tenant)
+        self.url = reverse("users:settings_users")
+
+    def test_set_role_to_admin(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            self.url,
+            {
+                "action": "set_role",
+                "profile_id": str(self.member.profile.pk),
+                "role": "admin",
+            },
+        )
+        self.assertRedirects(response, self.url)
+        self.member.profile.refresh_from_db()
+        self.assertEqual(self.member.profile.role, "admin")
+
+    def test_set_role_to_member_demotes_admin(self):
+        self.member.profile.role = "admin"
+        self.member.profile.save()
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            self.url,
+            {
+                "action": "set_role",
+                "profile_id": str(self.member.profile.pk),
+                "role": "member",
+            },
+        )
+        self.assertRedirects(response, self.url)
+        self.member.profile.refresh_from_db()
+        self.assertEqual(self.member.profile.role, "member")
+
+    def test_set_role_idempotent(self):
+        """Setting the same role again should not error."""
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            self.url,
+            {
+                "action": "set_role",
+                "profile_id": str(self.member.profile.pk),
+                "role": "member",
+            },
+        )
+        self.assertRedirects(response, self.url)
+
+    def test_admin_cannot_demote_themselves(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            self.url,
+            {
+                "action": "set_role",
+                "profile_id": str(self.admin.profile.pk),
+                "role": "member",
+            },
+            follow=True,
+        )
+        messages = list(response.context["messages"])
+        self.assertTrue(any("own" in str(m).lower() for m in messages))
+        self.admin.profile.refresh_from_db()
+        self.assertEqual(self.admin.profile.role, "admin")
+
+    def test_invalid_role_fails(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            self.url,
+            {
+                "action": "set_role",
+                "profile_id": str(self.member.profile.pk),
+                "role": "superuser",
+            },
+            follow=True,
+        )
+        messages = list(response.context["messages"])
+        self.assertTrue(any("invalid" in str(m).lower() for m in messages))
 
 
 # ---------------------------------------------------------------------------
