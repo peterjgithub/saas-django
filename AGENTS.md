@@ -592,6 +592,9 @@ uv run ruff check --fix && uv run ruff format
 # Tests
 uv run python manage.py test apps
 
+# Install git pre-commit hook (run once after cloning — prevents committing broken code)
+bash scripts/install-hooks.sh
+
 # Commit and push after each completed phase (tests passing, ruff clean)
 git add -A && git commit -m "feat: Phase N — <short summary>" && git push
 
