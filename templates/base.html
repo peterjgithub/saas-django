@@ -5,13 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}{{ SITE_NAME }}{% endblock %}</title>
 
-  {# Anti-flash: apply saved theme BEFORE any CSS loads to prevent FOUC #}
+  {# Anti-flash: apply theme BEFORE any CSS loads to prevent FOUC.
+     For authenticated users the server injects their saved preference so the
+     correct theme is used even in a fresh browser / incognito window.
+     For unauthenticated users localStorage is the only source of truth. #}
   <script>
     (function () {
-      var saved = localStorage.getItem('theme');
-      var theme = (saved === 'corporate' || saved === 'night') ? saved
-                  : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'night' : 'corporate');
-      document.documentElement.setAttribute('data-theme', theme);
+      {% if user.is_authenticated %}
+      {# Server-side preference wins — overrides any stale localStorage value. #}
+      var serverTheme = '{{ current_theme }}';  {# "corporate" | "night" | "system" #}
+      var stored = localStorage.getItem('theme');
+      {# Only trust localStorage if the user hasn't saved a server preference yet #}
+      var pref = (serverTheme && serverTheme !== 'system') ? serverTheme
+                 : (serverTheme === 'system') ? 'system'
+                 : (stored || 'system');
+      {% else %}
+      {# Unauthenticated — localStorage only #}
+      var pref = localStorage.getItem('theme') || 'system';
+      {% endif %}
+      var resolved = (pref === 'night') ? 'night'
+                     : (pref === 'corporate') ? 'corporate'
+                     : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'night' : 'corporate');
+      document.documentElement.setAttribute('data-theme', resolved);
+      {# Store the logical pref (may be "system"), not the resolved value #}
+      localStorage.setItem('theme', pref);
     })();
   </script>
 
@@ -50,17 +67,25 @@
       <div class="navbar-end gap-2">
         <button id="theme-toggle"
                 class="btn btn-ghost btn-sm btn-circle"
-                aria-label="{% trans 'Toggle colour theme' %}"
-                title="{% trans 'Toggle light / dark' %}">
+                aria-label="{% trans 'Cycle colour theme' %}"
+                title="{% trans 'Cycle light / dark / system' %}">
+          {# Sun — shown when current pref is dark (click → system) #}
           <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" class="size-5 hidden" fill="none"
                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round"
                   d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/>
           </svg>
-          <svg id="icon-moon" xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none"
+          {# Moon — shown when current pref is light (click → dark) #}
+          <svg id="icon-moon" xmlns="http://www.w3.org/2000/svg" class="size-5 hidden" fill="none"
                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round"
                   d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+          {# Monitor — shown when current pref is system (click → light) #}
+          <svg id="icon-system" xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none"
+               viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <rect x="2" y="3" width="20" height="14" rx="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 21h8M12 17v4"/>
           </svg>
         </button>
 
@@ -218,18 +243,24 @@
           <span class="text-sm">{% trans "Theme" %}</span>
           <button id="theme-toggle-mobile"
                   class="btn btn-ghost btn-sm btn-circle"
-                  aria-label="{% trans 'Toggle dark/light mode' %}">
-            {# Sun — shown in dark mode #}
+                  aria-label="{% trans 'Cycle dark/light/system mode' %}">
+            {# Sun — shown when pref is dark (click → system) #}
             <svg id="icon-sun-mobile" xmlns="http://www.w3.org/2000/svg" class="size-5 hidden"
                  fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round"
                     d="M12 3v1m0 16v1m8.66-9h-1M4.34 12h-1m15.07-6.07-.71.71M6.34 17.66l-.71.71M17.66 17.66l-.71-.71M6.34 6.34l-.71-.71M12 7a5 5 0 100 10A5 5 0 0012 7z"/>
             </svg>
-            {# Moon — shown in light mode #}
-            <svg id="icon-moon-mobile" xmlns="http://www.w3.org/2000/svg" class="size-5"
+            {# Moon — shown when pref is light (click → dark) #}
+            <svg id="icon-moon-mobile" xmlns="http://www.w3.org/2000/svg" class="size-5 hidden"
                  fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round"
                     d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+            </svg>
+            {# Monitor — shown when pref is system (click → light) #}
+            <svg id="icon-system-mobile" xmlns="http://www.w3.org/2000/svg" class="size-5"
+                 fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <rect x="2" y="3" width="20" height="14" rx="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 21h8M12 17v4"/>
             </svg>
           </button>
         </div>
@@ -259,43 +290,92 @@
     <p>© {% now "Y" %} {{ SITE_NAME }}</p>
   </footer>
 
-  {# THEME TOGGLE SCRIPT #}
+  {# THEME TOGGLE SCRIPT
+     Pref values:  "corporate" | "night" | "system"
+     Cycle order:  corporate → night → system → corporate …
+     Resolved:     system → read prefers-color-scheme at runtime
+     Persistence:  localStorage always; POST to /theme/set/ when authenticated.
+  #}
   <script>
     (function () {
-      var btn = document.getElementById('theme-toggle');
-      var btnMobile = document.getElementById('theme-toggle-mobile');
-      var sunIcon = document.getElementById('icon-sun');
-      var moonIcon = document.getElementById('icon-moon');
-      var sunIconMobile = document.getElementById('icon-sun-mobile');
-      var moonIconMobile = document.getElementById('icon-moon-mobile');
-      var html = document.documentElement;
+      var btn        = document.getElementById('theme-toggle');
+      var btnMobile  = document.getElementById('theme-toggle-mobile');
+      var html       = document.documentElement;
 
-      function currentTheme() {
-        return html.getAttribute('data-theme') || 'corporate';
+      var icons = {
+        sun:          document.getElementById('icon-sun'),
+        moon:         document.getElementById('icon-moon'),
+        system:       document.getElementById('icon-system'),
+        sunMobile:    document.getElementById('icon-sun-mobile'),
+        moonMobile:   document.getElementById('icon-moon-mobile'),
+        systemMobile: document.getElementById('icon-system-mobile'),
+      };
+
+      var isAuthenticated = {{ user.is_authenticated|yesno:"true,false" }};
+      var csrfToken       = '{{ csrf_token }}';
+      var setThemeUrl     = '{% url "users:set_theme" %}';
+
+      function resolveTheme(pref) {
+        if (pref === 'night')     return 'night';
+        if (pref === 'corporate') return 'corporate';
+        {# "system" — read OS preference at runtime #}
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'night' : 'corporate';
       }
 
-      function applyTheme(theme) {
-        html.setAttribute('data-theme', theme);
-        localStorage.setItem('theme', theme);
-        var isDark = theme === 'night';
-        if (sunIcon) sunIcon.classList.toggle('hidden', !isDark);
-        if (moonIcon) moonIcon.classList.toggle('hidden', isDark);
-        if (sunIconMobile) sunIconMobile.classList.toggle('hidden', !isDark);
-        if (moonIconMobile) moonIconMobile.classList.toggle('hidden', isDark);
+      function nextPref(current) {
+        if (current === 'corporate') return 'night';
+        if (current === 'night')     return 'system';
+        return 'corporate';
       }
 
-      applyTheme(currentTheme());
+      function updateIcons(pref) {
+        {# sun = currently dark → clicking goes to system #}
+        var showSun    = pref === 'night';
+        {# moon = currently light → clicking goes to dark #}
+        var showMoon   = pref === 'corporate';
+        {# monitor = currently system → clicking goes to light #}
+        var showSystem = pref === 'system';
+        if (icons.sun)          icons.sun.classList.toggle('hidden', !showSun);
+        if (icons.moon)         icons.moon.classList.toggle('hidden', !showMoon);
+        if (icons.system)       icons.system.classList.toggle('hidden', !showSystem);
+        if (icons.sunMobile)    icons.sunMobile.classList.toggle('hidden', !showSun);
+        if (icons.moonMobile)   icons.moonMobile.classList.toggle('hidden', !showMoon);
+        if (icons.systemMobile) icons.systemMobile.classList.toggle('hidden', !showSystem);
+      }
 
-      if (btn) {
-        btn.addEventListener('click', function () {
-          applyTheme(currentTheme() === 'night' ? 'corporate' : 'night');
-        });
+      function applyPref(pref) {
+        var resolved = resolveTheme(pref);
+        html.setAttribute('data-theme', resolved);
+        localStorage.setItem('theme', pref);
+        updateIcons(pref);
+
+        if (isAuthenticated) {
+          var fd = new FormData();
+          fd.append('theme', pref);
+          fd.append('csrfmiddlewaretoken', csrfToken);
+          fetch(setThemeUrl, { method: 'POST', body: fd, credentials: 'same-origin' })
+            .catch(function () { /* non-critical — ignore network errors */ });
+        }
       }
-      if (btnMobile) {
-        btnMobile.addEventListener('click', function () {
-          applyTheme(currentTheme() === 'night' ? 'corporate' : 'night');
-        });
+
+      {# Initialise icons from current pref stored in localStorage #}
+      updateIcons(localStorage.getItem('theme') || 'system');
+
+      {# Listen for OS preference changes while page is open (system mode only) #}
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
+        var pref = localStorage.getItem('theme') || 'system';
+        if (pref === 'system') {
+          html.setAttribute('data-theme', resolveTheme('system'));
+        }
+      });
+
+      function onToggleClick() {
+        var current = localStorage.getItem('theme') || 'system';
+        applyPref(nextPref(current));
       }
+
+      if (btn)       btn.addEventListener('click', onToggleClick);
+      if (btnMobile) btnMobile.addEventListener('click', onToggleClick);
     })();
   </script>
 

@@ -20,7 +20,7 @@ from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_POST
@@ -215,7 +215,9 @@ def profile_view(request):
     else:
         form = ProfileSettingsForm(instance=profile)
 
-    return render(request, "users/profile.html", {"form": form})
+    return render(
+        request, "users/profile.html", {"form": form, "saved_theme": profile.theme}
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -324,3 +326,32 @@ def reengage_member_view(request, profile_id: uuid.UUID):
     except ValueError as exc:
         messages.error(request, str(exc))
     return redirect("users:members")
+
+
+# ---------------------------------------------------------------------------
+# Theme — save preference to profile (authenticated users only)
+# ---------------------------------------------------------------------------
+
+_VALID_THEMES = {"corporate", "night", "system"}
+
+
+@require_POST
+def set_theme_view(request):
+    """
+    POST /theme/set/  { "theme": "corporate"|"night"|"system" }
+
+    Authenticated:   save to UserProfile.theme, return JSON ok.
+    Unauthenticated: 204 No Content (client already handled localStorage).
+    """
+    theme = request.POST.get("theme", "").strip()
+    if theme not in _VALID_THEMES:
+        return JsonResponse({"error": "invalid theme"}, status=400)
+
+    if request.user.is_authenticated:
+        profile = request.user.profile
+        profile.theme = theme
+        profile.save(update_fields=["theme", "updated_at"])
+        return JsonResponse({"ok": True, "theme": theme})
+
+    # Unauthenticated — nothing to persist server-side; the client uses localStorage.
+    return JsonResponse({"ok": True, "theme": theme})

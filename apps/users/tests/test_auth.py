@@ -398,3 +398,99 @@ class AccountRevokedViewTest(TestCase):
         response = self.client.get(reverse("users:account_revoked"))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "users/account_revoked.html")
+
+
+class SetThemeViewTest(TestCase):
+    """
+    Tests for POST /theme/set/ — theme persistence endpoint.
+
+    - Authenticated users: theme saved to UserProfile.theme.
+    - Unauthenticated users: 200 JSON ok returned (client stores in localStorage).
+    - Invalid theme value → 400.
+    - GET not allowed → 405.
+    """
+
+    url = "/theme/set/"
+
+    def setUp(self):
+        self.user = _make_complete_user(email="theme@example.com")
+
+    # --- authenticated ---
+
+    def test_authenticated_saves_corporate(self):
+        self.client.force_login(self.user)
+        response = self.client.post(self.url, {"theme": "corporate"})
+        self.assertEqual(response.status_code, 200)
+        self.user.profile.refresh_from_db()
+        self.assertEqual(self.user.profile.theme, "corporate")
+
+    def test_authenticated_saves_night(self):
+        self.client.force_login(self.user)
+        response = self.client.post(self.url, {"theme": "night"})
+        self.assertEqual(response.status_code, 200)
+        self.user.profile.refresh_from_db()
+        self.assertEqual(self.user.profile.theme, "night")
+
+    def test_authenticated_saves_system(self):
+        self.client.force_login(self.user)
+        response = self.client.post(self.url, {"theme": "system"})
+        self.assertEqual(response.status_code, 200)
+        self.user.profile.refresh_from_db()
+        self.assertEqual(self.user.profile.theme, "system")
+
+    def test_authenticated_returns_json_ok(self):
+        self.client.force_login(self.user)
+        response = self.client.post(self.url, {"theme": "night"})
+        data = response.json()
+        self.assertTrue(data["ok"])
+        self.assertEqual(data["theme"], "night")
+
+    # --- unauthenticated ---
+
+    def test_unauthenticated_returns_ok(self):
+        """Unauthenticated POST returns 200 ok (client handles localStorage)."""
+        response = self.client.post(self.url, {"theme": "night"})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["ok"])
+
+    def test_unauthenticated_does_not_persist(self):
+        """No DB write happens for unauthenticated requests."""
+        self.client.post(self.url, {"theme": "night"})
+        # Verify the user's profile was not changed (different session, no auth)
+        self.user.profile.refresh_from_db()
+        # Default theme is "system" — it should not have changed to "night"
+        self.assertNotEqual(self.user.profile.theme, "night")
+
+    # --- validation ---
+
+    def test_invalid_theme_returns_400(self):
+        self.client.force_login(self.user)
+        response = self.client.post(self.url, {"theme": "rainbow"})
+        self.assertEqual(response.status_code, 400)
+
+    def test_get_not_allowed(self):
+        self.client.force_login(self.user)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 405)
+
+    # --- context processor ---
+
+    def test_authenticated_context_uses_profile_theme(self):
+        """current_theme in template context comes from profile, not cookie."""
+        self.user.profile.theme = "night"
+        self.user.profile.save(update_fields=["theme", "updated_at"])
+        self.client.force_login(self.user)
+        # Set a conflicting cookie to confirm profile wins
+        self.client.cookies["theme"] = "corporate"
+        response = self.client.get(reverse("pages:dashboard"))
+        self.assertEqual(response.context["current_theme"], "night")
+
+    def test_unauthenticated_context_uses_cookie(self):
+        """Unauthenticated: current_theme falls back to cookie."""
+        self.client.cookies["theme"] = "night"
+        response = self.client.get(reverse("pages:home"))
+        self.assertEqual(response.context["current_theme"], "night")
+
+    def test_unauthenticated_no_cookie_defaults_to_system(self):
+        response = self.client.get(reverse("pages:home"))
+        self.assertEqual(response.context["current_theme"], "system")

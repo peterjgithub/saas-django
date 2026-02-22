@@ -33,6 +33,7 @@ _ALWAYS_EXEMPT = {
     "/password-reset/done/",
     "/password-reset/confirm/",
     "/password-reset/complete/",
+    "/theme/set/",
 }
 
 

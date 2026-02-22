@@ -20,6 +20,8 @@ urlpatterns = [
     ),
     # Profile
     path("profile/", views.profile_view, name="profile"),
+    # Theme preference (AJAX POST — authenticated saves to DB, unauth is no-op)
+    path("theme/set/", views.set_theme_view, name="set_theme"),
     # Account revoked
     path("account/revoked/", views.account_revoked_view, name="account_revoked"),
     # Member management (admin only)
