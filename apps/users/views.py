@@ -104,6 +104,7 @@ def register_view(request):
         if form.is_valid():
             tz_detect = form.cleaned_data.get("tz_detect", "")
             lang_detect = form.cleaned_data.get("lang_detect", "")
+            country_detect = form.cleaned_data.get("country_detect", "")
             user = register_user(
                 email=form.cleaned_data["email"],
                 password=form.cleaned_data["password"],
@@ -116,6 +117,8 @@ def register_view(request):
                 request.session["tz_detect"] = tz_detect
             if lang_detect:
                 request.session["lang_detect"] = lang_detect
+            if country_detect:
+                request.session["country_detect"] = country_detect
             return redirect("users:profile_complete")
     else:
         form = RegisterForm()
@@ -224,6 +227,7 @@ def profile_complete_view(request):
         # Layer 2: browser hints stored in session at registration (override geo)
         sess_tz = request.session.get("tz_detect", "")
         sess_lang = request.session.get("lang_detect", "")
+        sess_country = request.session.get("country_detect", "")
 
         if sess_tz and not profile.timezone_id:
             tz_obj = Timezone.objects.filter(name=sess_tz).first()
@@ -238,6 +242,13 @@ def profile_complete_view(request):
             )
             if lang_obj:
                 initial["language"] = lang_obj.pk
+
+        # country_detect comes from the region subtag of navigator.language
+        # e.g. "nl-BE" → "BE".  This is a browser signal, works on localhost.
+        if sess_country and not profile.country_id:
+            country_obj = Country.objects.filter(code__iexact=sess_country).first()
+            if country_obj:
+                initial["country"] = country_obj.pk
 
         form = ProfileCompleteForm(instance=profile, initial=initial)
 

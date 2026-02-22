@@ -56,9 +56,10 @@
             {% endif %}
           </fieldset>
 
-          {# Hidden fields populated by JS for timezone / language detection #}
+          {# Hidden fields populated by JS for timezone / language / country detection #}
           <input type="hidden" name="tz_detect" id="id_tz_detect">
           <input type="hidden" name="lang_detect" id="id_lang_detect">
+          <input type="hidden" name="country_detect" id="id_country_detect">
 
           <div class="mt-6">
             <button type="submit" class="btn btn-primary w-full min-h-[44px]">
@@ -86,7 +87,14 @@
     } catch (e) {}
     try {
       var lang = navigator.language || navigator.userLanguage;
-      if (lang) document.getElementById("id_lang_detect").value = lang;
+      if (lang) {
+        document.getElementById("id_lang_detect").value = lang;
+        // Extract region subtag if present: "nl-BE" → "BE", "en-US" → "US"
+        var parts = lang.split("-");
+        if (parts.length >= 2) {
+          document.getElementById("id_country_detect").value = parts[parts.length - 1].toUpperCase();
+        }
+      }
     } catch (e) {}
   })();
 </script>

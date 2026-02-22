@@ -63,6 +63,7 @@ class RegisterForm(forms.Form):
     # Hidden — populated by JS before form submit
     tz_detect = forms.CharField(required=False, widget=forms.HiddenInput())
     lang_detect = forms.CharField(required=False, widget=forms.HiddenInput())
+    country_detect = forms.CharField(required=False, widget=forms.HiddenInput())
 
     def clean_email(self):
         from apps.users.models import User
