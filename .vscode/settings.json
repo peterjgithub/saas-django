@@ -19,12 +19,16 @@
     "editor.formatOnSave": true
   },
 
+  // .clauderules is plain-text but uses Markdown conventions (headings, fenced
+  // code blocks) — associate as Markdown so Python linting never fires on it.
+  "files.associations": {
+    "*.clauderules": "markdown"
+  },
+
   // ── Claude (Anthropic) in VS Code ──────────────────────────────────────
   // .clauderules is auto-detected by the Claude extension as the rules file.
   // ai_context.md is attached as a context file for every chat session.
-  "claude.contextFiles": [
-    "ai_context.md"
-  ],
+  "claude.contextFiles": ["ai_context.md"],
 
   // ── GitHub Copilot (fallback / parallel use) ───────────────────────────
   // Instructions are read from .github/copilot-instructions.md automatically.
