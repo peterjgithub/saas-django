@@ -79,7 +79,7 @@ Rules:
 ### 4b. Non-Tenant Audited Data (`TimeStampedAuditModel`)
 
 Use for system-level models that are not scoped to a tenant but still need a full
-audit trail: `UserProfile`, `TenantMembership`, and future system-wide records.
+audit trail: `UserProfile`, `Tenant`, and future system-wide records.
 
 ```python
 class TimeStampedAuditModel(models.Model):
@@ -96,9 +96,9 @@ class TimeStampedAuditModel(models.Model):
 ```
 
 > Same hybrid-integrity approach as `TenantScopedModel` — all actor fields are
-> `UUIDField`. No circular risk: for `UserProfile` and `TenantMembership`, the `User`
-> row is committed before the signal creates the profile, so `user.pk` is always
-> a valid UUID when these records are written.
+> `UUIDField`. No circular risk: for `UserProfile`, the `User` row is committed
+> before the signal creates the profile, so `user.pk` is always a valid UUID when
+> these records are written.
 
 Rules: same as §4a except no `tenant_id`.
 
@@ -209,6 +209,31 @@ class UserProfile(TimeStampedAuditModel):
     profile_completed_at = models.DateTimeField(null=True, blank=True)
                            # None until the user saves the profile form for the
                            # first time; drives the ProfileCompleteMiddleware gate
+
+    # Workspace membership — one user, one tenant, forever
+    tenant     = models.ForeignKey(
+                     "tenants.Tenant", null=True, blank=True,
+                     on_delete=models.SET_NULL, related_name="members"
+                 )
+                 # Null = not yet assigned (new user in onboarding).
+                 # Set once during onboarding Step 2 (workspace creation) or when
+                 # an owner invites the user.
+                 # NEVER nulled out after assignment — it is the permanent audit
+                 # record of which organisation the user belonged/belongs to.
+    role       = models.CharField(
+                     max_length=20,
+                     choices=[("owner", "Owner"), ("member", "Member")],
+                     default="member",
+                     blank=True
+                 )
+                 # "owner"  — created the workspace; can invite/revoke members
+                 # "member" — regular member; read access only
+                 # Blank when tenant is null (pre-onboarding)
+    tenant_joined_at  = models.DateTimeField(null=True, blank=True)
+                        # Set when the user first joins or is invited to a tenant
+    tenant_revoked_at = models.DateTimeField(null=True, blank=True)
+                        # Set when an owner revokes access; cleared on re-engagement
+                        # is_active (inherited) = False while revoked
 ```
 
 **Auto-population on registration (signal):**
@@ -328,11 +353,10 @@ Populate from `pycountry` (PyPI) in the `load_reference_data` management command
 
 ---
 
-## 5c. Tenants & Membership Models
+## 5c. Tenant Model
 
-`Tenant` and `TenantMembership` live in `apps/tenants/`.
-
-### Tenant
+`Tenant` lives in `apps/tenants/`. There is no `TenantMembership` model — membership
+is recorded directly on `UserProfile` (see §5a).
 
 ```python
 class Tenant(TimeStampedAuditModel):
@@ -342,31 +366,30 @@ class Tenant(TimeStampedAuditModel):
     # No slug — UUID PK is the identifier; add slug only if tenant-scoped URLs are needed
 ```
 
-### TenantMembership
+**One user, one tenant — hard product constraint:**
 
-```python
-class TenantMembership(TimeStampedAuditModel):
-    # Inherits: id (UUID PK), created_at, created_by, updated_at, updated_by,
-    #           is_active, deleted_at, deleted_by
-    # created_by = UUID of the owner who sent the invitation
-    tenant   = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name="memberships")
-    user     = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
-                   related_name="memberships")
-    role     = models.CharField(max_length=20,
-                   choices=[("owner", "Owner"), ("member", "Member")],
-                   default="member")
-    joined_at = models.DateTimeField(auto_now_add=True)
-    # is_active inherited from TimeStampedAuditModel: False = revoked, not deleted
+- A `UserProfile.tenant` FK is set once (during onboarding or on invitation) and
+  **never nulled out after assignment**.
+- A user who needs to belong to a different organisation must register a new account
+  with a different email address.
+- Revocation (`is_active = False`) does not clear the `tenant` FK — the link is the
+  permanent audit record of which organisation the account belonged to.
 
-    class Meta:
-        unique_together = [("tenant", "user")]
-```
+**Revocation lifecycle:**
 
-> **No `admin` role** — `owner` is the single privileged role.
-> Add granular roles (e.g. `billing`) only when a concrete permission need arises (Phase 5+).
+| Action | `is_active` | `tenant_revoked_at` | `deleted_by` | `tenant` FK |
+|---|---|---|---|---|
+| Active member | `True` | `None` | `None` | set |
+| Revoked | `False` | `now()` | owner UUID | set (unchanged) |
+| Re-engaged | `True` | `None` | `None` | set (unchanged) |
+| Anonymised (future) | `False` | set | set | set (unchanged) |
 
-> **No `tenant` FK on `User`** — workspace membership goes through `TenantMembership` only.
-> A user may belong to multiple tenants; the FK would lock them to one.
+**Owner constraint:** The owner of a tenant cannot revoke themselves.
+Enforced at the service layer — `services.revoke_member()` raises if
+`profile.user == request.user`.
+
+**Member management UI** lives at `/settings/members/` — `owner`-only (403 for members).
+Queries: `UserProfile.objects.filter(tenant=request.user.profile.tenant)`.
 
 ---
 
@@ -416,7 +439,8 @@ Register → Login → Middleware Check ──→ /profile/complete/   (Step 1: 
 
 - User creates their first Workspace (Tenant): provide `organization` (workspace name)
 - Show the same DaisyUI **steps** progress indicator: `Profile → Workspace` (step 2 of 2)
-- On save: create `Tenant`, create `TenantMembership(role="owner", is_active=True)` → redirect to `/dashboard/`
+- On save: create `Tenant`, set `profile.tenant = tenant`, `profile.role = "owner"`,
+  `profile.tenant_joined_at = now()`, `profile.is_active = True` → redirect to `/dashboard/`
 - The creating user is the **owner** of the tenant and can invite/remove members
 
 **Middleware (`ProfileCompleteMiddleware` in `apps/users/middleware.py`):**
@@ -426,35 +450,41 @@ Runs on every request **after** `AuthenticationMiddleware`. Only applies to
 
 1. If `profile_completed_at` is `None` AND `request.session.get("skip_profile_gate")` is not `True`:
    → redirect to `/profile/complete/?next=<original_url>`
-2. Else if user has no active `TenantMembership`:
+2. Else if `request.user.profile.tenant_id` is `None`:
    → redirect to `/onboarding/create-tenant/?next=<original_url>`
-3. Else: proceed normally.
+3. Else if `request.user.profile.is_active` is `False`:
+   → redirect to `/account/revoked/` (inform the user their access has been revoked)
+4. Else: proceed normally.
 
 Exempt from the gate (never redirected, even when checks fail):
 
 - `/profile/complete/`
 - `/onboarding/create-tenant/`
+- `/account/revoked/`
 - `/logout/`
 - `/health/`
 - Any URL matching `settings.PROFILE_GATE_EXEMPT_URLS` (a list in `base.py`, default `[]`)
-
-The middleware `TenantMembership` check must query `is_active=True` memberships only —
-a revoked member (`is_active=False`) has no active membership and is redirected to
-`/onboarding/create-tenant/`.
 
 Public pages (unauthenticated access allowed) are unaffected.
 
 ### Tenant Member Management
 
-- `TenantMembership` roles: `owner` and `member` only. No `admin` role until a concrete
+- One user belongs to exactly one tenant — enforced at the service layer.
+  A second workspace requires a new user account with a different email address.
+- `role` values: `owner` and `member` only. No `admin` role until a concrete
   permission need arises.
-- `owner` capabilities: invite members by email, revoke access (`is_active=False`),
-  re-activate revoked members. An owner **cannot** revoke their own membership.
+- `owner` capabilities: invite members by email, revoke access, re-engage revoked members.
+  An owner **cannot** revoke themselves.
 - `member` capabilities: none — read access to tenant data only.
 - Member management UI lives at `/settings/members/` — `owner`-only; non-owners get 403.
-- Inviting an email that already has an active membership is a validation error.
-- Revoking sets `TenantMembership.is_active = False` (soft-revoke, audit trail preserved).
-- Invitation email: send synchronously via Django `send_mail` for now (no Celery yet).
+- **Invite:** owner enters an email → look up or create `User` + `UserProfile` →
+  set `profile.tenant`, `profile.role = "member"`, `profile.tenant_joined_at = now()`,
+  `profile.is_active = True` → send invitation email via `send_mail` (no Celery yet).
+  Inviting an email whose profile already has `is_active=True` for this tenant is a validation error.
+- **Revoke:** set `profile.is_active = False`, `profile.tenant_revoked_at = now()`,
+  `profile.deleted_by = request.user.pk`. The `tenant` FK is **never cleared**.
+- **Re-engage:** set `profile.is_active = True`, `profile.tenant_revoked_at = None`,
+  `profile.deleted_by = None`, `profile.deleted_at = None`.
 
 ---
 

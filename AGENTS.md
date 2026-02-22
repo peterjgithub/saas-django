@@ -55,10 +55,10 @@
 | 31  | Never hard-delete User or UserProfile                                                                | Silent cascade risk; `is_active = False` is the only safe deactivation path                                                                                                                                                                  |
 | 32  | `marketing_emails` only — no `product_updates`                                                       | Single opt-in field sufficient for now; extend when explicit consent categories are needed                                                                                                                                                   |
 | 33  | WCAG AA accessibility built in from day one                                                          | aria-invalid + aria-describedby on all forms; skip-link; focus trap in modals; 44px min targets                                                                                                                                              |
-| 34  | `TenantMembership` join table instead of FK on `User`                                                | A user may belong to multiple workspaces; FK on User locks them to one and conflates identity with membership                                                                                                                                |
+| 34  | Membership on `UserProfile` directly, not a join table                                              | One user, one tenant — hard product constraint. `UserProfile.tenant` FK + `role` + `tenant_joined_at` + `tenant_revoked_at` replaces `TenantMembership` entirely. Simpler schema, no extra join, audit trail preserved via `tenant_revoked_at` + `is_active`. A user needing a different org must register a new account.         |
 | 35  | `Tenant` has only `organization` + UUID PK + base fields                                             | `name` was redundant with `organization`; `slug` deferred — UUID is sufficient for isolation until tenant-scoped URLs are needed                                                                                                             |
-| 36  | `TenantMembership` roles: `owner` and `member` only                                                  | `admin` role deferred — no concrete permission split yet; owner is the single privileged role; add granularity in Phase 5+ when real RBAC needs emerge                                                                                       |
-| 37  | Audit actor fields (`deleted_by`, opt-in `created_by`/`updated_by`) use `UUIDField` not `ForeignKey` | No FK constraint check on every write; no implicit index; no circular dependency on `User`; no JOIN overhead when reading audit data. Integrity enforced at the service layer. Add `db_index` per-model only if a query pattern warrants it. |
+| 36  | `UserProfile` roles: `owner` and `member` only                                                       | `admin` role deferred — no concrete permission split yet; owner is the single privileged role; add granularity in Phase 5+ when real RBAC needs emerge                                                                                       |
+| 37  | Audit actor fields (`deleted_by`, `created_by`, `updated_by`) use `UUIDField` not `ForeignKey`       | No FK constraint check on every write; no implicit index; no circular dependency on `User`; no JOIN overhead when reading audit data. Integrity enforced at the service layer. Add `db_index` per-model only if a query pattern warrants it. |
 
 ---
 
@@ -113,8 +113,8 @@ class TenantScopedModel(TimeStampedAuditModel):
 
 ### Category B — `TimeStampedAuditModel` (non-tenant audited data)
 
-Use for system-level models with no workspace scope: `UserProfile`, `TenantMembership`,
-`Tenant` itself, and any future system-wide record.
+Use for system-level models with no workspace scope: `UserProfile`, `Tenant`, and
+any future system-wide record.
 
 ```python
 class TimeStampedAuditModel(models.Model):
@@ -195,27 +195,13 @@ actor to record. This is the **only** model in the codebase that omits these fie
 
 #### 1c — Tenants
 
-- [ ] `apps/tenants/` — `Tenant` model:
+- [ ] `apps/tenants/` — `Tenant` model only (no `TenantMembership`):
   - `id` — UUID PK
   - `organization` — `CharField(max_length=200)` — workspace / company name (required)
   - Extends `TimeStampedAuditModel` — Tenant IS the root; it has no `tenant_id` on itself
   - No `slug` — the UUID PK is the identifier; add a slug later if tenant-scoped URLs are needed
-- [ ] `TenantMembership` model — join table between `User` and `Tenant`:
-  - Extends `TimeStampedAuditModel` (`created_by` = UUID of the inviting owner)
-  - `tenant` — `ForeignKey(Tenant)`
-  - `user` — `ForeignKey(settings.AUTH_USER_MODEL)`
-  - `role` — `CharField` choices: `owner` / `member`; default `member`
-    - `owner`: created the workspace; can invite/remove members and manage tenant settings
-    - `member`: regular workspace member; no admin capabilities
-    - > **No `admin` role at this stage** — `owner` is the single privileged role.
-      > Add granular roles (e.g. `admin`, `billing`) only when a concrete permission
-      > need arises (Phase 5+).
-  - `joined_at` — `DateTimeField(auto_now_add=True)`
-  - `is_active` — inherited from `TimeStampedAuditModel` — `False` = revoked, not deleted
-  - Unique together: `(tenant, user)`
-- [ ] Admin registration for both models
-- [ ] Tests: tenant creation, membership creation, role assignment, uniqueness constraint,
-      owner can invite member, non-owner cannot invite
+- [ ] Admin registration
+- [ ] Tests: tenant creation, `organization` required
 
 #### 1d — Custom User
 
@@ -224,8 +210,7 @@ actor to record. This is the **only** model in the codebase that omits these fie
   - Custom `UserManager` (`create_user`, `create_superuser`) using email
   - Extends `AbstractUser` directly — **NOT** `TimeStampedAuditModel`
   - Add `deleted_at` and `deleted_by` (UUIDField) directly on `User` (no `created_by`/`updated_by`)
-  - **No `tenant` FK on `User`** — workspace membership goes through `TenantMembership`
-    (see Phase 1c); a user may belong to multiple tenants in the future
+  - **No `tenant` FK on `User`** — tenant membership lives on `UserProfile` (see Phase 1e)
 - [ ] Set `AUTH_USER_MODEL = "users.User"` in `config/settings/base.py`
 - [ ] Migrations (`makemigrations` → `migrate`)
 - [ ] `createsuperuser` (email-based)
@@ -247,6 +232,12 @@ actor to record. This is the **only** model in the codebase that omits these fie
   - `marketing_emails` — `BooleanField(default=False)` — newsletters opt-in only
   - `profile_completed_at` — `DateTimeField(null=True, blank=True)` — `None` until the
     user saves the profile form for the first time; drives the onboarding gate
+  - `tenant` — `ForeignKey("tenants.Tenant", null=True, blank=True, on_delete=SET_NULL)` —
+    set once during onboarding/invitation; **never nulled out after assignment**
+  - `role` — `CharField` choices: `owner` / `member`; blank when `tenant` is null
+  - `tenant_joined_at` — `DateTimeField(null=True, blank=True)`
+  - `tenant_revoked_at` — `DateTimeField(null=True, blank=True)` — set on revocation,
+    cleared on re-engagement; `is_active=False` while revoked
 - [ ] **NEVER hard-delete a `UserProfile`.** Soft-delete only (`is_active = False`).
 - [ ] `post_save` signal on `User` → auto-create `UserProfile`
 - [ ] Auto-populate `display_name` from email:
@@ -328,11 +319,13 @@ dashboard, and manage preferences — all via email.
   - Decision logic:
     1. `profile_completed_at IS NULL` **AND** `session["skip_profile_gate"]` is not `True`
        → redirect to `/profile/complete/?next=<url>`
-    2. Else if user has no active `TenantMembership` record
+    2. Else if `request.user.profile.tenant_id` is `None`
        → redirect to `/onboarding/create-tenant/?next=<url>`
-    3. Else: pass through
+    3. Else if `request.user.profile.is_active` is `False`
+       → redirect to `/account/revoked/`
+    4. Else: pass through
   - Exempt (never redirected): `/profile/complete/`, `/onboarding/create-tenant/`,
-    `/logout/`, `/health/`, `settings.PROFILE_GATE_EXEMPT_URLS`
+    `/account/revoked/`, `/logout/`, `/health/`, `settings.PROFILE_GATE_EXEMPT_URLS`
 
 - [ ] **Step 1 — Profile completion (`/profile/complete/`):**
   - Page title: **"Complete your profile"**
@@ -348,8 +341,8 @@ dashboard, and manage preferences — all via email.
   - Page title: **"Create your workspace"**
   - DaisyUI **steps** progress: `Profile → Workspace` (currently at step 2)
   - Input: `organization` (company / workspace name)
-  - On save: create `Tenant`, create `TenantMembership` with `role=owner` →
-    redirect to `/dashboard/`
+  - On save: create `Tenant`, set `profile.tenant`, `profile.role = "owner"`,
+    `profile.tenant_joined_at = now()` → redirect to `/dashboard/`
   - > **No "Do this later" on Step 2.** The session `skip_profile_gate` flag
     > already bypasses Step 1; Step 2 (workspace creation) is the minimum
     > requirement for the app to be usable and cannot be permanently skipped.
@@ -387,29 +380,31 @@ dashboard, and manage preferences — all via email.
 The user who completes Step 2 (workspace creation) becomes the `owner` of that tenant.
 As owner they can invite other users and revoke access.
 
-- [ ] **Members page (`/settings/members/`):** `owner`-only; lists all `TenantMembership`
-      records for the current tenant (active + inactive)
+- [ ] **Members page (`/settings/members/`):** `owner`-only; lists all `UserProfile`
+      records where `profile.tenant == request.user.profile.tenant` (active + inactive)
 - [ ] **Invite member:** owner enters an email address → create/lookup `User` →
-      create `TenantMembership(role="member", is_active=True)` → send invitation email
-      (queued via email backend; no Celery yet — use Django's `send_mail` synchronously
-      in dev, configure SMTP for prod)
-- [ ] **Revoke access:** owner sets `TenantMembership.is_active = False` for a member
-      (soft-revoke — the membership record is kept for audit; the user loses access
-      immediately because the middleware checks `is_active=True` memberships only)
-- [ ] **Re-activate:** owner can set `is_active = True` again to restore access
-- [ ] **Guard:** only `role=owner` members can access `/settings/members/`; any other
+      set `profile.tenant`, `profile.role = "member"`, `profile.tenant_joined_at = now()`,
+      `profile.is_active = True` → send invitation email (no Celery yet — use Django's
+      `send_mail` synchronously in dev, configure SMTP for prod)
+- [ ] **Revoke access:** set `profile.is_active = False`, `profile.tenant_revoked_at = now()`,
+      `profile.deleted_by = request.user.pk` — the `tenant` FK is **never cleared**
+- [ ] **Re-engage:** set `profile.is_active = True`, `profile.tenant_revoked_at = None`,
+      `profile.deleted_by = None`, `profile.deleted_at = None`
+- [ ] **Guard:** only `role=owner` profiles can access `/settings/members/`; any other
       authenticated user hitting that URL gets a `403 Forbidden`
-- [ ] **Cannot self-revoke:** an owner cannot revoke their own membership
+- [ ] **Cannot self-revoke:** an owner cannot revoke themselves
       (prevents a workspace from becoming ownerless)
+- [ ] **Second workspace:** a user wanting to join a different org must register a new
+      account — enforced in the invite service (`profile.tenant is not None` → validation error)
 - [ ] Tests:
   - Owner can access members page; non-owner gets 403
-  - Owner can invite a new email → membership created
-  - Owner can invite an existing user → membership created
-  - Owner cannot invite a user who is already an active member
-  - Owner can revoke a member → `is_active=False`, member loses access
+  - Owner can invite a new email → profile.tenant set, profile.role = member
+  - Owner can invite an existing user whose profile.tenant is null → profile updated
+  - Owner cannot invite a user who already has a tenant set (different or same)
+  - Owner can revoke a member → `is_active=False`, `tenant_revoked_at` set, member redirected
   - Owner cannot revoke themselves
-  - Revoked member redirected by middleware (no active `TenantMembership`)
-  - Owner can re-activate a revoked member
+  - Revoked member redirected by middleware to `/account/revoked/`
+  - Owner can re-engage a revoked member → `is_active=True`, `tenant_revoked_at` cleared
 
 #### Tests
 
@@ -422,6 +417,7 @@ As owner they can invite other users and revoke access.
 - [ ] After Step 2 save → redirected to `/dashboard/`
 - [ ] Accessing `/dashboard/` with complete profile and tenant → allowed through
 - [ ] `/logout/` and `/health/` never intercepted by gate
+- [ ] Revoked member (`is_active=False`) redirected to `/account/revoked/`
 - [ ] Full profile update (subsequent saves stay on `/profile/`)
 - [ ] Marketing opt-in toggle
 - [ ] Password reset
@@ -517,10 +513,9 @@ These are valid ideas — implement only after Phase 7 is complete:
 | 2026-02-22 | Added `fr-be` (Belgian French) locale                                                        | Belgium is bilingual; French speakers are a core audience                                                                                                                               |
 | 2026-02-22 | WCAG AA accessibility built in from Phase 2                                                  | aria-invalid + aria-describedby on forms; skip-link; focus trap; 44px targets                                                                                                           |
 | 2026-02-22 | Never hard-delete User or UserProfile                                                        | Silent cascade risk; `is_active = False` is the only safe deactivation path                                                                                                             |
-| 2026-02-22 | `TenantMembership` join table, no FK on `User`                                               | FK locks user to one workspace; join table allows multi-tenant membership and role tracking                                                                                             |
 | 2026-02-22 | `Tenant` fields: UUID PK + `organization` only                                               | `name` merged into `organization`; `slug` deferred — add when tenant-scoped URLs needed                                                                                                 |
-| 2026-02-22 | `TenantMembership` roles: `owner` + `member` only                                            | `admin` deferred; owner is sole privileged role; prevents premature RBAC complexity                                                                                                     |
-| 2026-02-22 | Owner can invite/revoke members via `/settings/members/`                                     | Tenant isolation requires membership management; soft-revoke preserves audit trail                                                                                                      |
+| 2026-02-22 | `UserProfile` roles: `owner` + `member` only; no join table                                  | One user, one tenant (hard constraint); `admin` deferred; owner is sole privileged role                                                                                                 |
+| 2026-02-22 | Owner can invite/revoke members via `/settings/members/`                                     | Tenant isolation requires membership management; soft-revoke via `is_active=False` + `tenant_revoked_at`; `tenant` FK never cleared                                                     |
 | 2026-02-22 | Audit actor fields use `UUIDField` not `ForeignKey`                                          | Hybrid integrity: no FK constraint, no implicit index, no circular dep on `User`; service layer owns integrity; index per-model on demand                                               |
 | 2026-02-22 | Three-category model taxonomy: `TenantScopedModel` / `TimeStampedAuditModel` / plain `Model` | Replaces single opt-in base. Circular risk is `User`-only; all other models get full audit trail in base class. `TenantScopedModel` extends `TimeStampedAuditModel` + adds `tenant_id`. |
 
