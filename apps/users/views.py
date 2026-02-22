@@ -1,19 +1,24 @@
 """
 Views for the users app — Phase 3.
 
-- login_view            GET/POST /login/
-- register_view         GET/POST /register/
-- logout_view           POST     /logout/
-- profile_complete_view GET/POST /profile/complete/
-- onboarding_tenant     GET/POST /onboarding/create-tenant/
-- profile_view          GET/POST /profile/
-- account_revoked_view  GET      /account/revoked/
-- members_view          GET      /settings/members/
-- invite_member_view    POST     /settings/members/invite/
-- revoke_member_view    POST     /settings/members/revoke/<uuid>/
-- reengage_member_view  POST     /settings/members/reengage/<uuid>/
+- login_view                GET/POST /login/
+- register_view             GET/POST /register/
+- logout_view               POST     /logout/
+- profile_complete_view     GET/POST /profile/complete/
+- onboarding_tenant         GET/POST /onboarding/create-tenant/
+- profile_view              GET/POST /profile/
+- account_revoked_view      GET      /account/revoked/
+- members_view              GET      /settings/members/  (legacy)
+- invite_member_view        POST     /settings/members/invite/
+- revoke_member_view        POST     /settings/members/revoke/<uuid>/
+- reengage_member_view      POST     /settings/members/reengage/<uuid>/
+- settings_redirect_view    GET      /settings/
+- settings_users_view       GET/POST /settings/users/
+- settings_general_view     GET/POST /settings/general/
+- settings_billing_view     GET      /settings/billing/
 """
 
+import logging
 import uuid
 
 from django.conf import settings
@@ -31,6 +36,7 @@ from apps.core.models import Country, Timezone
 from apps.users.forms import (
     InviteMemberForm,
     LoginForm,
+    OrgSettingsForm,
     ProfileCompleteForm,
     ProfileSettingsForm,
     RegisterForm,
@@ -42,12 +48,16 @@ from apps.users.services import (
     authenticate_user,
     complete_profile,
     create_tenant_for_profile,
+    deactivate_member,
     invite_member,
     locale_code_for_language,
+    promote_to_admin,
     reengage_member,
     register_user,
     revoke_member,
 )
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # I18N helpers
@@ -502,3 +512,150 @@ def set_theme_view(request):
 
     # Unauthenticated — nothing to persist server-side; the client uses localStorage.
     return JsonResponse({"ok": True, "theme": theme})
+
+
+# ---------------------------------------------------------------------------
+# Organisation settings — admin only (3 tabs: Users / General / Billing)
+# ---------------------------------------------------------------------------
+
+
+@login_required
+def settings_redirect_view(request):
+    """Redirect /settings/ → /settings/users/ (the default tab)."""
+    return redirect("users:settings_users")
+
+
+@login_required
+def settings_users_view(request):
+    """
+    GET  /settings/users/  — list all tenant members.
+    POST /settings/users/  — invite / promote / deactivate / reengage actions.
+    """
+    admin_profile = _require_admin(request)
+    members = (
+        UserProfile.objects.filter(tenant=admin_profile.tenant)
+        .select_related("user")
+        .order_by("user__email")
+    )
+    invite_form = InviteMemberForm()
+
+    if request.method == "POST":
+        action = request.POST.get("action", "")
+
+        if action == "invite":
+            form = InviteMemberForm(request.POST)
+            if form.is_valid():
+                email = form.cleaned_data["email"]
+                try:
+                    invite_member(admin_profile=admin_profile, email=email)
+                    logger.info(
+                        "settings: invitation sent to %s by %s",
+                        email,
+                        request.user.email,
+                    )
+                    messages.success(
+                        request,
+                        _("%(email)s has been added to your workspace.")
+                        % {"email": email},
+                    )
+                except ValueError as exc:
+                    messages.error(request, str(exc))
+            else:
+                for errors in form.errors.values():
+                    for error in errors:
+                        messages.error(request, error)
+            return redirect("users:settings_users")
+
+        if action in ("promote", "deactivate", "reengage"):
+            profile_id = request.POST.get("profile_id", "")
+            try:
+                target = UserProfile.objects.get(
+                    pk=profile_id, tenant=admin_profile.tenant
+                )
+            except UserProfile.DoesNotExist, ValueError:
+                messages.error(request, _("Member not found."))
+                return redirect("users:settings_users")
+
+            try:
+                if action == "promote":
+                    promote_to_admin(admin_profile=admin_profile, target_profile=target)
+                    messages.success(
+                        request,
+                        _("%(email)s has been promoted to admin.")
+                        % {"email": target.user.email},
+                    )
+                elif action == "deactivate":
+                    deactivate_member(
+                        admin_profile=admin_profile, target_profile=target
+                    )
+                    messages.success(
+                        request,
+                        _("%(email)s has been deactivated.")
+                        % {"email": target.user.email},
+                    )
+                elif action == "reengage":
+                    reengage_member(admin_profile=admin_profile, target_profile=target)
+                    messages.success(
+                        request,
+                        _("%(email)s has been re-activated.")
+                        % {"email": target.user.email},
+                    )
+            except ValueError as exc:
+                messages.error(request, str(exc))
+            return redirect("users:settings_users")
+
+        messages.error(request, _("Unknown action."))
+        return redirect("users:settings_users")
+
+    return render(
+        request,
+        "users/settings_users.html",
+        {
+            "members": members,
+            "invite_form": invite_form,
+            "admin_profile": admin_profile,
+            "active_tab": "users",
+        },
+    )
+
+
+@login_required
+def settings_general_view(request):
+    """
+    GET  /settings/general/  — display org name + logo form.
+    POST /settings/general/  — save org name + logo.
+    """
+    admin_profile = _require_admin(request)
+    tenant = admin_profile.tenant
+
+    if request.method == "POST":
+        form = OrgSettingsForm(request.POST, request.FILES, instance=tenant)
+        if form.is_valid():
+            updated = form.save(commit=False)
+            updated.updated_by = request.user.pk
+            updated.save()
+            messages.success(request, _("Organisation settings saved."))
+            return redirect("users:settings_general")
+    else:
+        form = OrgSettingsForm(instance=tenant)
+
+    return render(
+        request,
+        "users/settings_general.html",
+        {
+            "form": form,
+            "tenant": tenant,
+            "active_tab": "general",
+        },
+    )
+
+
+@login_required
+def settings_billing_view(request):
+    """GET /settings/billing/ — placeholder (Stripe deferred to Phase 6)."""
+    _require_admin(request)
+    return render(
+        request,
+        "users/settings_billing.html",
+        {"active_tab": "billing"},
+    )

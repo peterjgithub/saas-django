@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Settings" %} — {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-6 w-full max-w-4xl mx-auto px-4 py-8">
+
+  <h1 class="text-2xl font-bold">{% trans "Settings" %}</h1>
+
+  {% if messages %}
+  <div class="flex flex-col gap-2">
+    {% for message in messages %}
+    <div role="alert"
+         class="alert {% if message.tags == 'error' %}alert-error{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %}">
+      <span>{{ message }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div role="tablist" class="tabs tabs-border">
+    <a role="tab"
+       href="{% url 'users:settings_users' %}"
+       class="tab{% if active_tab == 'users' %} tab-active{% endif %}">
+      {% trans "Users" %}
+    </a>
+    <a role="tab"
+       href="{% url 'users:settings_general' %}"
+       class="tab{% if active_tab == 'general' %} tab-active{% endif %}">
+      {% trans "General" %}
+    </a>
+    <a role="tab"
+       href="{% url 'users:settings_billing' %}"
+       class="tab{% if active_tab == 'billing' %} tab-active{% endif %}">
+      {% trans "Billing" %}
+    </a>
+  </div>
+
+  {% block tab_content %}{% endblock %}
+
+</div>
+{% endblock %}

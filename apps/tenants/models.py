@@ -17,6 +17,13 @@ class Tenant(TimeStampedAuditModel):
         verbose_name=_("organisation name"),
         help_text=_("Company or workspace name."),
     )
+    logo = models.ImageField(
+        upload_to="tenant_logos/",
+        null=True,
+        blank=True,
+        verbose_name=_("logo"),
+        help_text=_("Organisation logo (optional). Displayed in the app header."),
+    )
 
     class Meta:
         verbose_name = _("tenant")

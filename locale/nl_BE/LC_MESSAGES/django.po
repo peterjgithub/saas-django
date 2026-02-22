@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: saas-django\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-22 18:06+0000\n"
+"POT-Creation-Date: 2026-02-22 22:18+0000\n"
 "PO-Revision-Date: 2026-02-22 18:06+0000\n"
 "Last-Translator: saas-django\n"
 "Language-Team: Dutch (Belgium)\n"
@@ -19,8 +19,8 @@ msgstr ""
 msgid "Welcome"
 msgstr "Welkom"
 
-#: apps/pages/views.py:25 templates/base.html:133 templates/base.html:190
-#: templates/base.html:223 templates/pages/dashboard.html:4
+#: apps/pages/views.py:25 templates/base.html:183 templates/base.html:251
+#: templates/base.html:284 templates/pages/dashboard.html:4
 msgid "Dashboard"
 msgstr "Dashboard"
 
@@ -32,11 +32,19 @@ msgstr "organisatienaam"
 msgid "Company or workspace name."
 msgstr "Bedrijfs- of werkruimtenaam."
 
-#: apps/tenants/models.py:22 apps/users/models.py:196
+#: apps/tenants/models.py:24
+msgid "logo"
+msgstr ""
+
+#: apps/tenants/models.py:25
+msgid "Organisation logo (optional). Displayed in the app header."
+msgstr ""
+
+#: apps/tenants/models.py:29 apps/users/models.py:190
 msgid "tenant"
 msgstr "organisatie"
 
-#: apps/tenants/models.py:23
+#: apps/tenants/models.py:30
 msgid "tenants"
 msgstr "organisaties"
 
@@ -56,69 +64,66 @@ msgstr "Zachte verwijdering"
 msgid "profile"
 msgstr "profiel"
 
-#: apps/users/forms.py:21 apps/users/forms.py:44
-#: templates/users/members.html:55
+#: apps/users/forms.py:22 apps/users/forms.py:45
+#: templates/users/members.html:55 templates/users/settings_users.html:52
 msgid "Email"
 msgstr "E-mail"
 
-#: apps/users/forms.py:25 apps/users/forms.py:48
+#: apps/users/forms.py:26 apps/users/forms.py:49
 msgid "you@example.com"
 msgstr "jij@voorbeeld.com"
 
-#: apps/users/forms.py:31 apps/users/forms.py:54 templates/users/login.html:53
+#: apps/users/forms.py:32 apps/users/forms.py:55 templates/users/login.html:53
 #: templates/users/register.html:43
 msgid "Password"
 msgstr "Wachtwoord"
 
-#: apps/users/forms.py:73
+#: apps/users/forms.py:74
 msgid "An account with this email already exists."
 msgstr "Er bestaat al een account met dit e-mailadres."
 
-#: apps/users/forms.py:88
+#: apps/users/forms.py:89
 msgid "Your name"
 msgstr "Uw naam"
 
-#: apps/users/forms.py:96
+#: apps/users/forms.py:97
 msgid "Select your timezone"
 msgstr "Selecteer uw tijdzone"
 
-#: apps/users/forms.py:103
-msgid "Select your language"
-msgstr "Selecteer uw taal"
-
-#: apps/users/forms.py:110
+#: apps/users/forms.py:104
 msgid "Select your country"
 msgstr "Selecteer uw land"
 
-#: apps/users/forms.py:119 templates/users/onboarding_step2.html:38
+#: apps/users/forms.py:113 apps/users/forms.py:193
+#: templates/users/onboarding_step2.html:38
 msgid "Organisation name"
 msgstr "Organisatienaam"
 
-#: apps/users/forms.py:125
+#: apps/users/forms.py:119
 msgid "Acme Inc."
 msgstr "Acme bvba"
 
-#: apps/users/forms.py:155
-msgid "Select language"
-msgstr "Selecteer taal"
-
-#: apps/users/forms.py:162
+#: apps/users/forms.py:147
 msgid "Select timezone"
 msgstr "Selecteer tijdzone"
 
-#: apps/users/forms.py:169
+#: apps/users/forms.py:154
 msgid "Select country"
 msgstr "Selecteer land"
 
-#: apps/users/forms.py:188 templates/users/login.html:33
+#: apps/users/forms.py:166 templates/users/login.html:33
 #: templates/users/members.html:28 templates/users/password_reset.html:22
 #: templates/users/register.html:23
 msgid "Email address"
 msgstr "E-mailadres"
 
-#: apps/users/forms.py:192
+#: apps/users/forms.py:170 templates/users/settings_users.html:24
 msgid "colleague@example.com"
 msgstr "collega@voorbeeld.com"
+
+#: apps/users/forms.py:195
+msgid "Logo"
+msgstr ""
 
 #: apps/users/models.py:30
 msgid "An email address is required."
@@ -156,12 +161,13 @@ msgstr "Donker (Night)"
 msgid "Follow system"
 msgstr "Systeemvoorkeur volgen"
 
-#: apps/users/models.py:104 templates/base.html:145 templates/base.html:232
-#: templates/users/members.html:69
+#: apps/users/models.py:104 templates/users/members.html:69
+#: templates/users/settings_users.html:66
 msgid "Admin"
 msgstr "Beheerder"
 
 #: apps/users/models.py:105 templates/users/members.html:71
+#: templates/users/settings_users.html:68
 msgid "Member"
 msgstr "Lid"
 
@@ -181,89 +187,125 @@ msgstr "tijdzone"
 msgid "country"
 msgstr "land"
 
-#: apps/users/models.py:171
+#: apps/users/models.py:165
 msgid "theme"
 msgstr "thema"
 
-#: apps/users/models.py:177
+#: apps/users/models.py:171
 msgid "marketing emails"
 msgstr "marketinge-mails"
 
-#: apps/users/models.py:178
+#: apps/users/models.py:172
 msgid "Receive newsletters and promotional emails."
 msgstr "Nieuwsbrieven en promotionele e-mails ontvangen."
 
-#: apps/users/models.py:185
+#: apps/users/models.py:179
 msgid "profile completed at"
 msgstr "profiel voltooid op"
 
-#: apps/users/models.py:186
+#: apps/users/models.py:180
 msgid "Set when the user saves the profile form for the first time."
-msgstr "Ingesteld wanneer de gebruiker het profielformulier voor de eerste keer opslaat."
+msgstr ""
+"Ingesteld wanneer de gebruiker het profielformulier voor de eerste keer "
+"opslaat."
 
-#: apps/users/models.py:203
+#: apps/users/models.py:197
 msgid "role"
 msgstr "rol"
 
-#: apps/users/models.py:208
+#: apps/users/models.py:202
 msgid "tenant joined at"
 msgstr "lid geworden op"
 
-#: apps/users/models.py:213
+#: apps/users/models.py:207
 msgid "tenant revoked at"
 msgstr "toegang ingetrokken op"
 
-#: apps/users/models.py:214
+#: apps/users/models.py:208
 msgid "Set on revocation; cleared on re-engagement."
 msgstr "Ingesteld bij intrekking; gewist bij heractivering."
 
-#: apps/users/models.py:218
+#: apps/users/models.py:212
 msgid "user profile"
 msgstr "gebruikersprofiel"
 
-#: apps/users/models.py:219
+#: apps/users/models.py:213
 msgid "user profiles"
 msgstr "gebruikersprofielen"
 
-#: apps/users/services.py:138
+#: apps/users/services.py:162
 msgid "Admin has no tenant to invite to."
 msgstr "Beheerder heeft geen organisatie om naar uit te nodigen."
 
-#: apps/users/services.py:157
+#: apps/users/services.py:181
 #, python-format
-msgid "%(email)s already belongs to a workspace. They must register a new account to join yours."
-msgstr "%(email)s behoort al tot een werkruimte. Ze moeten een nieuw account registreren om bij uw werkruimte te kunnen aansluiten."
+msgid ""
+"%(email)s already belongs to a workspace. They must register a new account "
+"to join yours."
+msgstr ""
+"%(email)s behoort al tot een werkruimte. Ze moeten een nieuw account "
+"registreren om bij uw werkruimte te kunnen aansluiten."
 
-#: apps/users/services.py:193
+#: apps/users/services.py:217
 msgid "You cannot revoke your own access."
 msgstr "U kunt uw eigen toegang niet intrekken."
 
-#: apps/users/services.py:195 apps/users/services.py:208
+#: apps/users/services.py:219 apps/users/services.py:232
+#: apps/users/services.py:252 apps/users/services.py:272
 msgid "That member does not belong to your tenant."
 msgstr "Dat lid behoort niet tot uw organisatie."
 
-#: apps/users/views.py:78
+#: apps/users/services.py:270
+#, fuzzy
+msgid "You cannot deactivate your own account."
+msgstr "U kunt uw eigen account niet deactiveren."
+
+#: apps/users/views.py:118
 msgid "Incorrect email or password. Please try again."
 msgstr "Onjuist e-mailadres of wachtwoord. Probeer het opnieuw."
 
-#: apps/users/views.py:346
+#: apps/users/views.py:370
 msgid "Your profile has been updated."
 msgstr "Uw profiel is bijgewerkt."
 
-#: apps/users/views.py:416
+#: apps/users/views.py:440 apps/users/views.py:558
 #, python-format
 msgid "%(email)s has been added to your workspace."
 msgstr "%(email)s is toegevoegd aan uw werkruimte."
 
-#: apps/users/views.py:438
+#: apps/users/views.py:462
 #, python-format
 msgid "%(email)s has been removed from the workspace."
 msgstr "%(email)s is verwijderd uit de werkruimte."
 
-#: apps/users/views.py:456
+#: apps/users/views.py:480
 #, python-format
 msgid "%(email)s has been re-added to the workspace."
 msgstr "%(email)s is opnieuw toegevoegd aan de werkruimte."
+
+#: apps/users/views.py:576
+msgid "Member not found."
+msgstr "Lid niet gevonden."
+
+#: apps/users/views.py:584
+msgid "%(email)s has been promoted to admin."
+msgstr "%(email)s is beheerder gemaakt."
+
+#: apps/users/views.py:593
+msgid "%(email)s has been deactivated."
+msgstr "%(email)s is gedeactiveerd."
+
+#: apps/users/views.py:600
+msgid "%(email)s has been re-activated."
+msgstr "%(email)s is opnieuw geactiveerd."
+
+#: apps/users/views.py:607
+msgid "Unknown action."
+msgstr "Onbekende actie."
+
+#: apps/users/views.py:637
+msgid "Organisation settings saved."
+msgstr "Organisatie-instellingen opgeslagen."
 
 #: templates/base.html:45
 msgid "Skip to main content"
@@ -274,76 +316,93 @@ msgid "Main navigation"
 msgstr "Hoofdnavigatie"
 
 #: templates/base.html:65
+msgid "Select language"
+msgstr "Selecteer taal"
+
+#: templates/base.html:115
 msgid "Cycle colour theme"
 msgstr "Kleurthema wisselen"
 
-#: templates/base.html:66
+#: templates/base.html:116
 msgid "Cycle light / dark / system"
 msgstr "Licht / donker / systeem wisselen"
 
-#: templates/base.html:90
+#: templates/base.html:140
 msgid "User menu"
 msgstr "Gebruikersmenu"
 
-#: templates/base.html:101 templates/base.html:227
+#: templates/base.html:151 templates/base.html:294
 #: templates/users/onboarding_step1.html:12
 #: templates/users/onboarding_step2.html:12 templates/users/profile.html:4
 #: templates/users/profile.html:9
 msgid "Profile"
 msgstr "Profiel"
 
-#: templates/base.html:105 templates/base.html:266
+#: templates/base.html:155 templates/base.html:370
 msgid "Log out"
 msgstr "Afmelden"
 
-#: templates/base.html:112 templates/pages/home.html:20
+#: templates/base.html:162 templates/pages/home.html:20
 msgid "Get started"
 msgstr "Aan de slag"
 
-#: templates/base.html:124
+#: templates/base.html:174
 msgid "Sidebar navigation"
 msgstr "Zijbalknavigatie"
 
-#: templates/base.html:171
+#: templates/base.html:193 templates/base.html:289
+#: templates/users/settings_base.html:4 templates/users/settings_base.html:9
+msgid "Settings"
+msgstr "Instellingen"
+
+#: templates/base.html:206 templates/base.html:299
+msgid "Django Admin"
+msgstr "Django Admin"
+
+#: templates/base.html:232
 msgid "Mobile navigation"
 msgstr "Mobiele navigatie"
 
-#: templates/base.html:178
+#: templates/base.html:239
 msgid "Home"
 msgstr "Startpagina"
 
-#: templates/base.html:193
+#: templates/base.html:254
 msgid "Toggle menu"
 msgstr "Menu wisselen"
 
-#: templates/base.html:199
+#: templates/base.html:260
 msgid "Menu"
 msgstr "Menu"
 
-#: templates/base.html:208 templates/users/login.html:4
+#: templates/base.html:269 templates/users/login.html:4
 #: templates/users/login.html:74
 #: templates/users/password_reset_complete.html:15
 #: templates/users/register.html:76
 msgid "Sign in"
 msgstr "Aanmelden"
 
-#: templates/base.html:215
+#: templates/base.html:276
 msgid "Navigation menu"
 msgstr "Navigatiemenu"
 
-#: templates/base.html:220
+#: templates/base.html:281
 msgid "Mobile menu"
 msgstr "Mobiel menu"
 
-#: templates/base.html:238 templates/users/profile.html:125
+#: templates/base.html:305 templates/users/profile.html:22
+msgid "Language"
+msgstr "Taal"
+
+#: templates/base.html:342 templates/users/profile.html:126
 msgid "Theme"
 msgstr "Thema"
 
-#: templates/base.html:241
+#: templates/base.html:345
 msgid "Cycle dark/light/system mode"
 msgstr "Donker/licht/systeemmodus wisselen"
 
-#: templates/base.html:273 templates/base.html:278
+#: templates/base.html:377 templates/base.html:382
 msgid "Close"
 msgstr "Sluiten"
 
@@ -372,8 +431,12 @@ msgid "Your access has been revoked"
 msgstr "Uw toegang is ingetrokken"
 
 #: templates/users/account_revoked.html:13
-msgid "Your access to this workspace has been removed by an administrator. Please contact your workspace admin if you believe this is a mistake."
-msgstr "Uw toegang tot deze werkruimte is verwijderd door een beheerder. Neem contact op met uw werkruimtebeheerder als u denkt dat dit een vergissing is."
+msgid ""
+"Your access to this workspace has been removed by an administrator. Please "
+"contact your workspace admin if you believe this is a mistake."
+msgstr ""
+"Uw toegang tot deze werkruimte is verwijderd door een beheerder. Neem "
+"contact op met uw werkruimtebeheerder als u denkt dat dit een vergissing is."
 
 #: templates/users/account_revoked.html:19
 msgid "Sign out"
@@ -404,6 +467,7 @@ msgid "Sign up"
 msgstr "Maak er een aan"
 
 #: templates/users/members.html:4 templates/users/members.html:9
+#: templates/users/settings_users.html:46
 msgid "Members"
 msgstr "Leden"
 
@@ -415,23 +479,23 @@ msgstr "Een lid uitnodigen"
 msgid "Send invite"
 msgstr "Uitnodiging versturen"
 
-#: templates/users/members.html:56
+#: templates/users/members.html:56 templates/users/settings_users.html:53
 msgid "Name"
 msgstr "Naam"
 
-#: templates/users/members.html:57
+#: templates/users/members.html:57 templates/users/settings_users.html:54
 msgid "Role"
 msgstr "Rol"
 
-#: templates/users/members.html:58
+#: templates/users/members.html:58 templates/users/settings_users.html:55
 msgid "Status"
 msgstr "Status"
 
-#: templates/users/members.html:59
+#: templates/users/members.html:59 templates/users/settings_users.html:56
 msgid "Actions"
 msgstr "Acties"
 
-#: templates/users/members.html:76
+#: templates/users/members.html:76 templates/users/settings_users.html:73
 msgid "Active"
 msgstr "Actief"
 
@@ -451,7 +515,7 @@ msgstr "Intrekken"
 msgid "Re-engage"
 msgstr "Heractiveren"
 
-#: templates/users/members.html:103
+#: templates/users/members.html:103 templates/users/settings_users.html:121
 msgid "You"
 msgstr "U"
 
@@ -474,21 +538,24 @@ msgid "Tell us a little about yourself"
 msgstr "Vertel ons iets over uzelf"
 
 #: templates/users/onboarding_step1.html:26
-msgid "We've pre-filled these values from your browser and location — please confirm or update them."
-msgstr "We hebben deze waarden vooraf ingevuld op basis van uw browser en locatie — bevestig of pas ze aan."
+msgid ""
+"We've pre-filled these values from your browser and location — please "
+"confirm or update them."
+msgstr ""
+"We hebben deze waarden vooraf ingevuld op basis van uw browser en locatie — "
+"bevestig of pas ze aan."
 
-#: templates/users/onboarding_step1.html:39 templates/users/profile.html:28
+#: templates/users/onboarding_step1.html:39 templates/users/profile.html:65
 msgid "Display name"
 msgstr "Weergavenaam"
 
 #: templates/users/onboarding_step1.html:40
 #: templates/users/onboarding_step1.html:59
 #: templates/users/onboarding_step1.html:82
-#: templates/users/onboarding_step1.html:105
 msgid "Optional"
 msgstr "Optioneel"
 
-#: templates/users/onboarding_step1.html:58 templates/users/profile.html:64
+#: templates/users/onboarding_step1.html:58 templates/users/profile.html:83
 msgid "Timezone"
 msgstr "Tijdzone"
 
@@ -496,27 +563,19 @@ msgstr "Tijdzone"
 msgid "— Select your timezone —"
 msgstr "— Selecteer uw tijdzone —"
 
-#: templates/users/onboarding_step1.html:81 templates/users/profile.html:46
-msgid "Language"
-msgstr "Taal"
-
-#: templates/users/onboarding_step1.html:90
-msgid "— Select your language —"
-msgstr "— Selecteer uw taal —"
-
-#: templates/users/onboarding_step1.html:104 templates/users/profile.html:82
+#: templates/users/onboarding_step1.html:81 templates/users/profile.html:101
 msgid "Country"
 msgstr "Land"
 
-#: templates/users/onboarding_step1.html:113
+#: templates/users/onboarding_step1.html:90
 msgid "— Select your country —"
 msgstr "— Selecteer uw land —"
 
-#: templates/users/onboarding_step1.html:127
+#: templates/users/onboarding_step1.html:104
 msgid "Save and continue"
 msgstr "Opslaan en doorgaan"
 
-#: templates/users/onboarding_step1.html:135
+#: templates/users/onboarding_step1.html:112
 msgid "Do this later"
 msgstr "Later doen"
 
@@ -530,8 +589,10 @@ msgid "What is your organisation called?"
 msgstr "Hoe heet uw organisatie?"
 
 #: templates/users/onboarding_step2.html:26
-msgid "We derived this name from your email address — please confirm or update it."
-msgstr "We hebben deze naam afgeleid van uw e-mailadres — bevestig of pas het aan."
+msgid ""
+"We derived this name from your email address — please confirm or update it."
+msgstr ""
+"We hebben deze naam afgeleid van uw e-mailadres — bevestig of pas het aan."
 
 #: templates/users/onboarding_step2.html:58
 msgid "Create workspace"
@@ -565,7 +626,8 @@ msgstr "Wachtwoord opnieuw ingesteld"
 
 #: templates/users/password_reset_complete.html:12
 msgid "Your password has been set. You can now sign in with your new password."
-msgstr "Uw wachtwoord is ingesteld. U kunt nu aanmelden met uw nieuwe wachtwoord."
+msgstr ""
+"Uw wachtwoord is ingesteld. U kunt nu aanmelden met uw nieuwe wachtwoord."
 
 #: templates/users/password_reset_confirm.html:4
 #: templates/users/password_reset_confirm.html:11
@@ -595,38 +657,38 @@ msgid "Check your email"
 msgstr "Controleer uw e-mail"
 
 #: templates/users/password_reset_done.html:12
-msgid "If an account exists for that email address, we've sent a password reset link. Please check your inbox."
-msgstr "Als er een account bestaat voor dat e-mailadres, hebben we een wachtwoordherstelkoppeling verstuurd. Controleer uw inbox."
+msgid ""
+"If an account exists for that email address, we've sent a password reset "
+"link. Please check your inbox."
+msgstr ""
+"Als er een account bestaat voor dat e-mailadres, hebben we een "
+"wachtwoordherstelkoppeling verstuurd. Controleer uw inbox."
 
-#: templates/users/profile.html:24
+#: templates/users/profile.html:61
 msgid "Personal information"
 msgstr "Persoonlijke gegevens"
 
-#: templates/users/profile.html:53
-msgid "— Select language —"
-msgstr "— Selecteer taal —"
-
-#: templates/users/profile.html:71
+#: templates/users/profile.html:90
 msgid "— Select timezone —"
 msgstr "— Selecteer tijdzone —"
 
-#: templates/users/profile.html:89
+#: templates/users/profile.html:108
 msgid "— Select country —"
 msgstr "— Selecteer land —"
 
-#: templates/users/profile.html:121
+#: templates/users/profile.html:122
 msgid "Appearance"
 msgstr "Weergave"
 
-#: templates/users/profile.html:143
+#: templates/users/profile.html:144
 msgid "Communication"
 msgstr "Communicatie"
 
-#: templates/users/profile.html:154
+#: templates/users/profile.html:155
 msgid "Receive marketing emails and product news"
 msgstr "Marketinge-mails en productnieuws ontvangen"
 
-#: templates/users/profile.html:162
+#: templates/users/profile.html:163
 msgid "Save changes"
 msgstr "Wijzigingen opslaan"
 
@@ -645,3 +707,77 @@ msgstr "Start vandaag uw gratis proefperiode"
 #: templates/users/register.html:75
 msgid "Already have an account?"
 msgstr "Heeft u al een account?"
+
+#: templates/users/settings_base.html:26
+msgid "Users"
+msgstr "Gebruikers"
+
+#: templates/users/settings_base.html:31
+msgid "General"
+msgstr "Algemeen"
+
+#: templates/users/settings_base.html:36
+msgid "Billing"
+msgstr "Facturatie"
+
+#: templates/users/settings_billing.html:18
+msgid "Billing — coming soon"
+msgstr "Facturatie — binnenkort beschikbaar"
+
+#: templates/users/settings_billing.html:20
+msgid ""
+"Subscription management and invoicing will be available in a future update."
+msgstr "Abonnementsbeheer en facturatie zijn binnenkort beschikbaar."
+
+#: templates/users/settings_general.html:9
+msgid "Organisation"
+msgstr "Organisatie"
+
+#: templates/users/settings_general.html:45
+#: templates/users/settings_general.html:47
+msgid "Current logo"
+msgstr "Huidig logo"
+
+#: templates/users/settings_general.html:67
+msgid "Save"
+msgstr "Opslaan"
+
+#: templates/users/settings_users.html:9
+msgid "Invite a new member"
+msgstr "Een nieuw lid uitnodigen"
+
+#: templates/users/settings_users.html:35
+msgid "Invite"
+msgstr "Uitnodigen"
+
+#: templates/users/settings_users.html:75
+msgid "Inactive"
+msgstr "Inactief"
+
+#: templates/users/settings_users.html:89
+#: templates/users/settings_users.html:90
+msgid "Promote to admin"
+msgstr "Beheerder maken"
+
+#: templates/users/settings_users.html:102
+#: templates/users/settings_users.html:103
+msgid "Deactivate"
+msgstr "Deactiveren"
+
+#: templates/users/settings_users.html:113
+#: templates/users/settings_users.html:114
+msgid "Re-activate"
+msgstr "Heractiveren"
+
+#: templates/users/settings_users.html:128
+msgid "No members yet."
+msgstr "Nog geen leden."
+
+#~ msgid "Select your language"
+#~ msgstr "Selecteer uw taal"
+
+#~ msgid "— Select your language —"
+#~ msgstr "— Selecteer uw taal —"
+
+#~ msgid "— Select language —"
+#~ msgstr "— Selecteer taal —"

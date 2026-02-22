@@ -73,7 +73,11 @@
 | 49  | Always propose before changing — explicit approval required for non-trivial edits               | Before any refactor, architecture change, or multi-file edit: present a summary of what changes and why, wait for approval. Trivial single-line fixes (typos, lint) may be applied directly without asking.                                                                                                               |
 | 50  | English only in all documentation, instructions, and code comments                              | All `.md` files, docstrings, code comments, commit messages, and AI instruction files (`.clauderules`, `AGENTS.md`, `copilot-instructions.md`) are English. The product UI is translated (§I18N); the codebase is English-only.                                                                                           |
 | 51  | Language prefix in URLs (`i18n_patterns`) deferred — add only when a public CMS is introduced   | All current routes are auth-gated SaaS pages with no SEO value; cookie-based locale (`django_language`) is sufficient. When a headless CMS or public marketing section is added, wrap those routes in `i18n_patterns` (with `prefix_default_language=False`) and add `hreflang` tags. App routes stay prefix-free.        |
-| 52  | `currency` removed from `UserProfile` — belongs on `Tenant`                                    | Currency is a billing/invoicing concern, not a personal preference. `UserProfile` no longer has a `currency` FK. `core.Currency` model is kept intact. Currency will be added to `Tenant` in Phase 6 (billing). |
+| 52  | `currency` removed from `UserProfile` — belongs on `Tenant`                                     | Currency is a billing/invoicing concern, not a personal preference. `UserProfile` no longer has a `currency` FK. `core.Currency` model is kept intact. Currency will be added to `Tenant` in Phase 6 (billing).                                                                                                           |
+| 53  | Settings area (`/settings/`) is 3-tab unified area: Users / General / Billing                   | Single entry point for tenant admin tasks. Each tab is a separate view with its own URL. `settings_redirect_view` at `/settings/` immediately redirects to the Users tab (the most common destination). Consistent with SaaS conventions (Slack, Notion, Linear).                                                         |
+| 54  | `Tenant.logo` uses `ImageField` with `upload_to="tenant_logos/"` — Pillow required              | Pillow validates image integrity on upload. Dev media served via `static()` helper; production serving via CDN/S3 deferred to Phase 7. `logo` is nullable — existing tenants are not required to upload one.                                                                                                              |
+| 55  | Settings link in sidebar visible only to `role == "admin" and tenant_id` profiles               | Regular `member` users have no settings they can change in this area. Guards in templates use `user.profile.role == "admin" and user.profile.tenant_id`. The view layer enforces 403 via `_require_admin()` regardless of template visibility.                                                                            |
+| 56  | "Admin" renamed to "Django Admin" in sidebar and mobile overlay                                 | The app now has its own "Settings" link for product admin. "Admin" was ambiguous — "Django Admin" makes it clear this is the Django /admin/ interface, visible to `is_staff` users only. Distinguishes from the product-level "Settings" link.                                                                            |
 
 ---
 
@@ -663,7 +667,7 @@ As admin they can invite other users and revoke access.
 - [x] **`django.template.context_processors.i18n` added** — was previously missing, causing
       `{{ LANGUAGE_CODE }}` to always resolve to the static `settings.LANGUAGE_CODE = "en"`
       instead of the per-request active language. Added to `TEMPLATES → OPTIONS →
-    context_processors` in `config/settings/base.py`.
+context_processors` in `config/settings/base.py`.
 - [x] **Navbar language button redesign** — changed from globe icon → flag + full name →
       flag + 2-letter lowercase code (`🇬🇧 en` / `🇧🇪 nl` / `🇧🇪 fr`). Active language
       bold in desktop dropdown; `btn-primary` highlight in mobile overlay.
@@ -674,9 +678,71 @@ As admin they can invite other users and revoke access.
 
 ---
 
-### 🔲 Phase 5 — Core SaaS Feature(s)
+### ✅ Phase 5 — Organisation Settings (DONE)
 
-> To be defined. Add feature specs here as the product takes shape.
+**Goal:** Tenant admins can manage members, edit org details, and see a billing placeholder — all behind a unified `/settings/` area.
+
+#### Model change
+
+- [x] `Tenant.logo` — `ImageField(upload_to="tenant_logos/", null=True, blank=True)`
+- [x] Pillow installed (`uv add pillow`)
+- [x] `MEDIA_URL = "/media/"` + `MEDIA_ROOT` added to `config/settings/dev.py`
+- [x] Dev media serving wired in `config/urls.py` via `static()` helper
+- [x] Migration `apps/tenants/migrations/0002_add_logo_to_tenant.py` applied
+
+#### Service layer
+
+- [x] `promote_to_admin(admin_profile, target_profile)` — sets `role = "admin"`; idempotent; raises `ValueError` if wrong tenant
+- [x] `deactivate_member(admin_profile, target_profile)` — sets `is_active = False` + `tenant_revoked_at`; admin cannot deactivate themselves
+
+#### Form
+
+- [x] `OrgSettingsForm(ModelForm)` — `Tenant` model; fields: `organization` + `logo`; logo optional
+
+#### Views (all `@login_required` + `_require_admin` guard → 403 for non-admins)
+
+- [x] `settings_redirect_view` — `GET /settings/` → redirect to `/settings/users/`
+- [x] `settings_users_view` — `GET/POST /settings/users/` — list members; actions: `invite` / `promote` / `deactivate` / `reengage`
+- [x] `settings_general_view` — `GET/POST /settings/general/` — `OrgSettingsForm` on `Tenant`; `enctype="multipart/form-data"`
+- [x] `settings_billing_view` — `GET /settings/billing/` — placeholder card
+
+#### URL patterns (all added to `apps/users/urls.py`)
+
+- [x] `path("settings/", ..., name="settings")`
+- [x] `path("settings/users/", ..., name="settings_users")`
+- [x] `path("settings/general/", ..., name="settings_general")`
+- [x] `path("settings/billing/", ..., name="settings_billing")`
+
+#### Templates
+
+- [x] `templates/users/settings_base.html` — extends `base.html`; tab bar (Users / General / Billing)
+- [x] `templates/users/settings_users.html` — members table with invite form + per-row promote / deactivate / reengage actions
+- [x] `templates/users/settings_general.html` — org name + logo upload form with current logo preview
+- [x] `templates/users/settings_billing.html` — "coming soon" placeholder card
+
+#### Navigation changes (`base.html`)
+
+- [x] **Settings link** added to left sidebar and mobile overlay — visible only when `user.profile.role == "admin" and user.profile.tenant_id` (i.e. tenant admins only)
+- [x] **"Admin" → "Django Admin"** — renamed in both left sidebar (bottom, staff-only) and mobile overlay to distinguish from the Settings link
+
+#### I18N
+
+- [x] All new strings wrapped in `_()` / `{% trans %}` / `{% blocktrans %}`
+- [x] `nl_BE` translations: Instellingen / Gebruikers / Algemeen / Facturatie / Beheerder maken / Deactiveren / Heractiveren / etc.
+- [x] `fr_BE` translations: Paramètres / Utilisateurs / Général / Facturation / Promouvoir en administrateur / Désactiver / Réactiver / etc.
+- [x] `compilemessages` run — all `.mo` files updated
+
+#### Tests (`apps/users/tests/test_settings.py` — 21 tests)
+
+- [x] `SettingsRedirectViewTest` — redirect to users tab; anonymous → login
+- [x] `SettingsUsersAccessTest` — admin 200; member 403; anonymous redirect
+- [x] `SettingsUsersInviteTest` — new user invite; existing user without tenant; user already in tenant → error
+- [x] `SettingsUsersPromoteTest` — promote member; idempotent on existing admin; cross-tenant → not found
+- [x] `SettingsUsersDeactivateTest` — deactivate member; admin cannot deactivate themselves
+- [x] `SettingsUsersReengageTest` — reengage revoked member
+- [x] `SettingsGeneralViewTest` — admin 200; member 403; save name; empty name error; logo upload
+- [x] `SettingsBillingViewTest` — admin 200; member 403; "coming soon" text present
+- [x] 143 tests total (122 Phase 1–4 + 21 Phase 5), all passing; ruff clean
 
 ---
 
@@ -769,7 +835,7 @@ These are valid ideas — implement only after Phase 7 is complete:
 | 2026-02-22 | Country detection: 3-layer pipeline (browser locale → tz inference → IP geo)                  | IP geo skipped on private IPs; `navigator.language` region subtag covers most cases; `country_code_from_timezone()` handles English browsers; `_TZ_COUNTRY_PREFERENCE` resolves ambiguous zones                                                                                                                                                                                               |
 | 2026-02-22 | `flag_emoji` is a computed template filter, not a DB field                                    | `{{ country.code\|flag_emoji }}` in `tz_tags.py` — Unicode Regional Indicator Symbols (U+1F1E6–U+1F1FF); never stored in `Country` model                                                                                                                                                                                                                                                      |
 | 2026-02-22 | `Timezone.label` not `Timezone.offset_label` — template field name corrected                  | Model has `label` (e.g. "Europe/Brussels (UTC+01:00)") and `offset_seconds` (int); `offset_std`/`offset_dst`/`offset_label` do not exist; fixed in `profile.html` and `onboarding_step1.html`                                                                                                                                                                                                 |
-| 2026-02-22 | Django template FK comparison: both sides must be `\|stringformat:"s"`                        | `form.field.value` returns `int` for FK fields; `pk\|stringformat:"s"` returns `str`; `int == str` is always `False` in Django templates; all FK selects (timezone/country) fixed in `profile.html`                                                                                                                                                                       |
+| 2026-02-22 | Django template FK comparison: both sides must be `\|stringformat:"s"`                        | `form.field.value` returns `int` for FK fields; `pk\|stringformat:"s"` returns `str`; `int == str` is always `False` in Django templates; all FK selects (timezone/country) fixed in `profile.html`                                                                                                                                                                                           |
 | 2026-02-22 | `except A, B:` is Python 2 syntax — always use `except (A, B):`                               | `except A, B:` is valid Python 3 but silently catches only `A` and binds `B` as the exception variable; found and fixed multiple times in `views.py` and `tz_tags.py` — use tuple syntax always                                                                                                                                                                                               |
 | 2026-02-22 | `_is_private` uses second-octet int check for 172.16–172.31                                   | Previous string-prefix approach (`172.2`) matched 172.20–172.29 but missed 172.16–172.19 and 172.30–172.31 (wrong range); replaced with `int(ip.split(".")[1])` and `16 <= second_octet <= 31`                                                                                                                                                                                                |
 | 2026-02-22 | `LocaleMiddleware` between `SessionMiddleware` and `CommonMiddleware`                         | Order is mandatory — session must be loaded before locale can read `django_language` session key; placed after `SessionMiddleware` and before `CommonMiddleware` in `MIDDLEWARE`                                                                                                                                                                                                              |

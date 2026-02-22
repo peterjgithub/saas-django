@@ -1,0 +1,139 @@
+{% extends "users/settings_base.html" %}
+{% load i18n %}
+
+{% block tab_content %}
+
+<div class="card bg-base-200 shadow-sm">
+  <div class="card-body gap-4">
+
+    <h2 class="card-title text-lg">{% trans "Invite a new member" %}</h2>
+
+    <form method="post" action="{% url 'users:settings_users' %}" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="action" value="invite">
+      <div class="flex gap-2 items-end flex-wrap">
+        <fieldset class="flex-1 min-w-48">
+          <label class="label" for="{{ invite_form.email.id_for_label }}">
+            <span class="label-text">{{ invite_form.email.label }}</span>
+          </label>
+          <input
+            type="email"
+            name="{{ invite_form.email.html_name }}"
+            id="{{ invite_form.email.id_for_label }}"
+            class="input w-full text-base{% if invite_form.email.errors %} input-error{% endif %}"
+            placeholder="{% trans 'colleague@example.com' %}"
+            autocomplete="off"
+            {% if invite_form.email.errors %}aria-invalid="true" aria-describedby="invite-email-error"{% endif %}
+          >
+          {% if invite_form.email.errors %}
+          <span id="invite-email-error" class="text-error text-sm mt-1">
+            {{ invite_form.email.errors|join:" " }}
+          </span>
+          {% endif %}
+        </fieldset>
+        <button type="submit" class="btn btn-primary min-h-[44px]">
+          {% trans "Invite" %}
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+<div class="card bg-base-200 shadow-sm mt-4">
+  <div class="card-body gap-0 p-0">
+
+    <h2 class="text-lg font-semibold px-6 py-4">{% trans "Members" %}</h2>
+
+    <div class="overflow-x-auto">
+      <table class="table table-zebra w-full">
+        <thead>
+          <tr>
+            <th>{% trans "Email" %}</th>
+            <th>{% trans "Name" %}</th>
+            <th>{% trans "Role" %}</th>
+            <th>{% trans "Status" %}</th>
+            <th class="text-right">{% trans "Actions" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for member in members %}
+          <tr>
+            <td>{{ member.user.email }}</td>
+            <td>{{ member.display_name|default:"—" }}</td>
+            <td>
+              {% if member.role == "admin" %}
+              <span class="badge badge-primary badge-sm">{% trans "Admin" %}</span>
+              {% else %}
+              <span class="badge badge-ghost badge-sm">{% trans "Member" %}</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if member.is_active %}
+              <span class="badge badge-success badge-sm">{% trans "Active" %}</span>
+              {% else %}
+              <span class="badge badge-error badge-sm">{% trans "Inactive" %}</span>
+              {% endif %}
+            </td>
+            <td class="text-right">
+              {% if member.pk != admin_profile.pk %}
+              <div class="flex gap-1 justify-end flex-wrap">
+
+                {% if member.is_active and member.role != "admin" %}
+                <form method="post" action="{% url 'users:settings_users' %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="promote">
+                  <input type="hidden" name="profile_id" value="{{ member.pk }}">
+                  <button type="submit"
+                          class="btn btn-ghost btn-xs min-h-[44px]"
+                          title="{% trans 'Promote to admin' %}">
+                    {% trans "Promote to admin" %}
+                  </button>
+                </form>
+                {% endif %}
+
+                {% if member.is_active %}
+                <form method="post" action="{% url 'users:settings_users' %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="deactivate">
+                  <input type="hidden" name="profile_id" value="{{ member.pk }}">
+                  <button type="submit"
+                          class="btn btn-ghost btn-xs text-error min-h-[44px]"
+                          title="{% trans 'Deactivate' %}">
+                    {% trans "Deactivate" %}
+                  </button>
+                </form>
+                {% else %}
+                <form method="post" action="{% url 'users:settings_users' %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="reengage">
+                  <input type="hidden" name="profile_id" value="{{ member.pk }}">
+                  <button type="submit"
+                          class="btn btn-ghost btn-xs min-h-[44px]"
+                          title="{% trans 'Re-activate' %}">
+                    {% trans "Re-activate" %}
+                  </button>
+                </form>
+                {% endif %}
+
+              </div>
+              {% else %}
+              <span class="text-base-content/40 text-sm">{% trans "You" %}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="text-center text-base-content/60 py-6">
+              {% trans "No members yet." %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

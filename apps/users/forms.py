@@ -7,6 +7,7 @@ Forms for the users app.
 - TenantCreateForm  — organization (onboarding step 2)
 - ProfileSettingsForm — full profile preferences
 - InviteMemberForm  — admin invites by email
+- OrgSettingsForm   — organisation name + logo (settings > general)
 """
 
 from django import forms
@@ -173,6 +174,28 @@ class InviteMemberForm(forms.Form):
     )
 
 
+class OrgSettingsForm(forms.ModelForm):
+    """Settings > General — edit organisation name and logo."""
+
+    class Meta:
+        from apps.tenants.models import Tenant
+
+        model = Tenant
+        fields = ["organization", "logo"]
+        widgets = {
+            "organization": forms.TextInput(attrs={"class": "input w-full text-base"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["organization"].label = _("Organisation name")
+        self.fields["logo"].required = False
+        self.fields["logo"].label = _("Logo")
+        self.fields["logo"].widget.attrs.update(
+            {"class": "file-input w-full text-base"}
+        )
+
+
 __all__ = [
     "LoginForm",
     "RegisterForm",
@@ -180,4 +203,5 @@ __all__ = [
     "TenantCreateForm",
     "ProfileSettingsForm",
     "InviteMemberForm",
+    "OrgSettingsForm",
 ]

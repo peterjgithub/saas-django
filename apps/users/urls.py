@@ -24,7 +24,7 @@ urlpatterns = [
     path("theme/set/", views.set_theme_view, name="set_theme"),
     # Account revoked
     path("account/revoked/", views.account_revoked_view, name="account_revoked"),
-    # Member management (admin only)
+    # Legacy member management (kept for backward compat; superseded by settings tabs)
     path("settings/members/", views.members_view, name="members"),
     path("settings/members/invite/", views.invite_member_view, name="invite_member"),
     path(
@@ -37,4 +37,9 @@ urlpatterns = [
         views.reengage_member_view,
         name="reengage_member",
     ),
+    # Organisation settings (admin only) — 3 tabs
+    path("settings/", views.settings_redirect_view, name="settings"),
+    path("settings/users/", views.settings_users_view, name="settings_users"),
+    path("settings/general/", views.settings_general_view, name="settings_general"),
+    path("settings/billing/", views.settings_billing_view, name="settings_billing"),
 ]

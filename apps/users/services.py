@@ -240,6 +240,43 @@ def reengage_member(admin_profile: UserProfile, target_profile: UserProfile) -> 
     )
 
 
+def promote_to_admin(admin_profile: UserProfile, target_profile: UserProfile) -> None:
+    """
+    Promote a member to the admin role.
+
+    - Only a current admin may promote.
+    - The target must belong to the same tenant.
+    - An admin can promote themselves (no-op — already admin).
+    """
+    if target_profile.tenant_id != admin_profile.tenant_id:
+        raise ValueError(_("That member does not belong to your tenant."))
+    if target_profile.role == "admin":
+        return  # already admin — idempotent
+    target_profile.role = "admin"
+    target_profile.updated_by = admin_profile.user.pk
+    target_profile.save(update_fields=["role", "updated_by"])
+
+
+def deactivate_member(admin_profile: UserProfile, target_profile: UserProfile) -> None:
+    """
+    Deactivate a member account (soft-revoke: profile.is_active = False).
+
+    This is identical to revoke_member in behaviour; it is exposed under a
+    separate name so the Settings > Users UI can use the "Deactivate" label
+    while the existing /settings/members/ endpoint keeps the "Revoke" label.
+    Admin cannot deactivate themselves.
+    """
+    if admin_profile.pk == target_profile.pk:
+        raise ValueError(_("You cannot deactivate your own account."))
+    if target_profile.tenant_id != admin_profile.tenant_id:
+        raise ValueError(_("That member does not belong to your tenant."))
+
+    target_profile.is_active = False
+    target_profile.tenant_revoked_at = timezone.now()
+    target_profile.deleted_by = admin_profile.user.pk
+    target_profile.save(update_fields=["is_active", "tenant_revoked_at", "deleted_by"])
+
+
 __all__ = [
     "locale_code_for_language",
     "register_user",
@@ -249,4 +286,6 @@ __all__ = [
     "invite_member",
     "revoke_member",
     "reengage_member",
+    "promote_to_admin",
+    "deactivate_member",
 ]

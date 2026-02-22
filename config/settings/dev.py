@@ -16,3 +16,11 @@ ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 INTERNAL_IPS = ["127.0.0.1"]
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+# ---------------------------------------------------------------------------
+# Media files (uploads — dev only, served by Django's built-in static server)
+# ---------------------------------------------------------------------------
+from pathlib import Path  # noqa: E402
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = Path(__file__).resolve().parent.parent.parent / "media"

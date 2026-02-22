@@ -12,6 +12,7 @@ wheels/
 # Django
 db.sqlite3
 staticfiles/
+media/
 
 # Environment secrets
 .env
