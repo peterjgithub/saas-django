@@ -295,6 +295,19 @@ class SettingsUsersDeactivateTest(TestCase):
         self.assertFalse(self.member.profile.is_active)
         self.assertIsNotNone(self.member.profile.tenant_revoked_at)
 
+    def test_deactivate_admin_member_resets_role_to_member(self):
+        """Deactivating an admin-role member must also demote them to member."""
+        self.member.profile.role = "admin"
+        self.member.profile.save()
+        self.client.force_login(self.admin)
+        self.client.post(
+            self.url,
+            {"action": "deactivate", "profile_id": str(self.member.profile.pk)},
+        )
+        self.member.profile.refresh_from_db()
+        self.assertFalse(self.member.profile.is_active)
+        self.assertEqual(self.member.profile.role, "member")
+
     def test_admin_cannot_deactivate_themselves(self):
         self.client.force_login(self.admin)
         response = self.client.post(

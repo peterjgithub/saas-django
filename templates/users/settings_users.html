@@ -59,7 +59,16 @@
           {% for member in members %}
           <tr id="row-{{ member.pk }}">
             <td>{{ member.user.email }}</td>
-            <td>{{ member.display_name|default:"—" }}</td>
+            <td>
+              <span class="inline-flex items-center gap-1.5">
+                {{ member.display_name|default:"—" }}
+                {% if member.pk == admin_profile.pk %}
+                <span class="badge badge-sm border border-violet-400 text-violet-500 bg-transparent font-semibold tracking-wide">
+                  {% trans "YOU" %}
+                </span>
+                {% endif %}
+              </span>
+            </td>
 
             {# Admin toggle — disabled on own row or when member is inactive #}
             <td class="text-center">

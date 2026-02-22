@@ -601,6 +601,13 @@ def settings_users_view(request):
                     deactivate_member(
                         admin_profile=admin_profile, target_profile=target
                     )
+                    # Also demote to member — an inactive user must not hold admin role.
+                    if target.role == "admin":
+                        set_member_role(
+                            admin_profile=admin_profile,
+                            target_profile=target,
+                            role="member",
+                        )
                     messages.success(
                         request,
                         _("%(email)s has been deactivated.")
