@@ -59,6 +59,10 @@
 | 35  | `Tenant` has only `organization` + UUID PK + base fields                                        | `name` was redundant with `organization`; `slug` deferred — UUID is sufficient for isolation until tenant-scoped URLs are needed                                                                                                                                                                                          |
 | 36  | `UserProfile` roles: `admin` and `member` only                                                  | `admin` manages members, billing, and tenant settings; `member` = read access only. "Admin" reflects the permission set, not just creation history. Broader role granularity deferred to Phase 5+.                                                                                                                        |
 | 37  | Audit actor fields (`deleted_by`, `created_by`, `updated_by`) use `UUIDField` not `ForeignKey`  | No FK constraint check on every write; no implicit index; no circular dependency on `User`; no JOIN overhead when reading audit data. Integrity enforced at the service layer. Add `db_index` per-model only if a query pattern warrants it.                                                                              |
+| 38  | `<body>` is `h-screen overflow-hidden` (viewport-locked layout)                                 | Locks the entire layout to the viewport height so the sidebar never scrolls away when main content is long. Sidebar and main content each scroll independently via `overflow-y-auto` on their own containers.                                                                                                             |
+| 39  | Profile link NOT in left sidebar — top-right dropdown only                                      | Sidebar contains: Dashboard (top) + Admin link pinned to bottom via `mt-auto` (staff only). Profile/Logout live exclusively in the `display_name` dropdown in the top-right navbar. Avoids duplicate navigation, keeps sidebar focused on app sections.                                                                   |
+| 40  | Admin link pinned to sidebar bottom, `{% if user.is_staff %}` guard everywhere                  | Admin link shown in: left sidebar (bottom, `mt-auto` + `border-t`) and mobile overlay. NOT in the top-right dropdown. Only visible to users where `user.is_staff = True`.                                                                                                                                                |
+| 41  | `admin.site.site_url = "/dashboard/"` in `config/urls.py`                                       | Django admin's "View site" button redirects to `/dashboard/` instead of `/`. One-liner before `urlpatterns`; no custom `AdminSite` subclass needed.                                                                                                                                                                      |
 
 ---
 
@@ -114,12 +118,22 @@ saas-django/
     ├── users/                ← ✅ Phase 1 — custom User + UserProfile + signal
     │   ├── admin.py
     │   ├── apps.py
+    │   ├── forms.py          ← ✅ Phase 3 — LoginForm, RegisterForm, ProfileForm,
+    │   │                        OnboardingStep1Form, TenantCreateForm, InviteMemberForm
+    │   ├── middleware.py     ← ✅ Phase 3 — ProfileCompleteMiddleware
     │   ├── migrations/
     │   ├── models.py         ← User(AbstractUser), UserProfile(TimeStampedAuditModel)
+    │   ├── services.py       ← ✅ Phase 3 — register_user, complete_profile,
+    │   │                        create_tenant_for_user, invite_member, revoke_member,
+    │   │                        reengage_member
     │   ├── signals.py        ← post_save → auto-create UserProfile
     │   ├── tests/
-    │   ├── urls.py           ← ✅ Phase 2 — stubs for users:login/logout/profile
-    │   └── views.py
+    │   │   ├── test_auth.py  ← ✅ Phase 3 — login, register, onboarding, profile tests
+    │   │   ├── test_members.py ← ✅ Phase 3 — invite, revoke, re-engage tests
+    │   │   └── test_models.py ← Phase 1 model tests
+    │   ├── urls.py           ← ✅ Phase 3 — full auth URL patterns
+    │   └── views.py          ← ✅ Phase 3 — login, logout, register, onboarding,
+    │                            profile, members, account_revoked, password reset
     ├── pages/                ← ✅ Phase 2 — homepage, dashboard, health check
     │   ├── apps.py
     │   ├── migrations/
@@ -127,6 +141,30 @@ saas-django/
     │   ├── urls.py           ← pages:home, pages:dashboard
     │   └── views.py          ← home(), dashboard(), health()
     └── billing/              ← (Phase 6, deferred)
+```
+
+```
+templates/
+    ├── base.html             ← ✅ Phase 2 + Phase 3 polish — DaisyUI shell:
+    │                            anti-flash, navbar (display_name dropdown — Profile+Logout only),
+    │                            left sidebar (Dashboard + Admin-at-bottom for is_staff),
+    │                            mobile overlay, h-screen body layout
+    ├── pages/
+    │   ├── home.html         ← public homepage
+    │   └── dashboard.html    ← authenticated dashboard
+    ├── partials/             ← (reserved for future partials)
+    └── users/                ← ✅ Phase 3 — all auth + onboarding templates
+        ├── login.html
+        ├── register.html
+        ├── onboarding_step1.html
+        ├── onboarding_step2.html
+        ├── profile.html
+        ├── members.html
+        ├── account_revoked.html
+        ├── password_reset.html
+        ├── password_reset_done.html
+        ├── password_reset_confirm.html
+        └── password_reset_complete.html
 ```
 
 ---
@@ -308,7 +346,8 @@ actor to record. This is the **only** model in the codebase that omits these fie
       items: "Profile" → `/profile/`, "Log out" → `/logout/`
   - **Mobile:** bottom nav + full-screen DaisyUI modal overlay (hamburger opens it)
   - `<nav>` tag; hamburger with `aria-label="Toggle menu"`
-  - Left-side sidebar (authenticated only): "Dashboard" + "Profile" links
+  - Left-side sidebar (authenticated only): "Dashboard" link; Admin link pinned to bottom
+    for `is_staff` users only
 - [x] Create `config/context_processors.py` → injects `SITE_NAME`, `current_theme` to all templates
 - [x] Register context processor in `base.py` (`config.context_processors.site_context`)
 - [x] `SITE_NAME` setting added to `base.py` (reads from env, default `"SaaS App"`)
@@ -348,14 +387,14 @@ actor to record. This is the **only** model in the codebase that omits these fie
 
 ---
 
-### 🔲 Phase 3 — Auth UX: Login, Register, Onboarding & Profile
+### ✅ Phase 3 — Auth UX: Login, Register, Onboarding & Profile (DONE)
 
 **Goal:** Users can register, log in, complete a two-step onboarding gate, access the
 dashboard, and manage preferences — all via email.
 
 #### Login
 
-- [ ] Login view (`/login/`): email + password
+- [x] Login view (`/login/`): email + password
   - **Failure** (wrong credentials): stay on the login form; display an inline
     `<div role="alert">` error message. Do NOT redirect anywhere.
   - **Cancel link** on the login page (or user presses Back): redirect to **homepage** (`/`).
@@ -363,7 +402,7 @@ dashboard, and manage preferences — all via email.
 
 #### Registration
 
-- [ ] Register view (`/register/`):
+- [x] Register view (`/register/`):
   - Fields: email + password only
   - Hidden fields: `tz_detect`, `lang_detect` (populated via JS, see Phase 1d)
   - Success → skip email confirmation → auto-create `UserProfile` via signal →
@@ -371,11 +410,11 @@ dashboard, and manage preferences — all via email.
 
 #### Logout
 
-- [ ] Logout (`/logout/`): clears session → redirect to homepage
+- [x] Logout (`/logout/`): clears session → redirect to homepage
 
 #### Two-Step Onboarding Gate
 
-- [ ] **`ProfileCompleteMiddleware`** in `apps/users/middleware.py`:
+- [x] **`ProfileCompleteMiddleware`** in `apps/users/middleware.py`:
   - Runs after `AuthenticationMiddleware` — add to `MIDDLEWARE` in `base.py`
   - Decision logic:
     1. `profile_completed_at IS NULL` **AND** `session["skip_profile_gate"]` is not `True`
@@ -388,7 +427,7 @@ dashboard, and manage preferences — all via email.
   - Exempt (never redirected): `/profile/complete/`, `/onboarding/create-tenant/`,
     `/account/revoked/`, `/logout/`, `/health/`, `settings.PROFILE_GATE_EXEMPT_URLS`
 
-- [ ] **Step 1 — Profile completion (`/profile/complete/`):**
+- [x] **Step 1 — Profile completion (`/profile/complete/`):**
   - Page title: **"Complete your profile"**
   - DaisyUI **steps** progress: `Profile → Workspace` (currently at step 1)
   - Inputs: `display_name`, `timezone` (from `core.Timezone` FK), avatar upload (optional)
@@ -398,10 +437,11 @@ dashboard, and manage preferences — all via email.
   - On save: `profile_completed_at = now()` → redirect to Step 2
     (`/onboarding/create-tenant/`)
 
-- [ ] **Step 2 — Tenant creation (`/onboarding/create-tenant/`):**
+- [x] **Step 2 — Tenant creation (`/onboarding/create-tenant/`):**
   - Page title: **"Create your workspace"**
+  - Subtitle: **"What is your organisation called?"**
   - DaisyUI **steps** progress: `Profile → Workspace` (currently at step 2)
-  - Input: `organization` (company / workspace name)
+  - Input: `organization` — labelled **"Organisation name"** (not "Workspace name")
   - On save: create `Tenant`, set `profile.tenant`, `profile.role = "admin"`,
     `profile.tenant_joined_at = now()` → redirect to `/dashboard/`
   - > **No "Do this later" on Step 2.** The session `skip_profile_gate` flag
@@ -412,30 +452,30 @@ dashboard, and manage preferences — all via email.
 
 #### Dashboard
 
-- [ ] Dashboard view (`/dashboard/`): login required; displays
+- [x] Dashboard view (`/dashboard/`): login required; displays
       "Welcome {display_name or email}"; unauthenticated → redirect to login;
       incomplete-profile gate redirects to `/profile/complete/` first
 
 #### Full Profile Settings (`/profile/`)
 
-- [ ] Login required
-- [ ] Title: **"Profile"** (distinct from the onboarding `/profile/complete/` step)
-- [ ] Editable: `display_name`, `language`, `timezone`, `country`, `currency`, `theme`
-- [ ] Marketing section: `marketing_emails` opt-in
-- [ ] Subsequent saves: stay on `/profile/` with a success message
-- [ ] Theme change also updates `localStorage` key `theme`
-- [ ] Language change triggers Django locale switch + updates `localStorage` key `lang`
-- [ ] Timezone uses IANA tz selector (from `core.Timezone`)
-- [ ] Does NOT include email or password fields
+- [x] Login required
+- [x] Title: **"Profile"** (distinct from the onboarding `/profile/complete/` step)
+- [x] Editable: `display_name`, `language`, `timezone`, `country`, `currency`, `theme`
+- [x] Marketing section: `marketing_emails` opt-in
+- [x] Subsequent saves: stay on `/profile/` with a success message
+- [x] Theme change also updates `localStorage` key `theme`
+- [x] Language change triggers Django locale switch + updates `localStorage` key `lang`
+- [x] Timezone uses IANA tz selector (from `core.Timezone`)
+- [x] Does NOT include email or password fields
 
 #### Shared Auth UX rules
 
-- [ ] Auth forms: DaisyUI **hero** + split-screen (desktop); full-width `items-start` (mobile)
-- [ ] Correct HTML input types: `type="email"`, `type="password"`, `autocomplete` attributes
-- [ ] Left-side nav (authenticated): "Dashboard" + "Profile" links
-- [ ] Email backend: `console` for dev, configurable SMTP/SES for prod
-- [ ] Password reset flow (forgot password)
-- [ ] **DaisyUI 5 forms:** `form-control` is **removed** — use the new `fieldset` + `label`
+- [x] Auth forms: DaisyUI **hero** + split-screen (desktop); full-width `items-start` (mobile)
+- [x] Correct HTML input types: `type="email"`, `type="password"`, `autocomplete` attributes
+- [x] Left-side nav (authenticated): "Dashboard" link only (Profile is in the top-right dropdown)
+- [x] Email backend: `console` for dev, configurable SMTP/SES for prod
+- [x] Password reset flow (forgot password)
+- [x] **DaisyUI 5 forms:** `form-control` is **removed** — use the new `fieldset` + `label`
       component syntax for all form fields. `label` now goes inside `fieldset`.
       See: https://daisyui.com/components/fieldset/ and https://daisyui.com/components/label/
 
@@ -444,23 +484,23 @@ dashboard, and manage preferences — all via email.
 The user who completes Step 2 (workspace creation) becomes the `admin` of that tenant.
 As admin they can invite other users and revoke access.
 
-- [ ] **Members page (`/settings/members/`):** `admin`-only; lists all `UserProfile`
+- [x] **Members page (`/settings/members/`):** `admin`-only; lists all `UserProfile`
       records where `profile.tenant == request.user.profile.tenant` (active + inactive)
-- [ ] **Invite member:** admin enters an email address → create/lookup `User` →
+- [x] **Invite member:** admin enters an email address → create/lookup `User` →
       set `profile.tenant`, `profile.role = "member"`, `profile.tenant_joined_at = now()`,
       `profile.is_active = True` → send invitation email (no Celery yet — use Django's
       `send_mail` synchronously in dev, configure SMTP for prod)
-- [ ] **Revoke access:** set `profile.is_active = False`, `profile.tenant_revoked_at = now()`,
+- [x] **Revoke access:** set `profile.is_active = False`, `profile.tenant_revoked_at = now()`,
       `profile.deleted_by = request.user.pk` — the `tenant` FK is **never cleared**
-- [ ] **Re-engage:** set `profile.is_active = True`, `profile.tenant_revoked_at = None`,
+- [x] **Re-engage:** set `profile.is_active = True`, `profile.tenant_revoked_at = None`,
       `profile.deleted_by = None`, `profile.deleted_at = None`
-- [ ] **Guard:** only `role=admin` profiles can access `/settings/members/`; any other
+- [x] **Guard:** only `role=admin` profiles can access `/settings/members/`; any other
       authenticated user hitting that URL gets a `403 Forbidden`
-- [ ] **Cannot self-revoke:** an admin cannot revoke themselves
+- [x] **Cannot self-revoke:** an admin cannot revoke themselves
       (prevents a workspace from becoming unmanageable)
-- [ ] **Second workspace:** a user wanting to join a different org must register a new
+- [x] **Second workspace:** a user wanting to join a different org must register a new
       account — enforced in the invite service (`profile.tenant is not None` → validation error)
-- [ ] Tests:
+- [x] Tests:
   - Admin can access members page; non-admin gets 403
   - Admin can invite a new email → profile.tenant set, profile.role = member
   - Admin can invite an existing user whose profile.tenant is null → profile updated
@@ -472,19 +512,38 @@ As admin they can invite other users and revoke access.
 
 #### Tests
 
-- [ ] Register → redirected to `/profile/complete/` with "Complete your profile" title
-- [ ] Login failure → stays on login form with inline error; no redirect
-- [ ] Login cancel link → redirects to homepage
-- [ ] Accessing `/dashboard/` with incomplete profile (no skip) → redirected to `/profile/complete/?next=/dashboard/`
-- [ ] "Do this later" sets session flag → subsequent requests pass Step 1 check
-- [ ] After Step 1 save → redirected to `/onboarding/create-tenant/`
-- [ ] After Step 2 save → redirected to `/dashboard/`
-- [ ] Accessing `/dashboard/` with complete profile and tenant → allowed through
-- [ ] `/logout/` and `/health/` never intercepted by gate
-- [ ] Revoked member (`is_active=False`) redirected to `/account/revoked/`
-- [ ] Full profile update (subsequent saves stay on `/profile/`)
-- [ ] Marketing opt-in toggle
-- [ ] Password reset
+- [x] Register → redirected to `/profile/complete/` with "Complete your profile" title
+- [x] Login failure → stays on login form with inline error; no redirect
+- [x] Login cancel link → redirects to homepage
+- [x] Accessing `/dashboard/` with incomplete profile (no skip) → redirected to `/profile/complete/?next=/dashboard/`
+- [x] "Do this later" sets session flag → subsequent requests pass Step 1 check
+- [x] After Step 1 save → redirected to `/onboarding/create-tenant/`
+- [x] After Step 2 save → redirected to `/dashboard/`
+- [x] Accessing `/dashboard/` with complete profile and tenant → allowed through
+- [x] `/logout/` and `/health/` never intercepted by gate
+- [x] Revoked member (`is_active=False`) redirected to `/account/revoked/`
+- [x] Full profile update (subsequent saves stay on `/profile/`)
+- [x] Marketing opt-in toggle
+- [x] Password reset
+- [x] 96 tests total (54 Phase 1+2 + 42 Phase 3), all passing; ruff clean
+
+#### Post-Phase 3 visual fixes (committed after `1dcce20`)
+
+- [x] **Organisation copy** — onboarding step 2 subtitle changed to "What is your organisation
+      called?"; field label changed to "Organisation name" (was "Workspace name");
+      form `TenantCreateForm.organization` label updated to match
+- [x] **Admin link in navigation** — `{% if user.is_staff %}` guard added;
+      Admin link appears in: left sidebar (pinned to bottom with `mt-auto`), and mobile overlay;
+      **not** in the top-right dropdown (dropdown contains Profile + Logout only)
+- [x] **Django admin "View site" → `/dashboard/`** — `admin.site.site_url = "/dashboard/"`
+      added to `config/urls.py` (one-liner before `urlpatterns`)
+- [x] **Sidebar restructure** — Profile link removed from sidebar (it lives in the top-right
+      dropdown); Admin link moved to bottom of sidebar using `mt-auto` + `border-t` separator;
+      sidebar `<nav>` given `flex-1` so `mt-auto` works correctly
+- [x] **Viewport-locked layout (`h-screen overflow-hidden`)** — `<body>` changed from
+      `min-h-screen flex flex-col` to `h-screen flex flex-col overflow-hidden`;
+      this locks the entire layout to the viewport so the sidebar never scrolls away
+      when main content is long; sidebar and main content each scroll independently
 
 ---
 
@@ -592,6 +651,12 @@ These are valid ideas — implement only after Phase 7 is complete:
 | 2026-02-22 | `form-control` removed in DaisyUI 5                                                          | Use new `fieldset` + `label` component syntax for all form fields in Phase 3+; `form-control` no longer exists                                                                          |
 | 2026-02-22 | Pre-commit hook uses `--keepdb --exclude-tag=slow`                                           | `--keepdb` avoids recreating `test_saas_db` on every commit; `--exclude-tag=slow` skips `load_reference_data` tests (~7 k language rows); hook runs in ~1.5 s                           |
 | 2026-02-22 | Mobile theme toggle added to overlay menu                                                    | Same `applyTheme()` JS function syncs desktop + mobile icons; both buttons update simultaneously                                                                                        |
+| 2026-02-22 | Admin link in navbar/sidebar shown only to `is_staff` users                                  | `{% if user.is_staff %}` guard in `base.html`; shown in desktop dropdown, left sidebar, and mobile overlay — only users with Django staff flag see it                                   |
+| 2026-02-22 | Django admin "View site" redirects to `/dashboard/`                                          | `admin.site.site_url = "/dashboard/"` in `config/urls.py`; no custom `AdminSite` subclass needed — one-liner is sufficient                                                              |
+| 2026-02-22 | Onboarding step 2 label: "Organisation name" not "Workspace name"                            | "Workspace" is an internal concept; users think in terms of their organisation; label and form field updated accordingly                                                                |
+| 2026-02-22 | Admin link removed from top-right dropdown                                                   | Dropdown contains Profile + Logout only; Admin link lives in left sidebar (bottom) and mobile overlay — not in the user account menu                                                    |
+| 2026-02-22 | Profile link removed from left sidebar                                                       | Profile lives in the top-right `display_name` dropdown; sidebar is for app navigation sections only (Dashboard, future modules, Admin at bottom for staff)                              |
+| 2026-02-22 | `h-screen overflow-hidden` on `<body>` — viewport-locked layout                             | Sidebar stays visible regardless of main content length; each scroll container is independent; `min-h-screen` was the root cause of the sidebar Admin link disappearing on long pages   |
 
 ---
 

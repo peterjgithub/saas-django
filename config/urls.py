@@ -6,6 +6,9 @@ from django.urls import include, path
 
 from apps.pages.views import health
 
+# Redirect the "View site" link in the Django admin to the app dashboard
+admin.site.site_url = "/dashboard/"
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("health/", health, name="health"),

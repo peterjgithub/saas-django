@@ -103,7 +103,7 @@ class TenantCreateForm(forms.Form):
     """Step 2 of onboarding — create the workspace."""
 
     organization = forms.CharField(
-        label=_("Workspace name"),
+        label=_("Organisation name"),
         max_length=200,
         widget=forms.TextInput(
             attrs={

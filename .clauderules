@@ -567,7 +567,21 @@ Place this script in `<head>` of `base.html` **before any CSS or `<body>` tags**
       DaisyUI **dropdown** button; menu items:
       - "Profile" → `/profile/`
       - "Logout" → `/logout/`
+      - **Admin link is NOT in this dropdown** — it lives in the left sidebar only
 - Use `<nav>` tag — never a generic `<div>` for navigation
+
+### Left Sidebar (authenticated only)
+
+- **`<body>` must be `h-screen flex flex-col overflow-hidden`** — never `min-h-screen`.
+  This viewport-locks the entire layout so the sidebar stays visible regardless of
+  main content length. Sidebar and main each scroll independently.
+- Sidebar `<aside>`: `hidden md:flex flex-col` with fixed width and `border-r`
+- Sidebar `<nav>`: `flex flex-col flex-1 gap-1 px-2 overflow-y-auto min-h-0`
+- **Top of sidebar:** Dashboard link (and any future app-section links)
+- **Bottom of sidebar (pinned):** Admin link — only when `{% if user.is_staff %}`;
+  placed in a `<div class="mt-auto pt-2 border-t border-base-300">` after the nav links
+- **Profile link is NOT in the sidebar** — it lives in the top-right `display_name`
+  dropdown only. Do not add it to the sidebar.
 
 ### Mobile (< lg breakpoint)
 
@@ -576,7 +590,14 @@ Place this script in `<head>` of `base.html` **before any CSS or `<body>` tags**
 - Authenticated user section in the overlay / bottom sheet:
   - Show `display_name` (or email local-part)
   - "Profile" and "Logout" as list items
+  - Admin link (if `{% if user.is_staff %}`) as a list item
 - Hamburger icon (if used): must have `aria-label="Toggle menu"`
+
+### Django Admin
+
+- `admin.site.site_url = "/dashboard/"` in `config/urls.py` — one-liner before `urlpatterns`.
+  This makes the "View site" button in the Django admin header go to `/dashboard/`
+  instead of `/`. No custom `AdminSite` subclass is needed.
 
 ---
 
