@@ -67,7 +67,7 @@
               <option value="">{% trans "— Select your timezone —" %}</option>
               {% for tz in form.timezone.field.queryset %}
               <option value="{{ tz.pk }}" {% if form.timezone.value|stringformat:"s" == tz.pk|stringformat:"s" %}selected{% endif %}>
-                {{ tz.name }} ({{ tz.offset_label }})
+                {{ tz.label }}
               </option>
               {% endfor %}
             </select>

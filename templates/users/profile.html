@@ -52,7 +52,7 @@
           >
             <option value="">{% trans "— Select language —" %}</option>
             {% for lang in form.language.field.queryset %}
-            <option value="{{ lang.pk }}" {% if form.language.value == lang.pk|stringformat:"s" %}selected{% endif %}>
+            <option value="{{ lang.pk }}" {% if form.language.value|stringformat:"s" == lang.pk|stringformat:"s" %}selected{% endif %}>
               {{ lang.name }}
             </option>
             {% endfor %}
@@ -70,8 +70,8 @@
           >
             <option value="">{% trans "— Select timezone —" %}</option>
             {% for tz in form.timezone.field.queryset %}
-            <option value="{{ tz.pk }}" {% if form.timezone.value == tz.pk|stringformat:"s" %}selected{% endif %}>
-              {{ tz.name }} ({{ tz.offset_label }})
+            <option value="{{ tz.pk }}" {% if form.timezone.value|stringformat:"s" == tz.pk|stringformat:"s" %}selected{% endif %}>
+              {{ tz.label }}
             </option>
             {% endfor %}
           </select>
@@ -88,7 +88,7 @@
           >
             <option value="">{% trans "— Select country —" %}</option>
             {% for c in form.country.field.queryset %}
-            <option value="{{ c.pk }}" {% if form.country.value == c.pk|stringformat:"s" %}selected{% endif %}>
+            <option value="{{ c.pk }}" {% if form.country.value|stringformat:"s" == c.pk|stringformat:"s" %}selected{% endif %}>
               {{ c.name }}
             </option>
             {% endfor %}
@@ -106,7 +106,7 @@
           >
             <option value="">{% trans "— Select currency —" %}</option>
             {% for cur in form.currency.field.queryset %}
-            <option value="{{ cur.pk }}" {% if form.currency.value == cur.pk|stringformat:"s" %}selected{% endif %}>
+            <option value="{{ cur.pk }}" {% if form.currency.value|stringformat:"s" == cur.pk|stringformat:"s" %}selected{% endif %}>
               {{ cur.code }} — {{ cur.name }}
             </option>
             {% endfor %}
