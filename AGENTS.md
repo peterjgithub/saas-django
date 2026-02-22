@@ -63,6 +63,9 @@
 | 39  | Profile link NOT in left sidebar — top-right dropdown only                                      | Sidebar contains: Dashboard (top) + Admin link pinned to bottom via `mt-auto` (staff only). Profile/Logout live exclusively in the `display_name` dropdown in the top-right navbar. Avoids duplicate navigation, keeps sidebar focused on app sections.                                                                   |
 | 40  | Admin link pinned to sidebar bottom, `{% if user.is_staff %}` guard everywhere                  | Admin link shown in: left sidebar (bottom, `mt-auto` + `border-t`) and mobile overlay. NOT in the top-right dropdown. Only visible to users where `user.is_staff = True`.                                                                                                                                                 |
 | 41  | `admin.site.site_url = "/dashboard/"` in `config/urls.py`                                       | Django admin's "View site" button redirects to `/dashboard/` instead of `/`. One-liner before `urlpatterns`; no custom `AdminSite` subclass needed.                                                                                                                                                                       |
+| 42  | 3-state theme toggle: `corporate → night → system`                                              | Replaces the binary light/dark toggle. `"system"` reads `prefers-color-scheme` at runtime; stored as the logical pref in `localStorage` (never resolved). Cycle: `corporate → night → system → corporate …`.                                                                                                               |
+| 43  | Server-side theme seed in anti-flash script for authenticated users                             | `{{ current_theme }}` (from `UserProfile.theme` via context processor) injected into the anti-flash `<script>`. Auth user's saved pref wins over any stale `localStorage` value so incognito / fresh browser gets the right theme on first paint. Unauthenticated: `localStorage` only.                                    |
+| 44  | `POST /theme/set/` endpoint persists theme to `UserProfile` for authenticated users             | AJAX endpoint (`users:set_theme`). Called by the toggle JS on every click. Returns `{"ok": true, "theme": "..."}`. Unauthenticated requests return `200 ok` but make no DB write. `/theme/set/` is in `_ALWAYS_EXEMPT` so the profile gate never intercepts it.                                                           |
 
 ---
 
@@ -545,6 +548,25 @@ As admin they can invite other users and revoke access.
       this locks the entire layout to the viewport so the sidebar never scrolls away
       when main content is long; sidebar and main content each scroll independently
 
+#### Post-Phase 3 theme work (commits `f64004d`, `b7bc944`, `340295f`)
+
+- [x] **3-state theme toggle** — replaced binary light/dark toggle with 3-state cycle:
+      `corporate → night → system → corporate …`; added monitor icon for the system state;
+      `"system"` resolves `prefers-color-scheme` at runtime — never stored as a resolved value
+- [x] **Server-side theme seed** — `{{ current_theme }}` (from `UserProfile.theme` via
+      context processor) injected into the anti-flash `<script>` for authenticated users;
+      auth user's saved pref wins over any stale `localStorage` value on first paint (incognito,
+      fresh browser); unauthenticated users continue to use `localStorage` only
+- [x] **`POST /theme/set/`** — new AJAX endpoint (`users:set_theme`); saves `UserProfile.theme`
+      for authenticated users on every toggle click; unauthenticated returns `200 ok` with no
+      DB write; added to `_ALWAYS_EXEMPT` in `ProfileCompleteMiddleware`
+- [x] **Profile page sync** — `profile_view` passes `saved_theme` to context; `profile.html`
+      `extra_js` block syncs `localStorage` to the newly saved theme on page reload after save
+- [x] **Django comment bug fix** — replaced all `{# #}` comments inside `<script>` blocks with
+      `//` JS comments; replaced multi-line `{# #}` block comments adjacent to `<script>` tags
+      (which render as literal visible text in the browser) with single-line `{# label #}` labels
+- [x] **107 tests total** (96 Phase 1–3 + 11 new `SetThemeViewTest`), all passing; ruff clean
+
 ---
 
 ### 🔲 Phase 4 — I18N: US English + Belgian Dutch + Belgian French
@@ -657,6 +679,10 @@ These are valid ideas — implement only after Phase 7 is complete:
 | 2026-02-22 | Admin link removed from top-right dropdown                                                   | Dropdown contains Profile + Logout only; Admin link lives in left sidebar (bottom) and mobile overlay — not in the user account menu                                                    |
 | 2026-02-22 | Profile link removed from left sidebar                                                       | Profile lives in the top-right `display_name` dropdown; sidebar is for app navigation sections only (Dashboard, future modules, Admin at bottom for staff)                              |
 | 2026-02-22 | `h-screen overflow-hidden` on `<body>` — viewport-locked layout                              | Sidebar stays visible regardless of main content length; each scroll container is independent; `min-h-screen` was the root cause of the sidebar Admin link disappearing on long pages   |
+| 2026-02-22 | 3-state theme toggle: `corporate → night → system`                                           | Replaces binary light/dark toggle. `"system"` reads `prefers-color-scheme` at runtime; stored as the logical pref in `localStorage` (never resolved). Cycle: `corporate → night → system → corporate …`                   |
+| 2026-02-22 | Server-side theme seed for authenticated users                                               | `{{ current_theme }}` from `UserProfile.theme` injected into anti-flash script; auth user's saved pref wins over stale `localStorage` on fresh browser/incognito. Unauthenticated: `localStorage` only.                    |
+| 2026-02-22 | `POST /theme/set/` saves theme to `UserProfile` for authenticated users                      | AJAX endpoint (`users:set_theme`); called by toggle JS on every click; unauthenticated returns `200 ok` no DB write; exempt from `ProfileCompleteMiddleware` via `_ALWAYS_EXEMPT`                                           |
+| 2026-02-22 | `{# #}` Django template comments must not appear inside or adjacent to `<script>` blocks    | Multi-line `{# #}` adjacent to `<script>` tags render as literal visible text; use `//` JS comments inside scripts and single-line `{# label #}` outside — rule added to `.clauderules`, `copilot-instructions.md`        |
 
 ---
 

@@ -527,20 +527,45 @@ apps/<name>/
 
 ## 9. Anti-Flash Script (theme)
 
-Place this script in `<head>` of `base.html` **before any CSS or `<body>` tags**:
+Place this script in `<head>` of `base.html` **before any CSS or `<body>` tags**.
+
+**Three-state preference model:** `"corporate"` (light) | `"night"` (dark) | `"system"` (follow OS).
+- `localStorage` key `theme` always stores the logical pref (may be `"system"`).
+- For **authenticated users** the server injects their saved `UserProfile.theme` via
+  `{{ current_theme }}` (from `config/context_processors.py`). This wins over any
+  stale `localStorage` value so a fresh browser / incognito window gets the right
+  theme on first paint.
+- For **unauthenticated users** `localStorage` is the only source of truth.
+- `"system"` resolves to the actual DaisyUI theme at runtime by reading
+  `prefers-color-scheme` — never stored as a resolved value.
 
 ```html
 <script>
   (function () {
-    const stored = localStorage.getItem("theme");
-    const prefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)",
-    ).matches;
-    const theme = stored || (prefersDark ? "night" : "corporate");
-    document.documentElement.setAttribute("data-theme", theme);
+    {% if user.is_authenticated %}
+    var serverTheme = '{{ current_theme }}'; // "corporate" | "night" | "system"
+    var pref = serverTheme || localStorage.getItem('theme') || 'system';
+    {% else %}
+    var pref = localStorage.getItem('theme') || 'system';
+    {% endif %}
+    var resolved = (pref === 'night') ? 'night'
+                   : (pref === 'corporate') ? 'corporate'
+                   : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'night' : 'corporate');
+    document.documentElement.setAttribute('data-theme', resolved);
+    localStorage.setItem('theme', pref);
   })();
 </script>
 ```
+
+**Toggle cycle:** `corporate → night → system → corporate …`
+
+A `POST /theme/set/` endpoint (`users:set_theme`) persists the preference to
+`UserProfile.theme` for authenticated users. Unauthenticated users get a `200 ok`
+but no DB write (localStorage-only).
+
+**Important:** Never put `{# ... #}` Django template comments inside a `<script>` block.
+Multi-line `{# #}` comments adjacent to or inside `<script>` tags render as literal
+visible text in the browser. Use `//` JS comments inside scripts instead.
 
 ---
 
