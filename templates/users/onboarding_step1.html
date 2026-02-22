@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Complete your profile" %} — {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center px-4 py-12">
+  <div class="w-full max-w-lg">
+
+    {# DaisyUI steps progress indicator #}
+    <ul class="steps steps-horizontal w-full mb-10">
+      <li class="step step-primary">{% trans "Profile" %}</li>
+      <li class="step">{% trans "Workspace" %}</li>
+    </ul>
+
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-bold">{% trans "Complete your profile" %}</h1>
+      <p class="mt-2 opacity-70">{% trans "Tell us a little about yourself" %}</p>
+    </div>
+
+    <div class="card bg-base-100 shadow-lg">
+      <div class="card-body gap-6">
+
+        <form method="post" action="{% url 'users:profile_complete' %}{% if next %}?next={{ next }}{% endif %}" novalidate>
+          {% csrf_token %}
+          {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+
+          <fieldset class="fieldset">
+            <label class="label" for="id_display_name">
+              <span class="label-text">{% trans "Display name" %}</span>
+              <span class="label-text-alt opacity-60">{% trans "Optional" %}</span>
+            </label>
+            <input
+              type="text"
+              id="id_display_name"
+              name="display_name"
+              value="{{ form.display_name.value|default:'' }}"
+              class="input w-full text-base{% if form.display_name.errors %} input-error{% endif %}"
+              autocomplete="name"
+              {% if form.display_name.errors %}aria-invalid="true" aria-describedby="display-name-error"{% endif %}
+            >
+            {% if form.display_name.errors %}
+            <p id="display-name-error" class="label-text text-error mt-1">{{ form.display_name.errors|join:" " }}</p>
+            {% endif %}
+          </fieldset>
+
+          <fieldset class="fieldset mt-4">
+            <label class="label" for="id_timezone">
+              <span class="label-text">{% trans "Timezone" %}</span>
+              <span class="label-text-alt opacity-60">{% trans "Optional" %}</span>
+            </label>
+            <select
+              id="id_timezone"
+              name="timezone"
+              class="select w-full text-base{% if form.timezone.errors %} select-error{% endif %}"
+              {% if form.timezone.errors %}aria-invalid="true" aria-describedby="timezone-error"{% endif %}
+            >
+              <option value="">{% trans "— Select your timezone —" %}</option>
+              {% for tz in form.timezone.field.queryset %}
+              <option value="{{ tz.pk }}" {% if form.timezone.value == tz.pk|stringformat:"s" %}selected{% endif %}>
+                {{ tz.name }} ({{ tz.offset_label }})
+              </option>
+              {% endfor %}
+            </select>
+            {% if form.timezone.errors %}
+            <p id="timezone-error" class="label-text text-error mt-1">{{ form.timezone.errors|join:" " }}</p>
+            {% endif %}
+          </fieldset>
+
+          <div class="mt-8 flex flex-col gap-3">
+            <button type="submit" class="btn btn-primary w-full min-h-[44px]">
+              {% trans "Save and continue" %}
+            </button>
+            <button
+              type="submit"
+              name="skip"
+              value="1"
+              class="btn btn-ghost w-full min-h-[44px]"
+            >
+              {% trans "Do this later" %}
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Sign in" %} — {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center px-4 py-12">
+  <div class="w-full max-w-md">
+
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-bold">{% trans "Welcome back" %}</h1>
+      <p class="mt-2 opacity-70">{% trans "Sign in to your account" %}</p>
+    </div>
+
+    <div class="card bg-base-100 shadow-lg">
+      <div class="card-body gap-6">
+
+        {% if error %}
+        <div role="alert" class="alert alert-error" aria-live="assertive">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+          <span>{{ error }}</span>
+        </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'users:login' %}{% if next %}?next={{ next }}{% endif %}" novalidate>
+          {% csrf_token %}
+          {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+
+          <fieldset class="fieldset">
+            <label class="label" for="id_email">
+              <span class="label-text">{% trans "Email address" %}</span>
+            </label>
+            <input
+              type="email"
+              id="id_email"
+              name="email"
+              value="{{ form.email.value|default:'' }}"
+              class="input w-full text-base{% if form.email.errors %} input-error{% endif %}"
+              autocomplete="email"
+              autofocus
+              required
+              {% if form.email.errors %}aria-invalid="true" aria-describedby="email-error"{% endif %}
+            >
+            {% if form.email.errors %}
+            <p id="email-error" class="label-text text-error mt-1">{{ form.email.errors|join:" " }}</p>
+            {% endif %}
+          </fieldset>
+
+          <fieldset class="fieldset mt-4">
+            <label class="label" for="id_password">
+              <span class="label-text">{% trans "Password" %}</span>
+            </label>
+            <input
+              type="password"
+              id="id_password"
+              name="password"
+              class="input w-full text-base{% if form.password.errors %} input-error{% endif %}"
+              autocomplete="current-password"
+              required
+              {% if form.password.errors %}aria-invalid="true" aria-describedby="password-error"{% endif %}
+            >
+            {% if form.password.errors %}
+            <p id="password-error" class="label-text text-error mt-1">{{ form.password.errors|join:" " }}</p>
+            {% endif %}
+            <div class="text-right mt-1">
+              <a href="{% url 'password_reset' %}" class="link link-primary text-sm">{% trans "Forgot password?" %}</a>
+            </div>
+          </fieldset>
+
+          <div class="mt-6 flex flex-col gap-3">
+            <button type="submit" class="btn btn-primary w-full min-h-[44px]">
+              {% trans "Sign in" %}
+            </button>
+            <a href="{% url 'pages:home' %}" class="btn btn-ghost w-full min-h-[44px]">
+              {% trans "Cancel" %}
+            </a>
+          </div>
+        </form>
+
+      </div>
+    </div>
+
+    <p class="text-center mt-6 text-sm opacity-70">
+      {% trans "Don't have an account?" %}
+      <a href="{% url 'users:register' %}" class="link link-primary font-medium">{% trans "Get started" %}</a>
+    </p>
+
+  </div>
+</div>
+{% endblock %}

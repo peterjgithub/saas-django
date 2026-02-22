@@ -56,4 +56,5 @@ Key rules summary (full detail in `.clauderules`):
 - Run `uv run ruff check --fix && uv run ruff format` after every code change
 - Every feature needs tests under `apps/<name>/tests/`
 - **NEVER let Prettier format `templates/`** — it breaks Django `{% %}` tags (`TemplateSyntaxError`); `.prettierignore` lists `templates/` and `.vscode/settings.json` disables HTML format-on-save — do not remove either
+- **DaisyUI 5 forms:** `form-control` is **removed** — use the new `fieldset` + `label` component syntax for all form fields. `label` now goes inside `fieldset`. See: https://daisyui.com/components/fieldset/
 - **After completing each phase** (tests passing, ruff clean): `git add -A && git commit -m "feat: Phase N — <summary>" && git push` — do not wait to be asked

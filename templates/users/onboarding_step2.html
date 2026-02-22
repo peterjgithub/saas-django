@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Create your workspace" %} — {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center px-4 py-12">
+  <div class="w-full max-w-lg">
+
+    {# DaisyUI steps progress indicator #}
+    <ul class="steps steps-horizontal w-full mb-10">
+      <li class="step step-primary">{% trans "Profile" %}</li>
+      <li class="step step-primary">{% trans "Workspace" %}</li>
+    </ul>
+
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-bold">{% trans "Create your workspace" %}</h1>
+      <p class="mt-2 opacity-70">{% trans "Set up your organisation's workspace" %}</p>
+    </div>
+
+    <div class="card bg-base-100 shadow-lg">
+      <div class="card-body gap-6">
+
+        <form method="post" action="{% url 'users:onboarding_create_tenant' %}" novalidate>
+          {% csrf_token %}
+
+          <fieldset class="fieldset">
+            <label class="label" for="id_organization">
+              <span class="label-text">{% trans "Organisation / workspace name" %}</span>
+            </label>
+            <input
+              type="text"
+              id="id_organization"
+              name="organization"
+              value="{{ form.organization.value|default:'' }}"
+              class="input w-full text-base{% if form.organization.errors %} input-error{% endif %}"
+              autocomplete="organization"
+              autofocus
+              required
+              {% if form.organization.errors %}aria-invalid="true" aria-describedby="org-error"{% endif %}
+            >
+            {% if form.organization.errors %}
+            <p id="org-error" class="label-text text-error mt-1">{{ form.organization.errors|join:" " }}</p>
+            {% endif %}
+          </fieldset>
+
+          <div class="mt-8">
+            <button type="submit" class="btn btn-primary w-full min-h-[44px]">
+              {% trans "Create workspace" %}
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

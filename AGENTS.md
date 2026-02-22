@@ -329,6 +329,23 @@ actor to record. This is the **only** model in the codebase that omits these fie
       when authenticated, `tz_tags` filter (IANA string, model instance, None, invalid zone)
 - [x] 54 tests total (34 Phase 1 + 20 Phase 2), all passing; ruff clean
 
+#### Post-Phase 2 fixes (committed after `6d25383`)
+
+- [x] **Prettier protection** — `.prettierignore` lists `templates/`; `.vscode/settings.json`
+      disables HTML format-on-save; rule added to `.clauderules` and `copilot-instructions.md`
+- [x] **Pre-commit hook** — `scripts/pre-commit` (ruff + test suite) + `scripts/install-hooks.sh`;
+      hook is a **symlink** (not a copy) so edits to `scripts/pre-commit` take effect immediately;
+      uses `--keepdb` + `--exclude-tag=slow` for fast execution (~1.5 s)
+- [x] **`@tag("slow")`** on `LoadReferenceDataCommandTest` + `ReferenceDataRelationshipTest`
+      — excluded from pre-commit hook; still run with bare `uv run python manage.py test apps`
+- [x] **DaisyUI 5 theme fix** — added `themes.css` CDN link (separate from `daisyui.css`);
+      set `data-theme="corporate"` as HTML default so the anti-flash script has a fallback
+- [x] **DaisyUI 5 dock fix** — `btm-nav` / `btm-nav-item` / `btm-nav-label` renamed to
+      `dock` / _(direct child — no class)_ / `dock-label` in the mobile bottom nav
+- [x] **Mobile theme toggle** — added sun/moon toggle button inside the mobile overlay modal;
+      `applyTheme()` JS function syncs both desktop and mobile icons simultaneously
+- [x] **43 fast tests passing** (11 slow tests excluded from hook); ruff clean
+
 ---
 
 ### 🔲 Phase 3 — Auth UX: Login, Register, Onboarding & Profile
@@ -418,6 +435,9 @@ dashboard, and manage preferences — all via email.
 - [ ] Left-side nav (authenticated): "Dashboard" + "Profile" links
 - [ ] Email backend: `console` for dev, configurable SMTP/SES for prod
 - [ ] Password reset flow (forgot password)
+- [ ] **DaisyUI 5 forms:** `form-control` is **removed** — use the new `fieldset` + `label`
+      component syntax for all form fields. `label` now goes inside `fieldset`.
+      See: https://daisyui.com/components/fieldset/ and https://daisyui.com/components/label/
 
 #### Tenant Member Management (`/settings/members/`)
 
@@ -567,6 +587,11 @@ These are valid ideas — implement only after Phase 7 is complete:
 | 2026-02-22 | DaisyUI via CDN for dev; `django-tailwind` installed but no npm build step                   | Keeps dev stack lean; swap CDN for compiled output in Phase 7 prod hardening                                                                                                            |
 | 2026-02-22 | `users:login`, `users:logout`, `users:profile` as `RedirectView` stubs in Phase 2            | Allows `base.html` `{% url %}` tags to resolve and tests to pass before Phase 3 auth views exist                                                                                        |
 | 2026-02-22 | Theme toggle: `corporate` (light) ↔ `night` (dark); `system` resolves at render time via JS  | "system" stored in profile/cookie; JS reads `prefers-color-scheme` on page load to pick the actual DaisyUI theme — no server round-trip needed                                          |
+| 2026-02-22 | DaisyUI 5 `themes.css` must be loaded separately from `daisyui.css`                          | `daisyui.css` CDN = component styles only; theme colour palettes are in `themes.css` — both links required in `base.html`                                                               |
+| 2026-02-22 | `btm-nav` renamed to `dock` in DaisyUI 5                                                     | Full rename: `btm-nav` → `dock`, `btm-nav-sm` → `dock-sm`, `btm-nav-item` → removed (direct children styled automatically), `btm-nav-label` → `dock-label`                              |
+| 2026-02-22 | `form-control` removed in DaisyUI 5                                                          | Use new `fieldset` + `label` component syntax for all form fields in Phase 3+; `form-control` no longer exists                                                                          |
+| 2026-02-22 | Pre-commit hook uses `--keepdb --exclude-tag=slow`                                           | `--keepdb` avoids recreating `test_saas_db` on every commit; `--exclude-tag=slow` skips `load_reference_data` tests (~7 k language rows); hook runs in ~1.5 s                           |
+| 2026-02-22 | Mobile theme toggle added to overlay menu                                                    | Same `applyTheme()` JS function syncs desktop + mobile icons; both buttons update simultaneously                                                                                        |
 
 ---
 

@@ -14,3 +14,5 @@ ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 
 # Allow all origins in development for convenience
 INTERNAL_IPS = ["127.0.0.1"]
+
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"

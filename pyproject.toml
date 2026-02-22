@@ -36,7 +36,7 @@ unfixable = []
 # Auto-generated migration files — line length and DJ rules don't apply
 "*/migrations/*.py" = ["E501", "DJ001"]
 # Test files — hardcoded passwords and broad exceptions are acceptable
-"*/tests/*.py" = ["S106", "S101"]
+"*/tests/*.py" = ["S106", "S101", "S107"]
 
 [tool.ruff.lint.isort]
 # Ensure your project 'config' and 'apps' are recognized for import sorting

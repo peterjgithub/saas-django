@@ -86,12 +86,23 @@ class ContextProcessorTests(TestCase):
 class DashboardTests(TestCase):
     def setUp(self):
         from django.contrib.auth import get_user_model
+        from django.utils import timezone as tz
+
+        from apps.tenants.models import Tenant
 
         User = get_user_model()
         self.user = User.objects.create_user(  # noqa: S106
             email="dash@example.com",
             password="testpass123",
         )
+        # Complete onboarding so ProfileCompleteMiddleware passes through
+        tenant = Tenant.objects.create(organization="Dash Corp")
+        p = self.user.profile
+        p.profile_completed_at = tz.now()
+        p.tenant = tenant
+        p.role = "admin"
+        p.tenant_joined_at = tz.now()
+        p.save()
 
     def test_dashboard_redirects_anonymous(self):
         response = self.client.get(reverse("pages:dashboard"))

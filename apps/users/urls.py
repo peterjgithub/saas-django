@@ -1,19 +1,38 @@
-"""
-URL stubs for the users app.
-
-Full auth views (login, register, profile, logout) are implemented in Phase 3.
-These stubs exist so that base.html {% url %} tags resolve correctly during
-Phase 2 development and testing.
-"""
+"""URL patterns for the users app — Phase 3."""
 
 from django.urls import path
-from django.views.generic import RedirectView
+
+from apps.users import views
 
 app_name = "users"
 
 urlpatterns = [
-    # Phase 3 will replace these with real views.
-    path("login/", RedirectView.as_view(url="/", permanent=False), name="login"),
-    path("logout/", RedirectView.as_view(url="/", permanent=False), name="logout"),
-    path("profile/", RedirectView.as_view(url="/", permanent=False), name="profile"),
+    # Auth
+    path("login/", views.login_view, name="login"),
+    path("logout/", views.logout_view, name="logout"),
+    path("register/", views.register_view, name="register"),
+    # Onboarding
+    path("profile/complete/", views.profile_complete_view, name="profile_complete"),
+    path(
+        "onboarding/create-tenant/",
+        views.onboarding_tenant_view,
+        name="onboarding_create_tenant",
+    ),
+    # Profile
+    path("profile/", views.profile_view, name="profile"),
+    # Account revoked
+    path("account/revoked/", views.account_revoked_view, name="account_revoked"),
+    # Member management (admin only)
+    path("settings/members/", views.members_view, name="members"),
+    path("settings/members/invite/", views.invite_member_view, name="invite_member"),
+    path(
+        "settings/members/revoke/<uuid:profile_id>/",
+        views.revoke_member_view,
+        name="revoke_member",
+    ),
+    path(
+        "settings/members/reengage/<uuid:profile_id>/",
+        views.reengage_member_view,
+        name="reengage_member",
+    ),
 ]
