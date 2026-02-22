@@ -77,29 +77,6 @@
           </fieldset>
 
           <fieldset class="fieldset mt-2">
-            <label class="label" for="id_language">
-              <span class="label-text">{% trans "Language" %}</span>
-              <span class="label-text-alt opacity-60">{% trans "Optional" %}</span>
-            </label>
-            <select
-              id="id_language"
-              name="language"
-              class="select w-full text-base{% if form.language.errors %} select-error{% endif %}"
-              {% if form.language.errors %}aria-invalid="true" aria-describedby="language-error"{% endif %}
-            >
-              <option value="">{% trans "— Select your language —" %}</option>
-              {% for lang in form.language.field.queryset %}
-              <option value="{{ lang.pk }}" {% if form.language.value|stringformat:"s" == lang.pk|stringformat:"s" %}selected{% endif %}>
-                {{ lang.name }}
-              </option>
-              {% endfor %}
-            </select>
-            {% if form.language.errors %}
-            <p id="language-error" class="label-text text-error mt-1">{{ form.language.errors|join:" " }}</p>
-            {% endif %}
-          </fieldset>
-
-          <fieldset class="fieldset mt-2">
             <label class="label" for="id_country">
               <span class="label-text">{% trans "Country" %}</span>
               <span class="label-text-alt opacity-60">{% trans "Optional" %}</span>

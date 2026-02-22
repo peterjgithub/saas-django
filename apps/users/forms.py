@@ -12,7 +12,7 @@ Forms for the users app.
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from apps.core.models import Country, Currency, Language, Timezone
+from apps.core.models import Country, Currency, Timezone
 from apps.users.models import THEME_CHOICES, UserProfile
 
 
@@ -75,11 +75,11 @@ class RegisterForm(forms.Form):
 
 
 class ProfileCompleteForm(forms.ModelForm):
-    """Step 1 of onboarding — display name + timezone + country + language."""
+    """Step 1 of onboarding — display name + timezone + country."""
 
     class Meta:
         model = UserProfile
-        fields = ["display_name", "timezone", "language", "country"]
+        fields = ["display_name", "timezone", "country"]
         widgets = {
             "display_name": forms.TextInput(
                 attrs={
@@ -98,13 +98,6 @@ class ProfileCompleteForm(forms.ModelForm):
             {"class": "select w-full text-base"}
         )
         self.fields["timezone"].required = False
-
-        self.fields["language"].queryset = Language.objects.all().order_by("name")
-        self.fields["language"].empty_label = _("Select your language")
-        self.fields["language"].widget.attrs.update(
-            {"class": "select w-full text-base"}
-        )
-        self.fields["language"].required = False
 
         self.fields["country"].queryset = Country.objects.all().order_by("name")
         self.fields["country"].empty_label = _("Select your country")

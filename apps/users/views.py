@@ -27,7 +27,7 @@ from django.utils.translation import activate, get_language
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_POST
 
-from apps.core.models import Country, Language, Timezone
+from apps.core.models import Country, Timezone
 from apps.users.forms import (
     InviteMemberForm,
     LoginForm,
@@ -225,15 +225,11 @@ def profile_complete_view(request):
                 profile=profile,
                 display_name=form.cleaned_data.get("display_name", ""),
                 timezone_obj=form.cleaned_data.get("timezone"),
-                language_obj=form.cleaned_data.get("language"),
                 country_obj=form.cleaned_data.get("country"),
             )
-            # Sync Django locale to the saved language preference.
-            profile.refresh_from_db()
-            locale = locale_code_for_language(profile.language)
             # Mark that suggestions have been confirmed — hide banner on next visit
             request.session["profile_suggestions_confirmed"] = True
-            return _apply_language(locale, redirect("users:onboarding_create_tenant"))
+            return redirect("users:onboarding_create_tenant")
     else:
         # Build initial data by layering sources lowest → highest priority
         initial = {}
@@ -252,33 +248,14 @@ def profile_complete_view(request):
             if country_obj:
                 initial["country"] = country_obj.pk
 
-        if geo.get("language") and not profile.language_id:
-            lang_code = geo["language"]
-            lang_obj = (
-                Language.objects.filter(code__iexact=lang_code).first()
-                or Language.objects.filter(code__iexact=lang_code.split("-")[0]).first()
-            )
-            if lang_obj:
-                initial["language"] = lang_obj.pk
-
         # Layer 2: browser hints stored in session at registration (override geo)
         sess_tz = request.session.get("tz_detect", "")
-        sess_lang = request.session.get("lang_detect", "")
         sess_country = request.session.get("country_detect", "")
 
         if sess_tz and not profile.timezone_id:
             tz_obj = Timezone.objects.filter(name=sess_tz).first()
             if tz_obj:
                 initial["timezone"] = tz_obj.pk
-
-        if sess_lang and not profile.language_id:
-            lang_code = sess_lang.lower().replace("-", "_")
-            lang_obj = (
-                Language.objects.filter(code__iexact=lang_code).first()
-                or Language.objects.filter(code__iexact=lang_code.split("_")[0]).first()
-            )
-            if lang_obj:
-                initial["language"] = lang_obj.pk
 
         # country_detect comes from the region subtag of navigator.language
         # e.g. "nl-BE" → "BE".  This is a browser signal, works on localhost.
