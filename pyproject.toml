@@ -8,6 +8,8 @@ dependencies = [
     "django>=6.0.2",
     "django-environ>=0.13.0",
     "psycopg[binary]>=3.3.3",
+    "pycountry>=26.2.16",
+    "tzdata>=2025.3",
 ]
 
 [dependency-groups]
@@ -28,6 +30,12 @@ select = ["E", "F", "I", "DJ", "S", "B"]
 # Allow fixable violations to be fixed automatically
 fixable = ["ALL"]
 unfixable = []
+
+[tool.ruff.lint.per-file-ignores]
+# Auto-generated migration files — line length and DJ rules don't apply
+"*/migrations/*.py" = ["E501", "DJ001"]
+# Test files — hardcoded passwords and broad exceptions are acceptable
+"*/tests/*.py" = ["S106", "S101"]
 
 [tool.ruff.lint.isort]
 # Ensure your project 'config' and 'apps' are recognized for import sorting
