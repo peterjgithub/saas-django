@@ -202,6 +202,27 @@
           {% trans "Profile" %}
         </a>
         <div class="divider my-1"></div>
+        {# Theme toggle row #}
+        <div class="flex items-center justify-between px-1">
+          <span class="text-sm">{% trans "Theme" %}</span>
+          <button id="theme-toggle-mobile"
+                  class="btn btn-ghost btn-sm btn-circle"
+                  aria-label="{% trans 'Toggle dark/light mode' %}">
+            {# Sun — shown in dark mode #}
+            <svg id="icon-sun-mobile" xmlns="http://www.w3.org/2000/svg" class="size-5 hidden"
+                 fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M12 3v1m0 16v1m8.66-9h-1M4.34 12h-1m15.07-6.07-.71.71M6.34 17.66l-.71.71M17.66 17.66l-.71-.71M6.34 6.34l-.71-.71M12 7a5 5 0 100 10A5 5 0 0012 7z"/>
+            </svg>
+            {# Moon — shown in light mode #}
+            <svg id="icon-moon-mobile" xmlns="http://www.w3.org/2000/svg" class="size-5"
+                 fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+            </svg>
+          </button>
+        </div>
+        <div class="divider my-1"></div>
         <form method="post" action="{% url 'users:logout' %}">
           {% csrf_token %}
           <button type="submit" class="btn btn-ghost justify-start w-full text-error">
@@ -231,8 +252,11 @@
   <script>
     (function () {
       var btn = document.getElementById('theme-toggle');
+      var btnMobile = document.getElementById('theme-toggle-mobile');
       var sunIcon = document.getElementById('icon-sun');
       var moonIcon = document.getElementById('icon-moon');
+      var sunIconMobile = document.getElementById('icon-sun-mobile');
+      var moonIconMobile = document.getElementById('icon-moon-mobile');
       var html = document.documentElement;
 
       function currentTheme() {
@@ -242,19 +266,22 @@
       function applyTheme(theme) {
         html.setAttribute('data-theme', theme);
         localStorage.setItem('theme', theme);
-        if (theme === 'night') {
-          sunIcon.classList.remove('hidden');
-          moonIcon.classList.add('hidden');
-        } else {
-          sunIcon.classList.add('hidden');
-          moonIcon.classList.remove('hidden');
-        }
+        var isDark = theme === 'night';
+        if (sunIcon) sunIcon.classList.toggle('hidden', !isDark);
+        if (moonIcon) moonIcon.classList.toggle('hidden', isDark);
+        if (sunIconMobile) sunIconMobile.classList.toggle('hidden', !isDark);
+        if (moonIconMobile) moonIconMobile.classList.toggle('hidden', isDark);
       }
 
       applyTheme(currentTheme());
 
       if (btn) {
         btn.addEventListener('click', function () {
+          applyTheme(currentTheme() === 'night' ? 'corporate' : 'night');
+        });
+      }
+      if (btnMobile) {
+        btnMobile.addEventListener('click', function () {
           applyTheme(currentTheme() === 'night' ? 'corporate' : 'night');
         });
       }
