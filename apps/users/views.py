@@ -25,6 +25,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_POST
 
+from apps.core.models import Country, Language, Timezone
 from apps.users.forms import (
     InviteMemberForm,
     LoginForm,
@@ -33,6 +34,7 @@ from apps.users.forms import (
     RegisterForm,
     TenantCreateForm,
 )
+from apps.users.geo import get_client_ip, lookup_from_ip
 from apps.users.models import UserProfile
 from apps.users.services import (
     authenticate_user,
@@ -100,13 +102,20 @@ def register_view(request):
     if request.method == "POST":
         form = RegisterForm(request.POST)
         if form.is_valid():
+            tz_detect = form.cleaned_data.get("tz_detect", "")
+            lang_detect = form.cleaned_data.get("lang_detect", "")
             user = register_user(
                 email=form.cleaned_data["email"],
                 password=form.cleaned_data["password"],
-                tz_detect=form.cleaned_data.get("tz_detect", ""),
-                lang_detect=form.cleaned_data.get("lang_detect", ""),
+                tz_detect=tz_detect,
+                lang_detect=lang_detect,
             )
             login(request, user)
+            # Preserve browser hints in session for use on the onboarding step-1 page
+            if tz_detect:
+                request.session["tz_detect"] = tz_detect
+            if lang_detect:
+                request.session["lang_detect"] = lang_detect
             return redirect("users:profile_complete")
     else:
         form = RegisterForm()
@@ -131,10 +140,36 @@ def logout_view(request):
 # ---------------------------------------------------------------------------
 
 
+def _org_suggestion_from_email(email: str) -> str:
+    """
+    Derive a workspace name suggestion from the domain part of an email.
+
+    "peter@acme.com"     → "acme"
+    "info@my-company.co.uk" → "my-company"
+    """
+    try:
+        domain = email.split("@")[1]  # e.g. "acme.com"
+        stem = domain.rsplit(".", 1)[0]  # strip last extension: "acme"
+        # strip a second extension for multi-part TLDs (co.uk, com.au, etc.)
+        if "." in stem:
+            stem = stem.rsplit(".", 1)[-1]
+        return stem.replace("-", " ").replace("_", " ").title()
+    except IndexError, AttributeError:
+        return ""
+
+
 @login_required
 def profile_complete_view(request):
     """
     Step 1 of onboarding.
+
+    On GET — builds smart initial values by merging:
+      1. Already-saved profile values (highest priority)
+      2. Browser hints from registration (tz_detect / lang_detect stored in session)
+      3. IP-based geolocation (lowest priority, best-effort)
+
+    Shows a hint banner the first time so the user knows where the values
+    came from.  Once the form has been saved the banner disappears.
 
     'Do this later' → set session skip flag, redirect to step 2.
     Save → set profile_completed_at, redirect to step 2.
@@ -153,15 +188,73 @@ def profile_complete_view(request):
                 profile=profile,
                 display_name=form.cleaned_data.get("display_name", ""),
                 timezone_obj=form.cleaned_data.get("timezone"),
+                language_obj=form.cleaned_data.get("language"),
+                country_obj=form.cleaned_data.get("country"),
             )
+            # Mark that suggestions have been confirmed — hide banner on next visit
+            request.session["profile_suggestions_confirmed"] = True
             return redirect("users:onboarding_create_tenant")
     else:
-        form = ProfileCompleteForm(instance=profile)
+        # Build initial data by layering sources lowest → highest priority
+        initial = {}
+
+        # Layer 1: IP-based geo (lowest priority)
+        ip = get_client_ip(request)
+        geo = lookup_from_ip(ip)
+
+        if geo.get("timezone") and not profile.timezone_id:
+            tz_obj = Timezone.objects.filter(name=geo["timezone"]).first()
+            if tz_obj:
+                initial["timezone"] = tz_obj.pk
+
+        if geo.get("country") and not profile.country_id:
+            country_obj = Country.objects.filter(code=geo["country"]).first()
+            if country_obj:
+                initial["country"] = country_obj.pk
+
+        if geo.get("language") and not profile.language_id:
+            lang_code = geo["language"]
+            lang_obj = (
+                Language.objects.filter(code__iexact=lang_code).first()
+                or Language.objects.filter(code__iexact=lang_code.split("-")[0]).first()
+            )
+            if lang_obj:
+                initial["language"] = lang_obj.pk
+
+        # Layer 2: browser hints stored in session at registration (override geo)
+        sess_tz = request.session.get("tz_detect", "")
+        sess_lang = request.session.get("lang_detect", "")
+
+        if sess_tz and not profile.timezone_id:
+            tz_obj = Timezone.objects.filter(name=sess_tz).first()
+            if tz_obj:
+                initial["timezone"] = tz_obj.pk
+
+        if sess_lang and not profile.language_id:
+            lang_code = sess_lang.lower().replace("-", "_")
+            lang_obj = (
+                Language.objects.filter(code__iexact=lang_code).first()
+                or Language.objects.filter(code__iexact=lang_code.split("_")[0]).first()
+            )
+            if lang_obj:
+                initial["language"] = lang_obj.pk
+
+        form = ProfileCompleteForm(instance=profile, initial=initial)
+
+    # Show the hint banner only when the user has never saved the profile AND
+    # hasn't already confirmed suggestions in this session.
+    has_suggestions = not profile.profile_completed_at and not request.session.get(
+        "profile_suggestions_confirmed"
+    )
 
     return render(
         request,
         "users/onboarding_step1.html",
-        {"form": form, "next": next_url},
+        {
+            "form": form,
+            "next": next_url,
+            "has_suggestions": has_suggestions,
+        },
     )
 
 
@@ -175,12 +268,22 @@ def onboarding_tenant_view(request):
     """
     Step 2 of onboarding — cannot be skipped.
 
+    On GET — pre-fills organisation name derived from the user's email domain.
+    Shows a hint banner the first time only.
+
     Save → create Tenant, assign profile as admin, redirect to dashboard.
     """
     profile = request.user.profile
 
     if profile.tenant_id is not None:
         return redirect("pages:dashboard")
+
+    # Derive a suggestion from the email domain if this is the first visit
+    org_suggestion = _org_suggestion_from_email(request.user.email)
+    # Banner only shown until the user has actually submitted (saved) once
+    org_from_email = not request.session.get("org_suggestion_confirmed") and bool(
+        org_suggestion
+    )
 
     if request.method == "POST":
         form = TenantCreateForm(request.POST)
@@ -189,11 +292,19 @@ def onboarding_tenant_view(request):
                 profile=profile,
                 organization=form.cleaned_data["organization"],
             )
+            request.session["org_suggestion_confirmed"] = True
             return redirect("pages:dashboard")
     else:
-        form = TenantCreateForm()
+        form = TenantCreateForm(initial={"organization": org_suggestion})
 
-    return render(request, "users/onboarding_step2.html", {"form": form})
+    return render(
+        request,
+        "users/onboarding_step2.html",
+        {
+            "form": form,
+            "org_from_email": org_from_email,
+        },
+    )
 
 
 # ---------------------------------------------------------------------------

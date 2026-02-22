@@ -18,6 +18,15 @@
       <p class="mt-2 opacity-70">{% trans "What is your organisation called?" %}</p>
     </div>
 
+    {% if org_from_email %}
+    <div role="alert" class="alert alert-info mb-6">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span>{% trans "We derived this name from your email address — please confirm or update it." %}</span>
+    </div>
+    {% endif %}
+
     <div class="card bg-base-100 shadow-lg">
       <div class="card-body gap-6">
 

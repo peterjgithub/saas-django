@@ -18,6 +18,15 @@
       <p class="mt-2 opacity-70">{% trans "Tell us a little about yourself" %}</p>
     </div>
 
+    {% if has_suggestions %}
+    <div role="alert" class="alert alert-info mb-6">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span>{% trans "We've pre-filled these values from your browser and location — please confirm or update them." %}</span>
+    </div>
+    {% endif %}
+
     <div class="card bg-base-100 shadow-lg">
       <div class="card-body gap-6">
 
@@ -44,7 +53,7 @@
             {% endif %}
           </fieldset>
 
-          <fieldset class="fieldset mt-4">
+          <fieldset class="fieldset mt-2">
             <label class="label" for="id_timezone">
               <span class="label-text">{% trans "Timezone" %}</span>
               <span class="label-text-alt opacity-60">{% trans "Optional" %}</span>
@@ -57,13 +66,59 @@
             >
               <option value="">{% trans "— Select your timezone —" %}</option>
               {% for tz in form.timezone.field.queryset %}
-              <option value="{{ tz.pk }}" {% if form.timezone.value == tz.pk|stringformat:"s" %}selected{% endif %}>
+              <option value="{{ tz.pk }}" {% if form.timezone.value|stringformat:"s" == tz.pk|stringformat:"s" %}selected{% endif %}>
                 {{ tz.name }} ({{ tz.offset_label }})
               </option>
               {% endfor %}
             </select>
             {% if form.timezone.errors %}
             <p id="timezone-error" class="label-text text-error mt-1">{{ form.timezone.errors|join:" " }}</p>
+            {% endif %}
+          </fieldset>
+
+          <fieldset class="fieldset mt-2">
+            <label class="label" for="id_language">
+              <span class="label-text">{% trans "Language" %}</span>
+              <span class="label-text-alt opacity-60">{% trans "Optional" %}</span>
+            </label>
+            <select
+              id="id_language"
+              name="language"
+              class="select w-full text-base{% if form.language.errors %} select-error{% endif %}"
+              {% if form.language.errors %}aria-invalid="true" aria-describedby="language-error"{% endif %}
+            >
+              <option value="">{% trans "— Select your language —" %}</option>
+              {% for lang in form.language.field.queryset %}
+              <option value="{{ lang.pk }}" {% if form.language.value|stringformat:"s" == lang.pk|stringformat:"s" %}selected{% endif %}>
+                {{ lang.name }}
+              </option>
+              {% endfor %}
+            </select>
+            {% if form.language.errors %}
+            <p id="language-error" class="label-text text-error mt-1">{{ form.language.errors|join:" " }}</p>
+            {% endif %}
+          </fieldset>
+
+          <fieldset class="fieldset mt-2">
+            <label class="label" for="id_country">
+              <span class="label-text">{% trans "Country" %}</span>
+              <span class="label-text-alt opacity-60">{% trans "Optional" %}</span>
+            </label>
+            <select
+              id="id_country"
+              name="country"
+              class="select w-full text-base{% if form.country.errors %} select-error{% endif %}"
+              {% if form.country.errors %}aria-invalid="true" aria-describedby="country-error"{% endif %}
+            >
+              <option value="">{% trans "— Select your country —" %}</option>
+              {% for c in form.country.field.queryset %}
+              <option value="{{ c.pk }}" {% if form.country.value|stringformat:"s" == c.pk|stringformat:"s" %}selected{% endif %}>
+                {{ c.flag_emoji }} {{ c.name }}
+              </option>
+              {% endfor %}
+            </select>
+            {% if form.country.errors %}
+            <p id="country-error" class="label-text text-error mt-1">{{ form.country.errors|join:" " }}</p>
             {% endif %}
           </fieldset>
 

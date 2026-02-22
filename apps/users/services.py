@@ -9,7 +9,7 @@ from django.contrib.auth import authenticate
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from apps.core.models import Language, Timezone
+from apps.core.models import Country, Language, Timezone
 from apps.tenants.models import Tenant
 from apps.users.models import User, UserProfile, derive_display_name
 
@@ -74,6 +74,8 @@ def complete_profile(
     profile: UserProfile,
     display_name: str,
     timezone_obj: Timezone | None,
+    language_obj: Language | None = None,
+    country_obj: Country | None = None,
 ) -> None:
     """
     Mark Step 1 of onboarding complete.
@@ -83,9 +85,21 @@ def complete_profile(
     profile.display_name = display_name or profile.display_name
     if timezone_obj is not None:
         profile.timezone = timezone_obj
+    if language_obj is not None:
+        profile.language = language_obj
+    if country_obj is not None:
+        profile.country = country_obj
     if not profile.profile_completed_at:
         profile.profile_completed_at = timezone.now()
-    profile.save(update_fields=["display_name", "timezone", "profile_completed_at"])
+    profile.save(
+        update_fields=[
+            "display_name",
+            "timezone",
+            "language",
+            "country",
+            "profile_completed_at",
+        ]
+    )
 
 
 def create_tenant_for_profile(profile: UserProfile, organization: str) -> Tenant:
