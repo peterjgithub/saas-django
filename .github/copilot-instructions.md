@@ -25,6 +25,16 @@ Key rules summary (full detail in `.clauderules`):
 - `TenantMembership` roles: `owner` and `member` only — no `admin` role yet
 - Soft deletes on all major models: `is_active`, `deleted_at`, `deleted_by`
 - `deleted_by` / `created_by` / `updated_by` are **`UUIDField`** (not `ForeignKey`) — no FK constraint, no implicit index; resolve to a `User` in the service layer
+- **Three model categories — always use the correct base class:**
+  - **`TenantScopedModel`** (Category A) — all tenant-scoped business data (invoices, docs, etc.);
+    extends `TimeStampedAuditModel` and adds `tenant_id` (UUID, indexed)
+  - **`TimeStampedAuditModel`** (Category B) — non-tenant audited data (`UserProfile`,
+    `TenantMembership`, `Tenant`); full audit trail: `created_by`, `updated_by`, `deleted_by`,
+    `created_at`, `updated_at`, `is_active`, `deleted_at` — all standard, not opt-in
+  - **Plain `models.Model`** (Category C) — reference/lookup tables only (`Country`, `Language`,
+    `Timezone`, `Currency`); no soft-delete, no audit fields
+  - **`User` is the sole exception** — extends `AbstractUser` only; has `deleted_at` / `deleted_by`
+    but **NO `created_by` / `updated_by` ever** (self-registration circular risk)
 - **NEVER hard-delete a `User` or `UserProfile`** — set `is_active = False` only
 - Custom `User` model: `AbstractUser`, `USERNAME_FIELD = "email"`, custom `UserManager`
 - After first User migration: run `createsuperuser`

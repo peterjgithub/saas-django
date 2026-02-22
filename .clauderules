@@ -33,39 +33,106 @@
 
 ---
 
-## 4. Models — Universal Field Rules
+## 4. Model Categories
 
-Apply to every major data model (not lookup/config tables):
+Every model in this project falls into one of three categories. Apply the correct
+base class — do not mix them.
 
-- **UUID PK** (see §3)
-- **tenant_id** on all tenant-scoped models (see §3)
-- **Soft delete triad:**
-  ```python
-  is_active   = models.BooleanField(default=True, db_index=True)
-  deleted_at  = models.DateTimeField(null=True, blank=True)
-  deleted_by  = models.UUIDField(null=True, blank=True)
-               # stores the acting user's UUID — no FK, no constraint, no implicit index
-  ```
-  > `is_active` is the field all live queries filter on — it gets the index.
-  > `deleted_at` and `deleted_by` are audit fields only; querying them is rare.
-  > `deleted_by` is a bare `UUIDField`: no JOIN overhead, no FK constraint check on
-  > every write, no circular dependency on `User`. Resolve to a user object in the
-  > service layer when needed (`User.objects.get(pk=deleted_by)`).
-  > Do **not** add a `db_index` on `deleted_by` — add it per-model only if a query
-  > pattern emerges that genuinely needs it.
-- **Timestamps:** `created_at` / `updated_at` via `auto_now_add` / `auto_now`
-- **`created_by` / `updated_by`:** Do NOT add these to the abstract base model.
-  Add them **opt-in**, only on models where attribution genuinely matters
-  (e.g. a `Document` or `Invoice`). Use `UUIDField` — same rationale as `deleted_by`:
-  no FK, no constraint, no index unless explicitly needed.
-  ```python
-  # opt-in example (add directly on the model, not in the base):
-  created_by = models.UUIDField(null=True, blank=True)  # set once in the service layer
-  updated_by = models.UUIDField(null=True, blank=True)  # updated on every mutation
-  ```
-  Document the decision per model in a comment.
+---
+
+### 4a. Tenant-Scoped Data (`TenantScopedModel`)
+
+Use for all business data that belongs to a workspace: invoices, documents, tasks,
+any future feature models.
+
+```python
+class TenantScopedModel(models.Model):
+    id         = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tenant_id  = models.UUIDField(db_index=True)          # always indexed — drives RLS
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.UUIDField(null=True, blank=True)   # acting user UUID
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.UUIDField(null=True, blank=True)   # acting user UUID
+    is_active  = models.BooleanField(default=True, db_index=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    deleted_by = models.UUIDField(null=True, blank=True)   # acting user UUID
+    class Meta:
+        abstract = True
+```
+
+> All actor fields (`created_by`, `updated_by`, `deleted_by`) are `UUIDField`:
+> no FK constraint, no implicit index, no JOIN overhead, no circular dependency on `User`.
+> The service layer always sets them from a validated `request.user.pk`.
+> There is **no circular risk here** — a tenant admin or member always exists before
+> any tenant-scoped record is created.
+> Add `db_index` on an actor field only if a concrete query pattern warrants it.
+
+Rules:
+- `tenant_id` is always indexed (drives PostgreSQL RLS and query isolation)
+- `is_active` is always indexed (all live queries filter on it)
+- `created_by` / `updated_by` / `deleted_by` are **not** indexed by default
 - NEVER raw SQL — always use the Django ORM
 - Keep `models.py` thin — no business logic
+
+---
+
+### 4b. Non-Tenant Audited Data (`TimeStampedAuditModel`)
+
+Use for system-level models that are not scoped to a tenant but still need a full
+audit trail: `UserProfile`, `TenantMembership`, and future system-wide records.
+
+```python
+class TimeStampedAuditModel(models.Model):
+    id         = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.UUIDField(null=True, blank=True)   # acting user UUID
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.UUIDField(null=True, blank=True)   # acting user UUID
+    is_active  = models.BooleanField(default=True, db_index=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    deleted_by = models.UUIDField(null=True, blank=True)   # acting user UUID
+    class Meta:
+        abstract = True
+```
+
+> Same hybrid-integrity approach as `TenantScopedModel` — all actor fields are
+> `UUIDField`. No circular risk: for `UserProfile` and `TenantMembership`, the `User`
+> row is committed before the signal creates the profile, so `user.pk` is always
+> a valid UUID when these records are written.
+
+Rules: same as §4a except no `tenant_id`.
+
+---
+
+### 4c. Reference / Lookup Tables
+
+Use for controlled-vocabulary tables that are never edited by end-users:
+`Country`, `Language`, `Timezone`, `Currency` (see §5b).
+
+```python
+class models.Model:  # plain Django model — no base class
+    # no soft-delete, no audit fields, no tenant_id
+    # loaded once via load_reference_data management command
+```
+
+---
+
+### 4d. `User` — The Sole Exception
+
+`User` extends `AbstractUser` directly. It does **not** extend `TenantScopedModel`
+or `TimeStampedAuditModel`.
+
+- **No `created_by` / `updated_by` on `User`** — ever.
+  - Self-registration: the user's own UUID doesn't exist yet when the row is inserted.
+  - Superuser bootstrap: there is no prior actor.
+  - These two cases cannot be made consistent. Leave `User` clean.
+- `User` carries the `AbstractUser` `is_active` field (Django standard).
+- Add `deleted_at` and `deleted_by` directly on `User` (soft-delete audit trail):
+  `deleted_by` here means "the admin who deactivated this account" — that admin
+  always exists before the deactivation write.
+- **NEVER hard-delete a `User`** — set `is_active = False` only.
+
+
 
 ---
 
@@ -85,6 +152,9 @@ Apply to every major data model (not lookup/config tables):
 - The `User` model itself stays minimal — all optional profile data lives in `UserProfile`
 - **NEVER hard-delete a `User` record.** Set `is_active = False` instead.
   Hard deletion cascades silently and breaks foreign keys across the system.
+- **`User` has NO `created_by` or `updated_by` fields — this is the only exception in the
+  entire codebase.** Self-registration creates the user's UUID in the same transaction, so
+  there is no prior actor to record. Use `TimeStampedAuditModel` for every other model.
 
 ---
 
@@ -99,7 +169,7 @@ the registration form — it is created automatically after registration via a s
 Fields:
 
 ```python
-class UserProfile(TimeStampedSoftDeleteModel):
+class UserProfile(TimeStampedAuditModel):
     user         = models.OneToOneField(settings.AUTH_USER_MODEL,
                        on_delete=models.CASCADE, related_name="profile")
     # Display
@@ -265,17 +335,20 @@ Populate from `pycountry` (PyPI) in the `load_reference_data` management command
 ### Tenant
 
 ```python
-class Tenant(TimeStampedSoftDeleteModel):
+class Tenant(TimeStampedAuditModel):
     id           = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     organization = models.CharField(max_length=200)   # workspace / company name (required)
+    # Tenant IS the root — it has no tenant_id on itself; use TimeStampedAuditModel not TenantScopedModel
     # No slug — UUID PK is the identifier; add slug only if tenant-scoped URLs are needed
 ```
 
 ### TenantMembership
 
 ```python
-class TenantMembership(models.Model):
-    id       = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+class TenantMembership(TimeStampedAuditModel):
+    # Inherits: id (UUID PK), created_at, created_by, updated_at, updated_by,
+    #           is_active, deleted_at, deleted_by
+    # created_by = UUID of the owner who sent the invitation
     tenant   = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name="memberships")
     user     = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
                    related_name="memberships")
@@ -283,7 +356,7 @@ class TenantMembership(models.Model):
                    choices=[("owner", "Owner"), ("member", "Member")],
                    default="member")
     joined_at = models.DateTimeField(auto_now_add=True)
-    is_active = models.BooleanField(default=True)     # False = revoked, not deleted
+    # is_active inherited from TimeStampedAuditModel: False = revoked, not deleted
 
     class Meta:
         unique_together = [("tenant", "user")]
