@@ -110,10 +110,6 @@ msgstr "Sélectionner le fuseau horaire"
 msgid "Select country"
 msgstr "Sélectionner le pays"
 
-#: apps/users/forms.py:174
-msgid "Select currency"
-msgstr "Sélectionner la devise"
-
 #: apps/users/forms.py:188 templates/users/login.html:33
 #: templates/users/members.html:28 templates/users/password_reset.html:22
 #: templates/users/register.html:23
@@ -184,10 +180,6 @@ msgstr "fuseau horaire"
 #: apps/users/models.py:155
 msgid "country"
 msgstr "pays"
-
-#: apps/users/models.py:163
-msgid "currency"
-msgstr "devise"
 
 #: apps/users/models.py:171
 msgid "theme"
@@ -621,14 +613,6 @@ msgstr "— Sélectionner le fuseau horaire —"
 #: templates/users/profile.html:89
 msgid "— Select country —"
 msgstr "— Sélectionner le pays —"
-
-#: templates/users/profile.html:100
-msgid "Currency"
-msgstr "Devise"
-
-#: templates/users/profile.html:107
-msgid "— Select currency —"
-msgstr "— Sélectionner la devise —"
 
 #: templates/users/profile.html:121
 msgid "Appearance"

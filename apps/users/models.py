@@ -154,14 +154,8 @@ class UserProfile(TimeStampedAuditModel):
         related_name="user_profiles",
         verbose_name=_("country"),
     )
-    currency = models.ForeignKey(
-        "core.Currency",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="user_profiles",
-        verbose_name=_("currency"),
-    )
+    # currency is intentionally absent from UserProfile — it belongs on Tenant
+    # (billing / invoicing context). See AGENTS.md ADR 52.
 
     # --- UI preferences ---
     theme = models.CharField(

@@ -114,24 +114,6 @@
           </select>
         </fieldset>
 
-        <fieldset class="fieldset">
-          <label class="label" for="id_currency">
-            <span class="label-text">{% trans "Currency" %}</span>
-          </label>
-          <select
-            id="id_currency"
-            name="currency"
-            class="select w-full text-base{% if form.currency.errors %} select-error{% endif %}"
-          >
-            <option value="">{% trans "— Select currency —" %}</option>
-            {% for cur in form.currency.field.queryset %}
-            <option value="{{ cur.pk }}" {% if form.currency.value|stringformat:"s" == cur.pk|stringformat:"s" %}selected{% endif %}>
-              {{ cur.code }} — {{ cur.name }}
-            </option>
-            {% endfor %}
-          </select>
-        </fieldset>
-
       </div>
     </div>
 

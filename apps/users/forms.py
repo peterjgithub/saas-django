@@ -12,7 +12,7 @@ Forms for the users app.
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from apps.core.models import Country, Currency, Timezone
+from apps.core.models import Country, Timezone
 from apps.users.models import THEME_CHOICES, UserProfile
 
 
@@ -130,7 +130,6 @@ class ProfileSettingsForm(forms.ModelForm):
             "display_name",
             "timezone",
             "country",
-            "currency",
             "theme",
             "marketing_emails",
         ]
@@ -154,13 +153,6 @@ class ProfileSettingsForm(forms.ModelForm):
         self.fields["country"].empty_label = _("Select country")
         self.fields["country"].widget.attrs.update({"class": "select w-full text-base"})
         self.fields["country"].required = False
-
-        self.fields["currency"].queryset = Currency.objects.all().order_by("name")
-        self.fields["currency"].empty_label = _("Select currency")
-        self.fields["currency"].widget.attrs.update(
-            {"class": "select w-full text-base"}
-        )
-        self.fields["currency"].required = False
 
         self.fields["theme"].widget = forms.Select(
             choices=THEME_CHOICES,

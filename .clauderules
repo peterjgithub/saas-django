@@ -188,10 +188,8 @@ class UserProfile(TimeStampedAuditModel):
                        "core.Country", null=True, blank=True,
                        on_delete=models.SET_NULL, related_name="+"
                    )
-    currency     = models.ForeignKey(
-                       "core.Currency", null=True, blank=True,
-                       on_delete=models.SET_NULL, related_name="+"
-                   )
+    # currency is NOT on UserProfile — it belongs on Tenant (billing/invoicing).
+    # See AGENTS.md ADR 52.
 
     # UI preferences
     theme        = models.CharField(
@@ -246,7 +244,7 @@ class UserProfile(TimeStampedAuditModel):
 
 **Profile form (`/profile/`):**
 
-- Editable fields: `display_name`, `timezone`, `country`, `currency`, `theme`, `marketing_emails`
+- Editable fields: `display_name`, `timezone`, `country`, `theme`, `marketing_emails`
 - Language is switched via the **navbar language selector** (flag + 2-letter code dropdown),
   NOT via the profile form. The profile form does not contain a language field.
 - Login required
@@ -531,13 +529,16 @@ apps/<name>/
 
 - **Forms:** `form-control` class is **removed** in DaisyUI 5.
   Use the new `fieldset` + `label` component syntax for every form field:
+
   ```html
   <fieldset class="fieldset">
     <label class="label">…</label>
-    <input class="input w-full" …>
-    <p class="label">…</p>  {# hint / error text #}
+    <input class="input w-full" … />
+    <p class="label">…</p>
+    {# hint / error text #}
   </fieldset>
   ```
+
   `label` now goes inside `fieldset`. Do not use `form-control` — it no longer exists.
   See: https://daisyui.com/components/fieldset/
 
@@ -545,7 +546,7 @@ apps/<name>/
   - `btm-nav` → `dock`
   - `btm-nav-item` → removed (direct children of `dock` are styled automatically)
   - `btm-nav-label` → `dock-label`
-  Do NOT use the old `btm-nav` class names in any new template code.
+    Do NOT use the old `btm-nav` class names in any new template code.
 
 ---
 
@@ -669,7 +670,7 @@ visible text in the browser. Use `//` JS comments inside scripts instead.
   (included via `path("i18n/", include("django.conf.urls.i18n"))`). The view sets the cookie
   and redirects back. Do NOT build a custom language-switch view.
 - **`django.template.context_processors.i18n` is required** in `TEMPLATES → OPTIONS →
-  context_processors`. Without it `{{ LANGUAGE_CODE }}` resolves to the static
+context_processors`. Without it `{{ LANGUAGE_CODE }}` resolves to the static
   `settings.LANGUAGE_CODE` ("en") instead of the per-request active language.
 - **Locale directory architecture:**
   - `locale/nl_BE/` — Belgian Dutch overrides (all project-specific translations)

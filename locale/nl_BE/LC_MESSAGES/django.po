@@ -110,10 +110,6 @@ msgstr "Selecteer tijdzone"
 msgid "Select country"
 msgstr "Selecteer land"
 
-#: apps/users/forms.py:174
-msgid "Select currency"
-msgstr "Selecteer valuta"
-
 #: apps/users/forms.py:188 templates/users/login.html:33
 #: templates/users/members.html:28 templates/users/password_reset.html:22
 #: templates/users/register.html:23
@@ -184,10 +180,6 @@ msgstr "tijdzone"
 #: apps/users/models.py:155
 msgid "country"
 msgstr "land"
-
-#: apps/users/models.py:163
-msgid "currency"
-msgstr "valuta"
 
 #: apps/users/models.py:171
 msgid "theme"
@@ -621,14 +613,6 @@ msgstr "— Selecteer tijdzone —"
 #: templates/users/profile.html:89
 msgid "— Select country —"
 msgstr "— Selecteer land —"
-
-#: templates/users/profile.html:100
-msgid "Currency"
-msgstr "Valuta"
-
-#: templates/users/profile.html:107
-msgid "— Select currency —"
-msgstr "— Selecteer valuta —"
 
 #: templates/users/profile.html:121
 msgid "Appearance"
