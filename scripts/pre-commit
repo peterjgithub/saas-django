@@ -12,6 +12,6 @@ echo "→ ruff format check..."
 uv run ruff format --check .
 
 echo "→ running test suite..."
-uv run python manage.py test apps --verbosity=1
+uv run python manage.py test apps --verbosity=1 --keepdb
 
 echo "✓ all checks passed"

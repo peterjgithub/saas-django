@@ -141,20 +141,20 @@
     </main>
   </div>
 
-  {# MOBILE BOTTOM NAV #}
-  <nav class="md:hidden btm-nav btm-nav-sm z-40 bg-base-200 border-t border-base-300"
+  {# MOBILE BOTTOM NAV — DaisyUI 5: btm-nav → dock, btm-nav-item → direct child, btm-nav-label → dock-label #}
+  <nav class="md:hidden dock dock-sm z-40 bg-base-200 border-t border-base-300"
        aria-label="{% trans 'Mobile navigation' %}">
-    <a href="{% url 'pages:home' %}" class="btm-nav-item">
+    <a href="{% url 'pages:home' %}">
       <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none"
            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round"
               d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
       </svg>
-      <span class="btm-nav-label text-xs">{% trans "Home" %}</span>
+      <span class="dock-label">{% trans "Home" %}</span>
     </a>
 
     {% if user.is_authenticated %}
-      <a href="{% url 'pages:dashboard' %}" class="btm-nav-item">
+      <a href="{% url 'pages:dashboard' %}">
         <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none"
              viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <rect x="3" y="3" width="7" height="7" rx="1"/>
@@ -162,31 +162,29 @@
           <rect x="3" y="14" width="7" height="7" rx="1"/>
           <rect x="14" y="14" width="7" height="7" rx="1"/>
         </svg>
-        <span class="btm-nav-label text-xs">{% trans "Dashboard" %}</span>
+        <span class="dock-label">{% trans "Dashboard" %}</span>
       </a>
-      <button class="btm-nav-item"
-              aria-haspopup="dialog"
+      <button aria-haspopup="dialog"
               aria-label="{% trans 'Toggle menu' %}"
               onclick="document.getElementById('mobile-overlay').showModal()">
         <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none"
              viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
         </svg>
-        <span class="btm-nav-label text-xs">{% trans "Menu" %}</span>
+        <span class="dock-label">{% trans "Menu" %}</span>
       </button>
     {% else %}
-      <a href="{% url 'users:login' %}" class="btm-nav-item">
+      <a href="{% url 'users:login' %}">
         <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none"
              viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round"
                 d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
         </svg>
-        <span class="btm-nav-label text-xs">{% trans "Sign in" %}</span>
+        <span class="dock-label">{% trans "Sign in" %}</span>
       </a>
     {% endif %}
   </nav>
 
-  {# MOBILE FULL-SCREEN OVERLAY #}
   {% if user.is_authenticated %}
   <dialog id="mobile-overlay" class="modal modal-bottom sm:modal-middle"
           aria-label="{% trans 'Navigation menu' %}">
