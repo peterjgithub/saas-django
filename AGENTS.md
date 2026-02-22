@@ -66,6 +66,10 @@
 | 42  | 3-state theme toggle: `corporate → night → system`                                              | Replaces the binary light/dark toggle. `"system"` reads `prefers-color-scheme` at runtime; stored as the logical pref in `localStorage` (never resolved). Cycle: `corporate → night → system → corporate …`.                                                                                                              |
 | 43  | Server-side theme seed in anti-flash script for authenticated users                             | `{{ current_theme }}` (from `UserProfile.theme` via context processor) injected into the anti-flash `<script>`. Auth user's saved pref wins over any stale `localStorage` value so incognito / fresh browser gets the right theme on first paint. Unauthenticated: `localStorage` only.                                   |
 | 44  | `POST /theme/set/` endpoint persists theme to `UserProfile` for authenticated users             | AJAX endpoint (`users:set_theme`). Called by the toggle JS on every click. Returns `{"ok": true, "theme": "..."}`. Unauthenticated requests return `200 ok` but make no DB write. `/theme/set/` is in `_ALWAYS_EXEMPT` so the profile gate never intercepts it.                                                           |
+| 45  | Language removed from profile form and onboarding; navbar-only switching                        | `ProfileSettingsForm` and `ProfileCompleteForm` no longer include `language`. Language is switched exclusively via the navbar `set_language` POST button group. Avoids the HTML nested-`<form>` prohibition and keeps onboarding lean.                                                                                     |
+| 46  | `django.template.context_processors.i18n` is required for per-request `{{ LANGUAGE_CODE }}`    | Without this processor `{{ LANGUAGE_CODE }}` resolves to the static `settings.LANGUAGE_CODE` ("en") regardless of the active locale. Must be listed in `TEMPLATES → OPTIONS → context_processors` in `base.py`.                                                                                                           |
+| 47  | Language card in `profile.html` is a standalone section outside the profile `<form>`           | HTML prohibits nested `<form>` elements. Placing the language buttons inside the profile form caused the browser to drop the inner forms, orphaning the Save button. The language card is now a separate block placed before the profile `<form>`.                                                                          |
+| 48  | Navbar language button: flag + 2-letter lowercase code (en / nl / fr)                          | Replaces globe icon and full language name. Compact, internationally recognisable. Active language bold in desktop dropdown, `btn-primary` in mobile overlay. Driven by `{{ LANGUAGE_CODE }}` (requires ADR 46).                                                                                                            |
 
 ---
 
@@ -638,10 +642,31 @@ As admin they can invite other users and revoke access.
       `locale/nl/` → Django built-in `nl`; all Belgian overrides live in `nl_BE/`/`fr_BE/`;
       `nl/` and `fr/` are intentionally empty (header-only) — never override Django's built-in
       strings, only our project-specific strings are overridden
-- [x] **Language switcher posts `nl-be` / `fr-be`** — stored as the session key in
-      `django_language`; `LocaleMiddleware` resolves them correctly on each request
+- [x] **Language switcher posts `nl-be` / `fr-be`** — stored as the cookie `django_language`;
+      `LocaleMiddleware` resolves them correctly on each request
 - [x] **`test_i18n.py` updated** — all `@override_settings` LANGUAGES, `HTTP_ACCEPT_LANGUAGE`
       headers, and `set_language` POST bodies use `nl-be`/`fr-be` and `nl-BE`/`fr-BE`
+
+#### Post-Phase 4 language UX refactor (committed after Phase 4)
+
+- [x] **Language removed from profile form** — `ProfileSettingsForm` no longer includes
+      `language`; `ProfileCompleteForm` also has no language field. Language is switched
+      exclusively via the navbar language selector.
+- [x] **Language card moved outside `<form>` tag** — language button group in `profile.html`
+      is a standalone card placed _before_ the profile `<form>`. HTML does not allow nested
+      `<form>` elements; nesting caused the Save button to be orphaned (browser silently
+      drops inner forms). The language card uses its own separate `set_language` POST forms.
+- [x] **`django.template.context_processors.i18n` added** — was previously missing, causing
+      `{{ LANGUAGE_CODE }}` to always resolve to the static `settings.LANGUAGE_CODE = "en"`
+      instead of the per-request active language. Added to `TEMPLATES → OPTIONS →
+      context_processors` in `config/settings/base.py`.
+- [x] **Navbar language button redesign** — changed from globe icon → flag + full name →
+      flag + 2-letter lowercase code (`🇬🇧 en` / `🇧🇪 nl` / `🇧🇪 fr`). Active language
+      bold in desktop dropdown; `btn-primary` highlight in mobile overlay.
+- [x] **Language removed from onboarding step 1** — `onboarding_step1.html`, `ProfileCompleteForm`,
+      `profile_complete_view`, and `complete_profile()` service no longer handle language.
+      Navbar provides language switching without requiring an onboarding step.
+- [x] **122 tests total**, all passing; ruff clean
 
 ---
 
@@ -749,10 +774,11 @@ These are valid ideas — implement only after Phase 7 is complete:
 | 2026-02-22 | Language switcher uses Django built-in `set_language` at `/i18n/setlang/`                     | POST form with `language` + `next` fields; no custom view needed; `path("i18n/", include("django.conf.urls.i18n"))` in `config/urls.py`; `/i18n/set_language/` exempt from `ProfileCompleteMiddleware`                                                                                                                                                   |
 | 2026-02-22 | I18N tests: `Accept-Language` header tests for per-request locale, `set_language` for session | Both classes use `@override_settings(LANGUAGE_CODE="en", ...)` to ensure English default baseline; assert on unique page strings (e.g. `"Wachtwoord vergeten?"`, `"Mot de passe oublié ?"`) not button labels that appear multiple times                                                                                                                 |
 | 2026-02-22 | Regional variant locale architecture: `nl-be`/`fr-be` as LANGUAGES codes + fallback chain     | `LANGUAGES` uses `nl-be`/`fr-be`; Django normalises to `nl_BE`/`fr_BE` and walks: `locale/nl_BE/` → `locale/nl/` → Django built-in `nl`. All Belgian overrides in `nl_BE/`/`fr_BE/`; `nl/`/`fr/` are intentionally empty (header-only) — never override Django's built-in strings, only project-specific ones                                            |
-| 2026-02-22 | Language switcher and session store `nl-be`/`fr-be` (hyphenated)                              | `set_language` POST bodies and `django_language` session key store `nl-be`/`fr-be`; `LocaleMiddleware` normalises to `nl_BE`/`fr_BE` internally. Tests use `nl-be`/`fr-be` in POST bodies and `nl-BE`/`fr-BE` (browser format) in `HTTP_ACCEPT_LANGUAGE` headers.                                                                                        |
-| 2026-02-22 | Django 4+ removed `LANGUAGE_SESSION_KEY` — language persistence is cookie-only                | `LANGUAGE_COOKIE_NAME` (default `django_language`) is the sole persistence mechanism in Django 4+. Views set the cookie directly on the redirect response via `_apply_language(locale, response)`. No session key involved.                                                                                                                              |
-| 2026-02-22 | Profile save syncs `django_language` cookie so locale matches DB preference                   | `profile_view`, `profile_complete_view`, and `register_view` all call `_apply_language(locale_code_for_language(profile.language), response)` on save/register. `locale_code_for_language()` maps `Language.code` (`nl`→`nl-be`, `fr`→`fr-be`, else `en`). Cookie is set on the redirect response so `LocaleMiddleware` picks it up on the next request. |
-| 2026-02-22 | `UserProfile.language` cleared via data migration `0002_clear_userprofile_language`           | Pre-existing rows had stale language FK values (set from `navigator.language` without being tied to a supported LANGUAGES code). Migration sets `language=None` for all rows — users re-select in profile; locale syncs correctly on next save.                                                                                                          |
+| 2026-02-22 | Language switcher cookie stores `nl-be`/`fr-be` (hyphenated)                                  | `set_language` POST bodies and `django_language` cookie store `nl-be`/`fr-be`; `LocaleMiddleware` normalises to `nl_BE`/`fr_BE` internally. Tests use `nl-be`/`fr-be` in POST bodies and `nl-BE`/`fr-BE` (browser format) in `HTTP_ACCEPT_LANGUAGE` headers.                                                                                             |
+| 2026-02-22 | Django 4+ removed `LANGUAGE_SESSION_KEY` — language persistence is cookie-only                | `LANGUAGE_COOKIE_NAME` (default `django_language`) is the sole persistence mechanism. `LocaleMiddleware` reads this cookie on each request. `set_language` view sets it on the redirect response. No session key involved.                                                                                                                                |
+| 2026-02-22 | Profile save syncs `django_language` cookie so locale matches active language                  | `profile_view` and `register_view` call `_apply_language(locale, response)`. Language is no longer a profile form field — `profile_complete_view` no longer calls `_apply_language`. `locale_code_for_language()` in `services.py` maps `Language.code` → Django locale code and is used only by `register_view`.                                         |
+| 2026-02-22 | `UserProfile.language` cleared via data migration `0002_clear_userprofile_language`           | Pre-existing rows had stale language FK values. Migration sets `language=None` for all rows. `UserProfile.language` may still be pre-filled by `register_user()` from `lang_detect` browser hint, but it is not user-editable via a form — locale is controlled via the navbar `set_language` buttons.                                                    |
+| 2026-02-22 | Navbar language button: flag + 2-letter lowercase code (en/nl/fr)                              | Full language name was verbose; 2-letter lowercase (`en`/`nl`/`fr`) is compact and standard. Flag provides variant cue. Active language bold in desktop dropdown, `btn-primary` in mobile overlay. Requires `django.template.context_processors.i18n` for `{{ LANGUAGE_CODE }}` to be per-request.                                                       |
 
 ---
 

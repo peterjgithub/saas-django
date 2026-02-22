@@ -241,6 +241,7 @@ def reengage_member(admin_profile: UserProfile, target_profile: UserProfile) -> 
 
 
 __all__ = [
+    "locale_code_for_language",
     "register_user",
     "authenticate_user",
     "complete_profile",

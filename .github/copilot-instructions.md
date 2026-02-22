@@ -51,6 +51,9 @@ Key rules summary (full detail in `.clauderules`):
 - Admin cannot self-revoke; revoking sets `UserProfile.is_active = False` + `tenant_revoked_at = now()` (soft-revoke); `tenant` FK is never cleared
 - I18N: `en-us` + `nl-be` + `fr-be`; wrap all strings in `trans` template tag / `_()`
 - Locale directories are `locale/nl/` and `locale/fr/` (intentionally empty neutral bases) + `locale/nl_BE/` and `locale/fr_BE/` (Belgian overrides — all project translations); `LANGUAGES` codes `"nl-be"`/`"fr-be"` trigger Django's `nl_BE → nl` fallback chain automatically
+- **I18N — language persistence:** Django 4+ uses a cookie (`django_language`) — `LANGUAGE_SESSION_KEY` no longer exists. `LocaleMiddleware` reads the cookie. Language is switched via Django's built-in `set_language` view at `/i18n/setlang/`.
+- **`django.template.context_processors.i18n` is required** — without it `{{ LANGUAGE_CODE }}` always resolves to the static `settings.LANGUAGE_CODE` ("en") instead of the active per-request language.
+- **Language selector in navbar:** flag emoji + 2-letter lowercase code (`🇬🇧 en` / `🇧🇪 nl` / `🇧🇪 fr`); POST forms to `set_language`; active language bold in dropdown. Language is **not** in the profile form — navbar only.
 - `<html lang="LANGUAGE_CODE">` — use the context variable, never hardcode a language
 - WCAG AA: `aria-invalid`, `aria-describedby`, skip-to-content link, focus trap in modals, 44px min touch targets
 - Stripe and Celery deferred to Phase 6 — do not add earlier
@@ -58,10 +61,16 @@ Key rules summary (full detail in `.clauderules`):
 - Every feature needs tests under `apps/<name>/tests/`
 - **NEVER let Prettier format `templates/`** — it breaks Django template tags (`TemplateSyntaxError`); `.prettierignore` lists `templates/` and `.vscode/settings.json` disables HTML format-on-save — do not remove either
 - **NEVER put Django template comments inside or adjacent to script blocks** — the hash-brace comment syntax adjacent to script tags renders as literal visible text in the browser; use JS line comments (`//`) inside scripts instead
-- **DaisyUI 5 forms:** `form-control` is **removed** — use the new `fieldset` + `label` component syntax for all form fields. `label` now goes inside `fieldset`. See: https://daisyui.com/components/fieldset/
+- **DaisyUI 5 — we are on DaisyUI 5:**
+  - `form-control` is **removed** — use the new `fieldset` + `label` component syntax. `label` goes inside `fieldset`. See: https://daisyui.com/components/fieldset/
+  - `btm-nav` renamed to `dock`; direct children styled automatically (no `btm-nav-item`); `btm-nav-label` → `dock-label`
+  - `themes.css` must be loaded separately from `daisyui.css` (CDN dev setup)
 - **`<body>` must be `h-screen flex flex-col overflow-hidden`** — never `min-h-screen`; this viewport-locks the layout so the sidebar never scrolls away when main content is long; sidebar and main each scroll independently via `overflow-y-auto`
 - **Left sidebar:** Dashboard at top; Admin link pinned to bottom via `mt-auto` + `border-t` — only shown to `is_staff` users; Profile link is **NOT** in the sidebar (it lives in the top-right `display_name` dropdown only)
 - **Top-right dropdown (authenticated):** `display_name` → Profile + Logout **only** — Admin link is **not** in this dropdown
 - `admin.site.site_url = "/dashboard/"` set in `config/urls.py` (one-liner before `urlpatterns`) — no custom `AdminSite` subclass needed
 - **Theme toggle:** 3-state cycle `corporate → night → system`; `localStorage` key `theme` always stores the logical pref; for authenticated users the current theme (from `UserProfile.theme`) is injected server-side into the anti-flash script so a fresh browser/incognito gets the right theme on first paint; `POST /theme/set/` (`users:set_theme`) persists preference to DB for authenticated users
+- **Profile form fields:** `display_name`, `timezone`, `country`, `currency`, `theme`, `marketing_emails` — language is switched via the navbar, **not** the profile form
+- **Onboarding step 1 fields:** `display_name` (optional), `timezone` (optional), `country` (optional) — no language field, no avatar upload
+- **`except (A, B):` tuple syntax always** — never `except A, B:` (that is Python 2 and silently catches only `A`)
 - **After completing each phase** (tests passing, ruff clean): `git add -A && git commit -m "feat: Phase N — <summary>" && git push` — do not wait to be asked

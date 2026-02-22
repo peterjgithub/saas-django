@@ -179,10 +179,10 @@ def logout_view(request):
 
 def _org_suggestion_from_email(email: str) -> str:
     """
-    Derive a workspace name suggestion from the domain part of an email.
+    Derive an organisation name suggestion from the domain part of an email.
 
-    "peter@acme.com"     → "acme"
-    "info@my-company.co.uk" → "my-company"
+    "peter@acme.com"        → "Acme"
+    "info@my-company.co.uk" → "My Company"
     """
     try:
         domain = email.split("@")[1]  # e.g. "acme.com"

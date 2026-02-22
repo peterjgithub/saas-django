@@ -246,12 +246,12 @@ class UserProfile(TimeStampedAuditModel):
 
 **Profile form (`/profile/`):**
 
-- Editable fields: `display_name`, `language`, `timezone`, `country`, `currency`,
-  `theme`, `marketing_emails`
+- Editable fields: `display_name`, `timezone`, `country`, `currency`, `theme`, `marketing_emails`
+- Language is switched via the **navbar language selector** (flag + 2-letter code dropdown),
+  NOT via the profile form. The profile form does not contain a language field.
 - Login required
 - Does NOT include email or password (those are in a separate settings section)
 - Theme preference in the profile form **also** updates `localStorage` key `theme`
-- Language preference in the profile form **also** triggers a locale switch
 
 **Navbar:** see §11 for the full navigation layout spec, including the authenticated
 `display_name` dropdown, mobile bottom nav, and aria requirements.
@@ -429,7 +429,8 @@ Register → Login → Middleware Check ──→ /profile/complete/   (Step 1: 
 
 **Step 1 — Profile Completion (`/profile/complete/`):**
 
-- Collect: `display_name`, `timezone`, `avatar` (optional upload)
+- Collect: `display_name` (optional), `timezone` (optional), `country` (optional)
+- No language field — language is changed via the navbar language selector
 - Show a DaisyUI **steps** progress indicator: `Profile → Workspace` (step 1 of 2)
 - **"Do this later"** button: sets `request.session["skip_profile_gate"] = True`
   so the middleware does not redirect them again during this browser session,
@@ -479,10 +480,11 @@ Public pages (unauthenticated access allowed) are unaffected.
   manage tenant billing and settings. An admin **cannot** revoke themselves.
 - `member` capabilities: none — read access to tenant data only.
 - Member management UI lives at `/settings/members/` — `admin`-only; non-admins get 403.
-- **Invite:** owner enters an email → look up or create `User` + `UserProfile` →
+- **Invite:** admin enters an email → look up or create `User` + `UserProfile` →
   set `profile.tenant`, `profile.role = "member"`, `profile.tenant_joined_at = now()`,
   `profile.is_active = True` → send invitation email via `send_mail` (no Celery yet).
-  Inviting an email whose profile already has `is_active=True` for this tenant is a validation error.
+  Inviting an email whose profile already has `tenant_id` set (regardless of `is_active`)
+  is a validation error — one user, one tenant, always.
 - **Revoke:** set `profile.is_active = False`, `profile.tenant_revoked_at = now()`,
   `profile.deleted_by = request.user.pk`. The `tenant` FK is **never cleared**.
 - **Re-engage:** set `profile.is_active = True`, `profile.tenant_revoked_at = None`,
@@ -518,13 +520,32 @@ apps/<name>/
 - Default DaisyUI theme: **corporate** (light) / **night** (dark)
 - Default mode: **follow system** (`prefers-color-scheme`)
 - Theme preference stored in `localStorage` key `theme`
-- Language preference stored in `localStorage` key `lang`
 - Use DaisyUI **skeleton** component during form loads and theme switches to prevent layout shifts
 - Use DaisyUI **hero** component for auth pages (split-screen on desktop: inspirational image left, form right)
 - Auth forms: centered vertically + horizontally on desktop; `items-start` on mobile so keyboard doesn't overlap fields
 - Mobile: **Full-Width Buttons**; use "Top-to-Fill" standard for form fields
 - NEVER use a top-right hamburger menu on mobile — use **Bottom Navigation** or **Full-Screen Overlay** instead
 - All buttons, inputs, cards, alerts: DaisyUI components first, custom CSS only if DaisyUI has no equivalent
+
+### DaisyUI 5 — breaking changes (we are on DaisyUI 5)
+
+- **Forms:** `form-control` class is **removed** in DaisyUI 5.
+  Use the new `fieldset` + `label` component syntax for every form field:
+  ```html
+  <fieldset class="fieldset">
+    <label class="label">…</label>
+    <input class="input w-full" …>
+    <p class="label">…</p>  {# hint / error text #}
+  </fieldset>
+  ```
+  `label` now goes inside `fieldset`. Do not use `form-control` — it no longer exists.
+  See: https://daisyui.com/components/fieldset/
+
+- **Bottom navigation:** `btm-nav` / `btm-nav-item` / `btm-nav-label` are **renamed** in DaisyUI 5:
+  - `btm-nav` → `dock`
+  - `btm-nav-item` → removed (direct children of `dock` are styled automatically)
+  - `btm-nav-label` → `dock-label`
+  Do NOT use the old `btm-nav` class names in any new template code.
 
 ---
 
@@ -591,6 +612,11 @@ visible text in the browser. Use `//` JS comments inside scripts instead.
   - Left: `H` (placeholder for logo) → links to homepage
   - Centre: navigation links (currently: "Home" → homepage)
   - Right: language selector → light/dark/system toggle → auth control
+    - **Language selector:** flag emoji + 2-letter lowercase code (e.g. `🇬🇧 en`,
+      `🇧🇪 nl`, `🇧🇪 fr`); opens a DaisyUI dropdown with one `set_language` POST form
+      per locale; the active language is shown **bold** in the dropdown.
+      The navbar button shows the flag + code for the **current** active locale
+      (driven by `{{ LANGUAGE_CODE }}` from `django.template.context_processors.i18n`).
     - **Not authenticated:** "Get started" button → opens login page with link to register
     - **Authenticated:** show `display_name` (fall back to email local-part if null) as a
       DaisyUI **dropdown** button; menu items:
@@ -636,9 +662,17 @@ visible text in the browser. Use `//` JS comments inside scripts instead.
 - Use Django's `i18n` framework: `USE_I18N = True`, `LANGUAGE_CODE = "en-us"`
 - `LANGUAGES = [("en", "English"), ("nl-be", "Nederlands"), ("fr-be", "Français")]` — use hyphenated codes
 - Wrap all user-facing strings in `{% trans %}` / `_()` from the start
-- Language selector in navbar triggers locale switch and stores in `localStorage` key `lang`
+- **Language persistence:** Django 4+ uses a cookie (`LANGUAGE_COOKIE_NAME = "django_language"`)
+  as the sole persistence mechanism — `LANGUAGE_SESSION_KEY` no longer exists.
+  `LocaleMiddleware` reads this cookie on every request.
+- **Language switching:** POST to Django's built-in `set_language` view at `/i18n/setlang/`
+  (included via `path("i18n/", include("django.conf.urls.i18n"))`). The view sets the cookie
+  and redirects back. Do NOT build a custom language-switch view.
+- **`django.template.context_processors.i18n` is required** in `TEMPLATES → OPTIONS →
+  context_processors`. Without it `{{ LANGUAGE_CODE }}` resolves to the static
+  `settings.LANGUAGE_CODE` ("en") instead of the per-request active language.
 - **Locale directory architecture:**
-  - `locale/nl_BE/` — Belgian Dutch overrides (all project-specific translations); this is the primary translation file
+  - `locale/nl_BE/` — Belgian Dutch overrides (all project-specific translations)
   - `locale/fr_BE/` — Belgian French overrides (all project-specific translations)
   - `locale/nl/` — intentionally empty (header only); falls back to Django's built-in `nl` catalog
   - `locale/fr/` — intentionally empty (header only); falls back to Django's built-in `fr` catalog
@@ -650,6 +684,8 @@ visible text in the browser. Use `//` JS comments inside scripts instead.
   uv run python manage.py compilemessages
   ```
 - **NEVER use `nl_BE`/`fr_BE` directory names in `LANGUAGES`** — use `nl-be`/`fr-be`; Django normalises the hyphenated codes internally
+- **`LocaleMiddleware` placement:** must come between `SessionMiddleware` and `CommonMiddleware` in `MIDDLEWARE`
+- `/i18n/set_language/` must be in `_ALWAYS_EXEMPT` in `ProfileCompleteMiddleware`
 
 ---
 
