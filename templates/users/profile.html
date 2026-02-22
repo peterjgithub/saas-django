@@ -16,6 +16,43 @@
   {% endfor %}
   {% endif %}
 
+  {# ── Language card — standalone (uses set_language, cannot nest inside profile form) ── #}
+  <div class="card bg-base-100 shadow-lg mb-6">
+    <div class="card-body gap-3">
+      <h2 class="card-title text-xl">{% trans "Language" %}</h2>
+      <div class="flex gap-2 flex-wrap">
+        <form method="post" action="{% url 'set_language' %}">
+          {% csrf_token %}
+          <input type="hidden" name="language" value="en">
+          <input type="hidden" name="next" value="{% url 'users:profile' %}">
+          <button type="submit"
+            class="btn gap-1.5{% if LANGUAGE_CODE == 'en' or LANGUAGE_CODE == 'en-us' %} btn-primary{% else %} btn-ghost{% endif %}">
+            <span aria-hidden="true">🇬🇧</span> English
+          </button>
+        </form>
+        <form method="post" action="{% url 'set_language' %}">
+          {% csrf_token %}
+          <input type="hidden" name="language" value="nl-be">
+          <input type="hidden" name="next" value="{% url 'users:profile' %}">
+          <button type="submit"
+            class="btn gap-1.5{% if LANGUAGE_CODE == 'nl-be' or LANGUAGE_CODE == 'nl' %} btn-primary{% else %} btn-ghost{% endif %}">
+            <span aria-hidden="true">🇧🇪</span> Nederlands
+          </button>
+        </form>
+        <form method="post" action="{% url 'set_language' %}">
+          {% csrf_token %}
+          <input type="hidden" name="language" value="fr-be">
+          <input type="hidden" name="next" value="{% url 'users:profile' %}">
+          <button type="submit"
+            class="btn gap-1.5{% if LANGUAGE_CODE == 'fr-be' or LANGUAGE_CODE == 'fr' %} btn-primary{% else %} btn-ghost{% endif %}">
+            <span aria-hidden="true">🇧🇪</span> Français
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {# ── Profile preferences form ── #}
   <form method="post" action="{% url 'users:profile' %}" novalidate>
     {% csrf_token %}
 
@@ -101,42 +138,6 @@
     <div class="card bg-base-100 shadow-lg mb-6">
       <div class="card-body gap-5">
         <h2 class="card-title text-xl">{% trans "Appearance" %}</h2>
-
-        {# Language — same mechanism as the navbar switcher: POST to set_language #}
-        <fieldset class="fieldset">
-          <label class="label">
-            <span class="label-text">{% trans "Language" %}</span>
-          </label>
-          <div class="flex gap-2 flex-wrap">
-            <form method="post" action="{% url 'set_language' %}">
-              {% csrf_token %}
-              <input type="hidden" name="language" value="en">
-              <input type="hidden" name="next" value="{% url 'users:profile' %}">
-              <button type="submit"
-                class="btn gap-1.5{% if LANGUAGE_CODE == 'en' or LANGUAGE_CODE == 'en-us' %} btn-primary{% else %} btn-ghost{% endif %}">
-                <span aria-hidden="true">🇬🇧</span> English
-              </button>
-            </form>
-            <form method="post" action="{% url 'set_language' %}">
-              {% csrf_token %}
-              <input type="hidden" name="language" value="nl-be">
-              <input type="hidden" name="next" value="{% url 'users:profile' %}">
-              <button type="submit"
-                class="btn gap-1.5{% if LANGUAGE_CODE == 'nl-be' or LANGUAGE_CODE == 'nl' %} btn-primary{% else %} btn-ghost{% endif %}">
-                <span aria-hidden="true">🇧🇪</span> Nederlands
-              </button>
-            </form>
-            <form method="post" action="{% url 'set_language' %}">
-              {% csrf_token %}
-              <input type="hidden" name="language" value="fr-be">
-              <input type="hidden" name="next" value="{% url 'users:profile' %}">
-              <button type="submit"
-                class="btn gap-1.5{% if LANGUAGE_CODE == 'fr-be' or LANGUAGE_CODE == 'fr' %} btn-primary{% else %} btn-ghost{% endif %}">
-                <span aria-hidden="true">🇧🇪</span> Français
-              </button>
-            </form>
-          </div>
-        </fieldset>
 
         <fieldset class="fieldset">
           <label class="label" for="id_theme">
