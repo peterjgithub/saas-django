@@ -746,3 +746,8 @@ Place this script in `<head>` of `base.html` **before any CSS or `<body>` tags**
 
 - Commit messages: imperative mood, concise subject + optional body
 - Never commit: `.env`, `db.sqlite3`, `__pycache__`, `.DS_Store`, `staticfiles/`
+- **After completing each phase** (all tasks done, tests passing, ruff clean):
+  1. `git add -A`
+  2. `git commit -m "feat: Phase N — <short summary>"`
+  3. `git push`
+- Do not wait to be asked — committing and pushing is part of finishing a phase

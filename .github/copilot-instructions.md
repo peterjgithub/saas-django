@@ -55,3 +55,4 @@ Key rules summary (full detail in `.clauderules`):
 - Stripe and Celery deferred to Phase 6 — do not add earlier
 - Run `uv run ruff check --fix && uv run ruff format` after every code change
 - Every feature needs tests under `apps/<name>/tests/`
+- **After completing each phase** (tests passing, ruff clean): `git add -A && git commit -m "feat: Phase N — <summary>" && git push` — do not wait to be asked

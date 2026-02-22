@@ -586,11 +586,14 @@ uv run python manage.py createsuperuser
 # Django shell
 uv run python manage.py shell
 
-# Lint + format
+# Lint + format (run after EVERY code change)
 uv run ruff check --fix && uv run ruff format
 
 # Tests
-uv run python manage.py test
+uv run python manage.py test apps
+
+# Commit and push after each completed phase (tests passing, ruff clean)
+git add -A && git commit -m "feat: Phase N — <short summary>" && git push
 
 # I18N
 uv run python manage.py makemessages -l nl_BE
