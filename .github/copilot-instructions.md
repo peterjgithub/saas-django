@@ -74,3 +74,5 @@ Key rules summary (full detail in `.clauderules`):
 - **Onboarding step 1 fields:** `display_name` (optional), `timezone` (optional), `country` (optional) — no language field, no avatar upload
 - **`except (A, B):` tuple syntax always** — never `except A, B:` (that is Python 2 and silently catches only `A`)
 - **After completing each phase** (tests passing, ruff clean): `git add -A && git commit -m "feat: Phase N — <summary>" && git push` — do not wait to be asked
+- **Always propose before changing.** Before any non-trivial edit (refactor, architecture change, multi-file change), present a summary of what will change and why, and wait for explicit approval. Trivial single-line fixes may be applied directly.
+- **English only in all documentation and instructions.** All code comments, docstrings, `.md` files, commit messages, and AI instruction files must be in English. The product UI is translated; the codebase is English-only.

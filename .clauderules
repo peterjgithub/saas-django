@@ -856,3 +856,16 @@ visible text in the browser. Use `//` JS comments inside scripts instead.
   2. `git commit -m "feat: Phase N — <short summary>"`
   3. `git push`
 - Do not wait to be asked — committing and pushing is part of finishing a phase
+
+---
+
+## 22. Working Style
+
+- **Always propose before changing.** Before making any non-trivial edit (refactor,
+  architecture change, file deletion, multi-file change), present a clear summary of
+  _what_ will change and _why_, and wait for explicit approval. Trivial fixes
+  (typos, lint errors, a single-line obvious correction) may be applied directly.
+- **English only in all documentation and instructions.** All comments in code,
+  all `.md` files, all docstrings, all commit messages, and all AI instruction files
+  (`.clauderules`, `AGENTS.md`, `copilot-instructions.md`) must be written in English.
+  The product UI is translated (see §12); the codebase itself is English-only.

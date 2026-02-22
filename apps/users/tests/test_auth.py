@@ -543,20 +543,24 @@ class LanguageCookieSyncTest(TestCase):
         """
         Saving the profile form (no language field) must not reset the locale.
         After switching to nl-be the profile save should keep the nl-be cookie.
+        The cookie is held in the client session; the profile-save redirect does
+        not need to re-set it (the language is controlled exclusively by set_language).
         """
         # First switch to Dutch via set_language.
         self.client.post(
             reverse("set_language"),
             {"language": "nl-be", "next": reverse("users:profile")},
         )
+        # Verify the cookie is in the client session after set_language.
+        self.assertEqual(self.client.cookies.get(self.LANG_COOKIE).value, "nl-be")
         # Now save the profile form — no language field.
         response = self.client.post(
             reverse("users:profile"),
             {"display_name": "Test", "theme": "system", "marketing_emails": ""},
         )
         self.assertEqual(response.status_code, 302)
-        # Cookie must still carry nl-be (the form must not have reset it to en).
-        self.assertEqual(response.cookies.get(self.LANG_COOKIE).value, "nl-be")
+        # Cookie must still be nl-be in the client session (not reset by profile save).
+        self.assertEqual(self.client.cookies.get(self.LANG_COOKIE).value, "nl-be")
 
     def test_profile_save_nl_changes_ui_language(self):
         """After switching to Dutch the next page load is in Dutch."""
