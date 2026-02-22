@@ -1,15 +1,21 @@
 """
 Tests for apps.core reference data models and management command.
+
+The LoadReferenceDataCommandTest and ReferenceDataRelationshipTest classes are
+tagged "slow" because they invoke the full load_reference_data command (7 000+
+languages via pycountry).  They are skipped in the pre-commit hook
+(--exclude-tag=slow) but always run in CI and on-demand test runs.
 """
 
 from io import StringIO
 
 from django.core.management import call_command
-from django.test import TestCase
+from django.test import TestCase, tag
 
 from apps.core.models import Country, Currency, Language, Timezone
 
 
+@tag("slow")
 class LoadReferenceDataCommandTest(TestCase):
     """The load_reference_data management command populates all four tables."""
 
@@ -38,6 +44,7 @@ class LoadReferenceDataCommandTest(TestCase):
         self.assertEqual(Country.objects.count(), first_count)
 
 
+@tag("slow")
 class ReferenceDataRelationshipTest(TestCase):
     """FK filtering works (e.g. languages spoken in Belgium)."""
 
