@@ -740,6 +740,17 @@ Place this script in `<head>` of `base.html` **before any CSS or `<body>` tags**
 - Every new feature MUST include tests under `apps/<name>/tests/`
 - Run tests: `uv run python manage.py test`
 
+### Django template formatting
+
+- **NEVER let Prettier (or any HTML formatter) touch `templates/`.**
+  Prettier collapses `{% %}` and `{# #}` tags onto the same line as surrounding
+  HTML, which breaks Django's template parser with `TemplateSyntaxError`.
+- Two safeguards are already in place and must be preserved:
+  1. **`.prettierignore`** at the project root contains `templates/` — do not remove it.
+  2. **`.vscode/settings.json`** has `"[html]": { "editor.formatOnSave": false }` — do not change it.
+- If new template directories are added outside `templates/` (e.g. app-level
+  `apps/<name>/templates/`), add them to `.prettierignore` as well.
+
 ---
 
 ## 21. Git
