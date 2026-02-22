@@ -83,7 +83,7 @@
             <li>
               <form method="post" action="{% url 'set_language' %}">
                 {% csrf_token %}
-                <input type="hidden" name="language" value="nl">
+                <input type="hidden" name="language" value="nl-be">
                 <input type="hidden" name="next" value="{{ request.path }}">
                 <button type="submit" class="w-full text-left">🇧🇪 Nederlands</button>
               </form>
@@ -91,7 +91,7 @@
             <li>
               <form method="post" action="{% url 'set_language' %}">
                 {% csrf_token %}
-                <input type="hidden" name="language" value="fr">
+                <input type="hidden" name="language" value="fr-be">
                 <input type="hidden" name="next" value="{{ request.path }}">
                 <button type="submit" class="w-full text-left">🇧🇪 Français</button>
               </form>
@@ -284,13 +284,13 @@
             </form>
             <form method="post" action="{% url 'set_language' %}">
               {% csrf_token %}
-              <input type="hidden" name="language" value="nl">
+              <input type="hidden" name="language" value="nl-be">
               <input type="hidden" name="next" value="{{ request.path }}">
               <button type="submit" class="btn btn-ghost btn-xs" title="Nederlands">🇧🇪 NL</button>
             </form>
             <form method="post" action="{% url 'set_language' %}">
               {% csrf_token %}
-              <input type="hidden" name="language" value="fr">
+              <input type="hidden" name="language" value="fr-be">
               <input type="hidden" name="next" value="{{ request.path }}">
               <button type="submit" class="btn btn-ghost btn-xs" title="Français">🇧🇪 FR</button>
             </form>

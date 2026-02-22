@@ -119,8 +119,8 @@ USE_TZ = True
 
 LANGUAGES = [
     ("en", "English"),
-    ("nl", "Nederlands"),
-    ("fr", "Français"),
+    ("nl-be", "Nederlands"),
+    ("fr-be", "Français"),
 ]
 
 LOCALE_PATHS = [BASE_DIR / "locale"]
@@ -128,6 +128,7 @@ LOCALE_PATHS = [BASE_DIR / "locale"]
 # ---------------------------------------------------------------------------
 # Static files
 # ---------------------------------------------------------------------------
+STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # ---------------------------------------------------------------------------

@@ -634,14 +634,22 @@ visible text in the browser. Use `//` JS comments inside scripts instead.
 
 - Supported locales: `en-us` (US English), `nl-be` (Belgian Dutch), `fr-be` (Belgian French)
 - Use Django's `i18n` framework: `USE_I18N = True`, `LANGUAGE_CODE = "en-us"`
+- `LANGUAGES = [("en", "English"), ("nl-be", "Nederlands"), ("fr-be", "Français")]` — use hyphenated codes
 - Wrap all user-facing strings in `{% trans %}` / `_()` from the start
 - Language selector in navbar triggers locale switch and stores in `localStorage` key `lang`
+- **Locale directory architecture:**
+  - `locale/nl_BE/` — Belgian Dutch overrides (all project-specific translations); this is the primary translation file
+  - `locale/fr_BE/` — Belgian French overrides (all project-specific translations)
+  - `locale/nl/` — intentionally empty (header only); falls back to Django's built-in `nl` catalog
+  - `locale/fr/` — intentionally empty (header only); falls back to Django's built-in `fr` catalog
+  - Django resolves `nl-be` → `nl_BE` → walks `locale/nl_BE/` → `locale/nl/` → built-in `nl` automatically
 - Generate `.po` / `.mo` files with:
   ```
   uv run python manage.py makemessages -l nl_BE
   uv run python manage.py makemessages -l fr_BE
   uv run python manage.py compilemessages
   ```
+- **NEVER use `nl_BE`/`fr_BE` directory names in `LANGUAGES`** — use `nl-be`/`fr-be`; Django normalises the hyphenated codes internally
 
 ---
 

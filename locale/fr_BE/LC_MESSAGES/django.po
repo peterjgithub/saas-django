@@ -1,0 +1,663 @@
+# French (Belgium) translations for saas-django.
+# Copyright (C) 2026 SaaS App
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: saas-django\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-02-22 18:06+0000\n"
+"PO-Revision-Date: 2026-02-22 18:06+0000\n"
+"Last-Translator: saas-django\n"
+"Language-Team: French (Belgium)\n"
+"Language: fr_BE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: apps/pages/views.py:19 templates/pages/dashboard.html:9
+msgid "Welcome"
+msgstr "Bienvenue"
+
+#: apps/pages/views.py:25 templates/base.html:133 templates/base.html:190
+#: templates/base.html:223 templates/pages/dashboard.html:4
+msgid "Dashboard"
+msgstr "Tableau de bord"
+
+#: apps/tenants/models.py:17
+msgid "organisation name"
+msgstr "nom de l'organisation"
+
+#: apps/tenants/models.py:18
+msgid "Company or workspace name."
+msgstr "Nom de la société ou de l'espace de travail."
+
+#: apps/tenants/models.py:22 apps/users/models.py:196
+msgid "tenant"
+msgstr "organisation"
+
+#: apps/tenants/models.py:23
+msgid "tenants"
+msgstr "organisations"
+
+#: apps/users/admin.py:19
+msgid "Permissions"
+msgstr "Autorisations"
+
+#: apps/users/admin.py:30
+msgid "Important dates"
+msgstr "Dates importantes"
+
+#: apps/users/admin.py:31
+msgid "Soft delete"
+msgstr "Suppression douce"
+
+#: apps/users/admin.py:47
+msgid "profile"
+msgstr "profil"
+
+#: apps/users/forms.py:21 apps/users/forms.py:44
+#: templates/users/members.html:55
+msgid "Email"
+msgstr "E-mail"
+
+#: apps/users/forms.py:25 apps/users/forms.py:48
+msgid "you@example.com"
+msgstr "vous@exemple.com"
+
+#: apps/users/forms.py:31 apps/users/forms.py:54 templates/users/login.html:53
+#: templates/users/register.html:43
+msgid "Password"
+msgstr "Mot de passe"
+
+#: apps/users/forms.py:73
+msgid "An account with this email already exists."
+msgstr "Un compte avec cet e-mail existe déjà."
+
+#: apps/users/forms.py:88
+msgid "Your name"
+msgstr "Votre nom"
+
+#: apps/users/forms.py:96
+msgid "Select your timezone"
+msgstr "Sélectionnez votre fuseau horaire"
+
+#: apps/users/forms.py:103
+msgid "Select your language"
+msgstr "Sélectionnez votre langue"
+
+#: apps/users/forms.py:110
+msgid "Select your country"
+msgstr "Sélectionnez votre pays"
+
+#: apps/users/forms.py:119 templates/users/onboarding_step2.html:38
+msgid "Organisation name"
+msgstr "Nom de l'organisation"
+
+#: apps/users/forms.py:125
+msgid "Acme Inc."
+msgstr "Acme SA"
+
+#: apps/users/forms.py:155
+msgid "Select language"
+msgstr "Sélectionner la langue"
+
+#: apps/users/forms.py:162
+msgid "Select timezone"
+msgstr "Sélectionner le fuseau horaire"
+
+#: apps/users/forms.py:169
+msgid "Select country"
+msgstr "Sélectionner le pays"
+
+#: apps/users/forms.py:174
+msgid "Select currency"
+msgstr "Sélectionner la devise"
+
+#: apps/users/forms.py:188 templates/users/login.html:33
+#: templates/users/members.html:28 templates/users/password_reset.html:22
+#: templates/users/register.html:23
+msgid "Email address"
+msgstr "Adresse e-mail"
+
+#: apps/users/forms.py:192
+msgid "colleague@example.com"
+msgstr "collègue@exemple.com"
+
+#: apps/users/models.py:30
+msgid "An email address is required."
+msgstr "Une adresse e-mail est requise."
+
+#: apps/users/models.py:47
+msgid "Superuser must have is_staff=True."
+msgstr "Le superutilisateur doit avoir is_staff=True."
+
+#: apps/users/models.py:49
+msgid "Superuser must have is_superuser=True."
+msgstr "Le superutilisateur doit avoir is_superuser=True."
+
+#: apps/users/models.py:75
+msgid "email address"
+msgstr "adresse e-mail"
+
+#: apps/users/models.py:86 apps/users/models.py:121
+msgid "user"
+msgstr "utilisateur"
+
+#: apps/users/models.py:87
+msgid "users"
+msgstr "utilisateurs"
+
+#: apps/users/models.py:98
+msgid "Light (Corporate)"
+msgstr "Clair (Corporate)"
+
+#: apps/users/models.py:99
+msgid "Dark (Night)"
+msgstr "Sombre (Night)"
+
+#: apps/users/models.py:100
+msgid "Follow system"
+msgstr "Suivre le système"
+
+#: apps/users/models.py:104 templates/base.html:145 templates/base.html:232
+#: templates/users/members.html:69
+msgid "Admin"
+msgstr "Administrateur"
+
+#: apps/users/models.py:105 templates/users/members.html:71
+msgid "Member"
+msgstr "Membre"
+
+#: apps/users/models.py:129
+msgid "display name"
+msgstr "nom d'affichage"
+
+#: apps/users/models.py:139
+msgid "language"
+msgstr "langue"
+
+#: apps/users/models.py:147
+msgid "timezone"
+msgstr "fuseau horaire"
+
+#: apps/users/models.py:155
+msgid "country"
+msgstr "pays"
+
+#: apps/users/models.py:163
+msgid "currency"
+msgstr "devise"
+
+#: apps/users/models.py:171
+msgid "theme"
+msgstr "thème"
+
+#: apps/users/models.py:177
+msgid "marketing emails"
+msgstr "e-mails marketing"
+
+#: apps/users/models.py:178
+msgid "Receive newsletters and promotional emails."
+msgstr "Recevoir des newsletters et des e-mails promotionnels."
+
+#: apps/users/models.py:185
+msgid "profile completed at"
+msgstr "profil complété le"
+
+#: apps/users/models.py:186
+msgid "Set when the user saves the profile form for the first time."
+msgstr "Défini lorsque l'utilisateur enregistre le formulaire de profil pour la première fois."
+
+#: apps/users/models.py:203
+msgid "role"
+msgstr "rôle"
+
+#: apps/users/models.py:208
+msgid "tenant joined at"
+msgstr "membre depuis le"
+
+#: apps/users/models.py:213
+msgid "tenant revoked at"
+msgstr "accès révoqué le"
+
+#: apps/users/models.py:214
+msgid "Set on revocation; cleared on re-engagement."
+msgstr "Défini lors de la révocation ; effacé lors de la réactivation."
+
+#: apps/users/models.py:218
+msgid "user profile"
+msgstr "profil utilisateur"
+
+#: apps/users/models.py:219
+msgid "user profiles"
+msgstr "profils utilisateurs"
+
+#: apps/users/services.py:138
+msgid "Admin has no tenant to invite to."
+msgstr "L'administrateur n'a pas d'organisation vers laquelle inviter."
+
+#: apps/users/services.py:157
+#, python-format
+msgid "%(email)s already belongs to a workspace. They must register a new account to join yours."
+msgstr "%(email)s appartient déjà à un espace de travail. Cette personne doit créer un nouveau compte pour rejoindre le vôtre."
+
+#: apps/users/services.py:193
+msgid "You cannot revoke your own access."
+msgstr "Vous ne pouvez pas révoquer votre propre accès."
+
+#: apps/users/services.py:195 apps/users/services.py:208
+msgid "That member does not belong to your tenant."
+msgstr "Ce membre n'appartient pas à votre organisation."
+
+#: apps/users/views.py:78
+msgid "Incorrect email or password. Please try again."
+msgstr "E-mail ou mot de passe incorrect. Veuillez réessayer."
+
+#: apps/users/views.py:346
+msgid "Your profile has been updated."
+msgstr "Votre profil a été mis à jour."
+
+#: apps/users/views.py:416
+#, python-format
+msgid "%(email)s has been added to your workspace."
+msgstr "%(email)s a été ajouté à votre espace de travail."
+
+#: apps/users/views.py:438
+#, python-format
+msgid "%(email)s has been removed from the workspace."
+msgstr "%(email)s a été supprimé de l'espace de travail."
+
+#: apps/users/views.py:456
+#, python-format
+msgid "%(email)s has been re-added to the workspace."
+msgstr "%(email)s a été réajouté à l'espace de travail."
+
+#: templates/base.html:45
+msgid "Skip to main content"
+msgstr "Aller au contenu principal"
+
+#: templates/base.html:50
+msgid "Main navigation"
+msgstr "Navigation principale"
+
+#: templates/base.html:65
+msgid "Cycle colour theme"
+msgstr "Changer le thème de couleur"
+
+#: templates/base.html:66
+msgid "Cycle light / dark / system"
+msgstr "Changer clair / sombre / système"
+
+#: templates/base.html:90
+msgid "User menu"
+msgstr "Menu utilisateur"
+
+#: templates/base.html:101 templates/base.html:227
+#: templates/users/onboarding_step1.html:12
+#: templates/users/onboarding_step2.html:12 templates/users/profile.html:4
+#: templates/users/profile.html:9
+msgid "Profile"
+msgstr "Profil"
+
+#: templates/base.html:105 templates/base.html:266
+msgid "Log out"
+msgstr "Se déconnecter"
+
+#: templates/base.html:112 templates/pages/home.html:20
+msgid "Get started"
+msgstr "Commencer"
+
+#: templates/base.html:124
+msgid "Sidebar navigation"
+msgstr "Navigation latérale"
+
+#: templates/base.html:171
+msgid "Mobile navigation"
+msgstr "Navigation mobile"
+
+#: templates/base.html:178
+msgid "Home"
+msgstr "Accueil"
+
+#: templates/base.html:193
+msgid "Toggle menu"
+msgstr "Basculer le menu"
+
+#: templates/base.html:199
+msgid "Menu"
+msgstr "Menu"
+
+#: templates/base.html:208 templates/users/login.html:4
+#: templates/users/login.html:74
+#: templates/users/password_reset_complete.html:15
+#: templates/users/register.html:76
+msgid "Sign in"
+msgstr "Se connecter"
+
+#: templates/base.html:215
+msgid "Navigation menu"
+msgstr "Menu de navigation"
+
+#: templates/base.html:220
+msgid "Mobile menu"
+msgstr "Menu mobile"
+
+#: templates/base.html:238 templates/users/profile.html:125
+msgid "Theme"
+msgstr "Thème"
+
+#: templates/base.html:241
+msgid "Cycle dark/light/system mode"
+msgstr "Basculer mode sombre/clair/système"
+
+#: templates/base.html:273 templates/base.html:278
+msgid "Close"
+msgstr "Fermer"
+
+#: templates/pages/dashboard.html:18
+msgid "Dashboard content coming in Phase 3."
+msgstr "Le contenu du tableau de bord arrive en phase 3."
+
+#: templates/pages/home.html:4
+msgid "The modern SaaS starter"
+msgstr "Le starter SaaS moderne"
+
+#: templates/pages/home.html:12
+msgid "A multi-tenant SaaS platform built for teams."
+msgstr "Une plateforme SaaS multi-locataire conçue pour les équipes."
+
+#: templates/pages/home.html:16
+msgid "Go to dashboard"
+msgstr "Aller au tableau de bord"
+
+#: templates/users/account_revoked.html:4
+msgid "Access revoked"
+msgstr "Accès révoqué"
+
+#: templates/users/account_revoked.html:11
+msgid "Your access has been revoked"
+msgstr "Votre accès a été révoqué"
+
+#: templates/users/account_revoked.html:13
+msgid "Your access to this workspace has been removed by an administrator. Please contact your workspace admin if you believe this is a mistake."
+msgstr "Votre accès à cet espace de travail a été supprimé par un administrateur. Contactez l'administrateur de votre espace de travail si vous pensez qu'il s'agit d'une erreur."
+
+#: templates/users/account_revoked.html:19
+msgid "Sign out"
+msgstr "Se déconnecter"
+
+#: templates/users/login.html:11
+msgid "Welcome back"
+msgstr "Bon retour"
+
+#: templates/users/login.html:12
+msgid "Sign in to your account"
+msgstr "Connectez-vous à votre compte"
+
+#: templates/users/login.html:68
+msgid "Forgot password?"
+msgstr "Mot de passe oublié ?"
+
+#: templates/users/login.html:77
+msgid "Cancel"
+msgstr "Annuler"
+
+#: templates/users/login.html:86
+msgid "Don't have an account?"
+msgstr "Vous n'avez pas de compte ?"
+
+#: templates/users/login.html:87
+msgid "Sign up"
+msgstr "S'inscrire"
+
+#: templates/users/members.html:4 templates/users/members.html:9
+msgid "Members"
+msgstr "Membres"
+
+#: templates/users/members.html:22
+msgid "Invite a member"
+msgstr "Inviter un membre"
+
+#: templates/users/members.html:41
+msgid "Send invite"
+msgstr "Envoyer l'invitation"
+
+#: templates/users/members.html:56
+msgid "Name"
+msgstr "Nom"
+
+#: templates/users/members.html:57
+msgid "Role"
+msgstr "Rôle"
+
+#: templates/users/members.html:58
+msgid "Status"
+msgstr "Statut"
+
+#: templates/users/members.html:59
+msgid "Actions"
+msgstr "Actions"
+
+#: templates/users/members.html:76
+msgid "Active"
+msgstr "Actif"
+
+#: templates/users/members.html:78
+msgid "Revoked"
+msgstr "Révoqué"
+
+#: templates/users/members.html:89
+msgid "Revoke access for this member?"
+msgstr "Révoquer l'accès de ce membre ?"
+
+#: templates/users/members.html:91
+msgid "Revoke"
+msgstr "Révoquer"
+
+#: templates/users/members.html:98
+msgid "Re-engage"
+msgstr "Réactiver"
+
+#: templates/users/members.html:103
+msgid "You"
+msgstr "Vous"
+
+#: templates/users/members.html:110
+msgid "No members yet. Invite someone above."
+msgstr "Aucun membre pour l'instant. Invitez quelqu'un ci-dessus."
+
+#: templates/users/onboarding_step1.html:4
+#: templates/users/onboarding_step1.html:17
+msgid "Complete your profile"
+msgstr "Compléter votre profil"
+
+#: templates/users/onboarding_step1.html:13
+#: templates/users/onboarding_step2.html:13
+msgid "Workspace"
+msgstr "Espace de travail"
+
+#: templates/users/onboarding_step1.html:18
+msgid "Tell us a little about yourself"
+msgstr "Parlez-nous un peu de vous"
+
+#: templates/users/onboarding_step1.html:26
+msgid "We've pre-filled these values from your browser and location — please confirm or update them."
+msgstr "Nous avons pré-rempli ces valeurs à partir de votre navigateur et de votre localisation — veuillez les confirmer ou les mettre à jour."
+
+#: templates/users/onboarding_step1.html:39 templates/users/profile.html:28
+msgid "Display name"
+msgstr "Nom d'affichage"
+
+#: templates/users/onboarding_step1.html:40
+#: templates/users/onboarding_step1.html:59
+#: templates/users/onboarding_step1.html:82
+#: templates/users/onboarding_step1.html:105
+msgid "Optional"
+msgstr "Optionnel"
+
+#: templates/users/onboarding_step1.html:58 templates/users/profile.html:64
+msgid "Timezone"
+msgstr "Fuseau horaire"
+
+#: templates/users/onboarding_step1.html:67
+msgid "— Select your timezone —"
+msgstr "— Sélectionnez votre fuseau horaire —"
+
+#: templates/users/onboarding_step1.html:81 templates/users/profile.html:46
+msgid "Language"
+msgstr "Langue"
+
+#: templates/users/onboarding_step1.html:90
+msgid "— Select your language —"
+msgstr "— Sélectionnez votre langue —"
+
+#: templates/users/onboarding_step1.html:104 templates/users/profile.html:82
+msgid "Country"
+msgstr "Pays"
+
+#: templates/users/onboarding_step1.html:113
+msgid "— Select your country —"
+msgstr "— Sélectionnez votre pays —"
+
+#: templates/users/onboarding_step1.html:127
+msgid "Save and continue"
+msgstr "Enregistrer et continuer"
+
+#: templates/users/onboarding_step1.html:135
+msgid "Do this later"
+msgstr "Faire cela plus tard"
+
+#: templates/users/onboarding_step2.html:4
+#: templates/users/onboarding_step2.html:17
+msgid "Create your workspace"
+msgstr "Créer votre espace de travail"
+
+#: templates/users/onboarding_step2.html:18
+msgid "What is your organisation called?"
+msgstr "Comment s'appelle votre organisation ?"
+
+#: templates/users/onboarding_step2.html:26
+msgid "We derived this name from your email address — please confirm or update it."
+msgstr "Nous avons déduit ce nom de votre adresse e-mail — veuillez le confirmer ou le modifier."
+
+#: templates/users/onboarding_step2.html:58
+msgid "Create workspace"
+msgstr "Créer l'espace de travail"
+
+#: templates/users/password_reset.html:4
+msgid "Reset password"
+msgstr "Réinitialiser le mot de passe"
+
+#: templates/users/password_reset.html:11
+msgid "Reset your password"
+msgstr "Réinitialisez votre mot de passe"
+
+#: templates/users/password_reset.html:12
+msgid "Enter your email and we'll send you a reset link."
+msgstr "Saisissez votre e-mail et nous vous enverrons un lien de réinitialisation."
+
+#: templates/users/password_reset.html:37
+msgid "Send reset link"
+msgstr "Envoyer le lien de réinitialisation"
+
+#: templates/users/password_reset.html:40
+#: templates/users/password_reset_done.html:15
+msgid "Back to sign in"
+msgstr "Retour à la connexion"
+
+#: templates/users/password_reset_complete.html:4
+#: templates/users/password_reset_complete.html:10
+msgid "Password reset complete"
+msgstr "Réinitialisation du mot de passe terminée"
+
+#: templates/users/password_reset_complete.html:12
+msgid "Your password has been set. You can now sign in with your new password."
+msgstr "Votre mot de passe a été défini. Vous pouvez maintenant vous connecter avec votre nouveau mot de passe."
+
+#: templates/users/password_reset_confirm.html:4
+#: templates/users/password_reset_confirm.html:11
+#: templates/users/password_reset_confirm.html:56
+msgid "Set new password"
+msgstr "Définir un nouveau mot de passe"
+
+#: templates/users/password_reset_confirm.html:22
+msgid "New password"
+msgstr "Nouveau mot de passe"
+
+#: templates/users/password_reset_confirm.html:39
+msgid "Confirm new password"
+msgstr "Confirmer le nouveau mot de passe"
+
+#: templates/users/password_reset_confirm.html:62
+msgid "The reset link is invalid or has expired. Please request a new one."
+msgstr "Le lien de réinitialisation est invalide ou a expiré. Veuillez en demander un nouveau."
+
+#: templates/users/password_reset_confirm.html:65
+msgid "Request new link"
+msgstr "Demander un nouveau lien"
+
+#: templates/users/password_reset_done.html:4
+#: templates/users/password_reset_done.html:10
+msgid "Check your email"
+msgstr "Vérifiez votre e-mail"
+
+#: templates/users/password_reset_done.html:12
+msgid "If an account exists for that email address, we've sent a password reset link. Please check your inbox."
+msgstr "Si un compte existe pour cette adresse e-mail, nous avons envoyé un lien de réinitialisation. Veuillez vérifier votre boîte de réception."
+
+#: templates/users/profile.html:24
+msgid "Personal information"
+msgstr "Informations personnelles"
+
+#: templates/users/profile.html:53
+msgid "— Select language —"
+msgstr "— Sélectionner la langue —"
+
+#: templates/users/profile.html:71
+msgid "— Select timezone —"
+msgstr "— Sélectionner le fuseau horaire —"
+
+#: templates/users/profile.html:89
+msgid "— Select country —"
+msgstr "— Sélectionner le pays —"
+
+#: templates/users/profile.html:100
+msgid "Currency"
+msgstr "Devise"
+
+#: templates/users/profile.html:107
+msgid "— Select currency —"
+msgstr "— Sélectionner la devise —"
+
+#: templates/users/profile.html:121
+msgid "Appearance"
+msgstr "Apparence"
+
+#: templates/users/profile.html:143
+msgid "Communication"
+msgstr "Communication"
+
+#: templates/users/profile.html:154
+msgid "Receive marketing emails and product news"
+msgstr "Recevoir des e-mails marketing et des actualités produit"
+
+#: templates/users/profile.html:162
+msgid "Save changes"
+msgstr "Enregistrer les modifications"
+
+#: templates/users/register.html:4 templates/users/register.html:66
+msgid "Create account"
+msgstr "Créer un compte"
+
+#: templates/users/register.html:11
+msgid "Create your account"
+msgstr "Créez votre compte"
+
+#: templates/users/register.html:12
+msgid "Start your free trial today"
+msgstr "Commencez votre essai gratuit aujourd'hui"
+
+#: templates/users/register.html:75
+msgid "Already have an account?"
+msgstr "Vous avez déjà un compte ?"
