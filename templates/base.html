@@ -64,11 +64,11 @@
         <div class="dropdown dropdown-end">
           <button tabindex="0" class="btn btn-ghost btn-sm gap-1.5" aria-label="{% trans 'Select language' %}" aria-haspopup="true">
             {% if LANGUAGE_CODE == "nl-be" or LANGUAGE_CODE == "nl" %}
-              <span aria-hidden="true">🇧🇪</span><span class="text-sm font-medium">NL</span>
+              <span aria-hidden="true">🇧🇪</span><span class="text-sm font-medium">nl</span>
             {% elif LANGUAGE_CODE == "fr-be" or LANGUAGE_CODE == "fr" %}
-              <span aria-hidden="true">🇧🇪</span><span class="text-sm font-medium">FR</span>
+              <span aria-hidden="true">🇧🇪</span><span class="text-sm font-medium">fr</span>
             {% else %}
-              <span aria-hidden="true">🇬🇧</span><span class="text-sm font-medium">EN</span>
+              <span aria-hidden="true">🇬🇧</span><span class="text-sm font-medium">en</span>
             {% endif %}
             <svg xmlns="http://www.w3.org/2000/svg" class="size-3 opacity-60" fill="none"
                  viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
@@ -83,7 +83,7 @@
                 <input type="hidden" name="language" value="en">
                 <input type="hidden" name="next" value="{{ request.path }}">
                 <button type="submit" class="w-full text-left gap-2{% if LANGUAGE_CODE == 'en' or LANGUAGE_CODE == 'en-us' %} font-semibold{% endif %}">
-                  <span>🇬🇧</span> English
+                  <span>🇬🇧</span> en
                 </button>
               </form>
             </li>
@@ -93,7 +93,7 @@
                 <input type="hidden" name="language" value="nl-be">
                 <input type="hidden" name="next" value="{{ request.path }}">
                 <button type="submit" class="w-full text-left gap-2{% if LANGUAGE_CODE == 'nl-be' or LANGUAGE_CODE == 'nl' %} font-semibold{% endif %}">
-                  <span>🇧🇪</span> Nederlands
+                  <span>🇧🇪</span> nl
                 </button>
               </form>
             </li>
@@ -103,7 +103,7 @@
                 <input type="hidden" name="language" value="fr-be">
                 <input type="hidden" name="next" value="{{ request.path }}">
                 <button type="submit" class="w-full text-left gap-2{% if LANGUAGE_CODE == 'fr-be' or LANGUAGE_CODE == 'fr' %} font-semibold{% endif %}">
-                  <span>🇧🇪</span> Français
+                  <span>🇧🇪</span> fr
                 </button>
               </form>
             </li>
@@ -294,7 +294,7 @@
               <button type="submit"
                 class="btn btn-sm gap-1.5{% if LANGUAGE_CODE == 'en' or LANGUAGE_CODE == 'en-us' %} btn-primary{% else %} btn-ghost{% endif %}"
                 title="English">
-                <span>🇬🇧</span> English
+                <span>🇬🇧</span> en
               </button>
             </form>
             <form method="post" action="{% url 'set_language' %}">
@@ -304,7 +304,7 @@
               <button type="submit"
                 class="btn btn-sm gap-1.5{% if LANGUAGE_CODE == 'nl-be' or LANGUAGE_CODE == 'nl' %} btn-primary{% else %} btn-ghost{% endif %}"
                 title="Nederlands">
-                <span>🇧🇪</span> NL
+                <span>🇧🇪</span> nl
               </button>
             </form>
             <form method="post" action="{% url 'set_language' %}">
@@ -314,7 +314,7 @@
               <button type="submit"
                 class="btn btn-sm gap-1.5{% if LANGUAGE_CODE == 'fr-be' or LANGUAGE_CODE == 'fr' %} btn-primary{% else %} btn-ghost{% endif %}"
                 title="Français">
-                <span>🇧🇪</span> FR
+                <span>🇧🇪</span> fr
               </button>
             </form>
           </div>
