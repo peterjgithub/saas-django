@@ -75,20 +75,57 @@ saas-django/
 ├── manage.py
 ├── pyproject.toml            ← uv + ruff config
 ├── uv.lock
+├── templates/                ← ✅ Phase 2 — project-level templates
+│   ├── base.html             ← DaisyUI shell: anti-flash, navbar, sidebar, bottom nav
+│   ├── pages/
+│   │   ├── home.html         ← public homepage
+│   │   └── dashboard.html    ← authenticated dashboard placeholder
+│   └── partials/             ← (reserved for future partials)
 ├── config/
 │   ├── settings/
 │   │   ├── base.py           ← Shared settings, reads .env
 │   │   ├── dev.py            ← DEBUG=True, local DB
 │   │   └── prod.py           ← Security hardening
-│   ├── context_processors.py ← (to be created) SITE_NAME, current_theme
-│   ├── urls.py
+│   ├── context_processors.py ← ✅ Phase 2 — injects SITE_NAME, current_theme
+│   ├── urls.py               ← ✅ Phase 2 — wires /, /dashboard/, /health/, user stubs
 │   ├── wsgi.py
 │   └── asgi.py
 └── apps/
-    ├── core/                 ← (to be created) health check, shared base model
-    ├── tenants/              ← (Phase 1)
-    ├── users/                ← (Phase 1) custom User model
-    ├── pages/                ← (Phase 2) homepage, dashboard
+    ├── core/                 ← ✅ Phase 1 — abstract base models + reference data
+    │   ├── admin.py
+    │   ├── apps.py
+    │   ├── management/
+    │   │   └── commands/
+    │   │       └── load_reference_data.py
+    │   ├── migrations/
+    │   ├── models.py         ← TimeStampedAuditModel, TenantScopedModel, Country,
+    │   │                        Language, Timezone, Currency
+    │   ├── templatetags/     ← ✅ Phase 2
+    │   │   └── tz_tags.py    ← localtime filter (UTC → user timezone)
+    │   ├── tests/
+    │   └── views.py
+    ├── tenants/              ← ✅ Phase 1 — Tenant model
+    │   ├── admin.py
+    │   ├── apps.py
+    │   ├── migrations/
+    │   ├── models.py         ← Tenant(TimeStampedAuditModel)
+    │   ├── tests/
+    │   └── views.py
+    ├── users/                ← ✅ Phase 1 — custom User + UserProfile + signal
+    │   ├── admin.py
+    │   ├── apps.py
+    │   ├── migrations/
+    │   ├── models.py         ← User(AbstractUser), UserProfile(TimeStampedAuditModel)
+    │   ├── signals.py        ← post_save → auto-create UserProfile
+    │   ├── tests/
+    │   ├── urls.py           ← ✅ Phase 2 — stubs for users:login/logout/profile
+    │   └── views.py
+    ├── pages/                ← ✅ Phase 2 — homepage, dashboard, health check
+    │   ├── apps.py
+    │   ├── migrations/
+    │   ├── tests/
+    │   ├── urls.py           ← pages:home, pages:dashboard
+    │   └── views.py          ← home(), dashboard(), health()
     └── billing/              ← (Phase 6, deferred)
 ```
 
@@ -166,62 +203,65 @@ actor to record. This is the **only** model in the codebase that omits these fie
 
 ---
 
-### 🔲 Phase 1 — Foundation: Core App, Tenants & Users
+### ✅ Phase 1 — Foundation: Core App, Tenants & Users (DONE)
 
 **Goal:** Establish the shared base model, tenant model, and email-based custom User — everything else depends on this.
 
 #### 1a — Core app (shared primitives)
 
-- [ ] `uv run python manage.py startapp core` → move to `apps/core/`
-- [ ] Create `TimeStampedAuditModel` and `TenantScopedModel` abstract base classes in `apps/core/models.py`
+- [x] `uv run python manage.py startapp core` → move to `apps/core/`
+- [x] Create `TimeStampedAuditModel` and `TenantScopedModel` abstract base classes in `apps/core/models.py`
       (see Shared Base Model Convention above)
-- [ ] Register `apps.core` in `INSTALLED_APPS`
+- [x] Register `apps.core` in `INSTALLED_APPS`
 
 #### 1b — Reference Data (ISO tables)
 
-- [ ] In `apps/core/models.py`: create `Country`, `Language`, `Timezone`, `Currency`
+- [x] In `apps/core/models.py`: create `Country`, `Language`, `Timezone`, `Currency`
       models as specified in `.clauderules §5b`
-- [ ] `ManyToManyField` relationships:
+- [x] `ManyToManyField` relationships:
   - `Language.countries` → `Country`
   - `Timezone.countries` → `Country`
   - `Currency.countries` → `Country`
-- [ ] Management command: `apps/core/management/commands/load_reference_data.py`
+- [x] Management command: `apps/core/management/commands/load_reference_data.py`
   - `uv add pycountry`
   - Loads all countries, languages, currencies from `pycountry`
   - Loads timezones from `zoneinfo.available_timezones()` with UTC offset calculation
   - Idempotent (`update_or_create`)
-- [ ] Run after migrations: `uv run python manage.py load_reference_data`
-- [ ] Tests: command creates records, FK filtering works (languages for Belgium, etc.)
+- [x] Run after migrations: `uv run python manage.py load_reference_data`
+      → 249 countries, 7923 languages, 178 currencies, 598 timezones seeded;
+      423 TZ↔Country, 249 Currency↔Country, 305 Language↔Country links
+- [x] Tests: command creates records, FK filtering works (languages for Belgium, etc.)
 
 #### 1c — Tenants
 
-- [ ] `apps/tenants/` — `Tenant` model only (no `TenantMembership`):
+- [x] `apps/tenants/` — `Tenant` model only (no `TenantMembership`):
   - `id` — UUID PK
   - `organization` — `CharField(max_length=200)` — workspace / company name (required)
   - Extends `TimeStampedAuditModel` — Tenant IS the root; it has no `tenant_id` on itself
   - No `slug` — the UUID PK is the identifier; add a slug later if tenant-scoped URLs are needed
-- [ ] Admin registration
-- [ ] Tests: tenant creation, `organization` required
+- [x] Admin registration
+- [x] Tests: tenant creation, `organization` required
 
 #### 1d — Custom User
 
-- [ ] `apps/users/` — `User(AbstractUser)`:
+- [x] `apps/users/` — `User(AbstractUser)`:
   - `USERNAME_FIELD = "email"`, `REQUIRED_FIELDS = []`
   - Custom `UserManager` (`create_user`, `create_superuser`) using email
   - Extends `AbstractUser` directly — **NOT** `TimeStampedAuditModel`
   - Add `deleted_at` and `deleted_by` (UUIDField) directly on `User` (no `created_by`/`updated_by`)
   - **No `tenant` FK on `User`** — tenant membership lives on `UserProfile` (see Phase 1e)
-- [ ] Set `AUTH_USER_MODEL = "users.User"` in `config/settings/base.py`
-- [ ] Migrations (`makemigrations` → `migrate`)
-- [ ] `createsuperuser` (email-based)
-- [ ] Admin registration
-- [ ] Tests: user creation, email uniqueness, superuser creation
+- [x] Set `AUTH_USER_MODEL = "users.User"` in `config/settings/base.py`
+- [x] Migrations (`makemigrations` → `migrate`)
+- [x] `createsuperuser` (email-based) — done 2026-02-22
+- [x] Admin registration — all models visible: Users, User profiles, Tenants, Countries,
+      Currencies, Languages, Timezones
+- [x] Tests: user creation, email uniqueness, superuser creation
 
 #### 1e — UserProfile
 
 > **Depends on 1b** (core reference tables must be migrated first) and **1d** (User model).
 
-- [ ] `UserProfile(TimeStampedAuditModel)` in `apps/users/models.py`:
+- [x] `UserProfile(TimeStampedAuditModel)` in `apps/users/models.py`:
   - `user` — `OneToOneField(User, related_name="profile")`
   - `display_name` — `CharField(max_length=100, blank=True, null=True)`
   - `language` — `ForeignKey("core.Language", null=True, blank=True, on_delete=SET_NULL)`
@@ -238,52 +278,56 @@ actor to record. This is the **only** model in the codebase that omits these fie
   - `tenant_joined_at` — `DateTimeField(null=True, blank=True)`
   - `tenant_revoked_at` — `DateTimeField(null=True, blank=True)` — set on revocation,
     cleared on re-engagement; `is_active=False` while revoked
-- [ ] **NEVER hard-delete a `UserProfile`.** Soft-delete only (`is_active = False`).
-- [ ] `post_save` signal on `User` → auto-create `UserProfile`
-- [ ] Auto-populate `display_name` from email:
+- [x] **NEVER hard-delete a `UserProfile`.** Soft-delete only (`is_active = False`).
+- [x] `post_save` signal on `User` → auto-create `UserProfile`
+- [x] Auto-populate `display_name` from email:
   - Take local-part (left of `@`); if it contains `.`, take left of first `.`
   - e.g. `peter.janssens@acme.com` → `peter`
-- [ ] Accept hidden fields `tz_detect` and `lang_detect` on the registration form
+- [x] Accept hidden fields `tz_detect` and `lang_detect` on the registration form
       (populated via JS `Intl.DateTimeFormat().resolvedOptions().timeZone` and
       `navigator.language`) to pre-fill `timezone` and `language`
-- [ ] `UserProfile` is NEVER part of the registration form
-- [ ] Tests: profile auto-created, display_name derivation, signal idempotency,
+- [x] `UserProfile` is NEVER part of the registration form
+- [x] Tests: profile auto-created, display_name derivation, signal idempotency,
       `profile_completed_at` is `None` on creation
 
 ---
 
-### 🔲 Phase 2 — UI Shell: Tailwind, DaisyUI & Base Templates
+### ✅ Phase 2 — UI Shell: Tailwind, DaisyUI & Base Templates (DONE)
 
 **Goal:** All subsequent pages inherit a consistent, themed, accessible base layout.
 
-- [ ] Install Tailwind CSS + DaisyUI (via `django-tailwind` or direct CDN for dev)
-- [ ] Configure DaisyUI themes: `corporate` (light) + `night` (dark); default: follow system
-- [ ] Create `templates/base.html`:
-  - Anti-flash `<script>` in `<head>` before any CSS (see `.clauderules §9`)
+- [x] Install Tailwind CSS + DaisyUI (via `django-tailwind` + CDN for dev — no npm build step)
+- [x] Configure DaisyUI themes: `corporate` (light) + `night` (dark); default: follow system
+- [x] Create `templates/base.html`:
+  - Anti-flash `<script>` in `<head>` before any CSS
   - DaisyUI top navbar (desktop) and bottom navigation / full-screen overlay (mobile)
   - **Desktop navbar:** logo-left / nav-centre / controls-right
-    - Controls: language selector, theme toggle, auth control
+    - Controls: theme toggle, auth control
     - **Unauthenticated auth control:** "Get started" button → login page
-    - **Authenticated auth control:** `display_name` (or email local-part) as DaisyUI
-      dropdown; items: "Profile" → `/profile/`, "Logout" → `/logout/`
-  - **Mobile:** bottom nav / overlay — same options including Profile + Logout in user section
+    - **Authenticated auth control:** `display_name` (or email) as DaisyUI dropdown;
+      items: "Profile" → `/profile/`, "Log out" → `/logout/`
+  - **Mobile:** bottom nav + full-screen DaisyUI modal overlay (hamburger opens it)
   - `<nav>` tag; hamburger with `aria-label="Toggle menu"`
-  - Left-side menu (authenticated only): initially "Dashboard"
-- [ ] Create `config/context_processors.py` → injects `SITE_NAME`, `current_theme` to all templates
-- [ ] Register context processor in `base.py`
-- [ ] Light/dark/system toggle: stores in `localStorage` key `theme`, applies `data-theme` on `<html>`
-- [ ] Create `apps/core/templatetags/tz_tags.py` — custom template filter
-      `{{ value|localtime:request.user.profile.timezone }}` for UTC→local conversion
-- [ ] Skeleton components on form loads and theme switch
-- [ ] Semantic HTML: `<main id="main-content">`, `<header>`, `<footer>`, `<nav>`, `<section>`
-- [ ] **Skip-to-content link** as the first focusable element in `<body>` (visually hidden
-      until focused): `<a href="#main-content" class="sr-only focus:not-sr-only …">Skip to main content</a>`
-- [ ] `<html lang="{{ LANGUAGE_CODE }}">` — dynamic, not hardcoded
-- [ ] Health check endpoint: `GET /health/` → `{"status": "ok", "db": "ok"}`
-- [ ] `apps/pages/` — public homepage (`/`) with a minimal placeholder; used by
-      the cancel-link on the login page and as the unauthenticated landing page
-- [ ] Tests: health check 200, context processor injects vars, timezone filter,
-      skip-link is first focusable element
+  - Left-side sidebar (authenticated only): "Dashboard" + "Profile" links
+- [x] Create `config/context_processors.py` → injects `SITE_NAME`, `current_theme` to all templates
+- [x] Register context processor in `base.py` (`config.context_processors.site_context`)
+- [x] `SITE_NAME` setting added to `base.py` (reads from env, default `"SaaS App"`)
+- [x] Light/dark/system toggle: stores in `localStorage` key `theme`, applies `data-theme` on `<html>`
+- [x] Create `apps/core/templatetags/tz_tags.py` — custom template filter
+      `{{ value|localtime:tz }}` — accepts `core.Timezone` instance or IANA string
+- [x] Semantic HTML: `<main id="main-content">`, `<header>`, `<footer>`, `<nav>`, `<section>`
+- [x] **Skip-to-content link** as the first focusable element in `<body>`:
+      `<a href="#main-content" class="sr-only focus:not-sr-only …">Skip to main content</a>`
+- [x] `<html lang="{{ LANGUAGE_CODE }}">` — dynamic, not hardcoded
+- [x] Health check endpoint: `GET /health/` → `{"status": "ok", "db": "ok"}` (503 if DB down)
+- [x] `apps/pages/` — public homepage (`/`) + authenticated dashboard (`/dashboard/`)
+- [x] `apps/users/urls.py` — stub URL patterns (`users:login`, `users:logout`, `users:profile`)
+      so `base.html` `{% url %}` tags resolve before Phase 3 auth views are built
+- [x] `config/urls.py` — wires `/`, `/dashboard/`, `/health/`, user stubs
+- [x] Tests: health check 200 + JSON body, homepage 200 + base template, skip-link, context
+      processor vars, theme from cookie, dashboard redirects anonymous, dashboard accessible
+      when authenticated, `tz_tags` filter (IANA string, model instance, None, invalid zone)
+- [x] 54 tests total (34 Phase 1 + 20 Phase 2), all passing; ruff clean
 
 ---
 
@@ -492,12 +536,13 @@ These are valid ideas — implement only after Phase 7 is complete:
 ## Running Decisions Log
 
 | Date       | Decision                                                                                     | Outcome                                                                                                                                                                                 |
-| ---------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- | ---------- | --------------------------------------------- | ---------------------------------------------------- |
+| ---------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 2026-02-21 | Chose `psycopg` v3 over `psycopg2`                                                           | Async-ready, actively maintained                                                                                                                                                        |
 | 2026-02-21 | `.clauderules` added for Claude in VS Code                                                   | Hard constraints enforced per-session                                                                                                                                                   |
 | 2026-02-21 | Email as `USERNAME_FIELD`, no username                                                       | Simpler UX, consistent with SaaS expectations                                                                                                                                           |
 | 2026-02-21 | Soft deletes on all major models                                                             | Safe recovery, audit trail, no data loss                                                                                                                                                |
-| 2026-02-21 | `created_by`/`updated_by` opt-in only                                                        | Circular FK risk on `User`; add per-model where needed                                                                                                                                  |     | 2026-02-21 | `UserProfile` as separate OneToOneField model | Keeps User minimal; profile never touches auth forms |
+| 2026-02-21 | `created_by`/`updated_by` are standard in `TimeStampedAuditModel`; `User` is sole exception  | Circular FK risk is `User`-only; every other model's acting user is committed first                                                                                                     |
+| 2026-02-21 | `UserProfile` as separate `OneToOneField` model                                              | Keeps `User` minimal; profile fields never touch auth/registration forms                                                                                                                |
 | 2026-02-21 | `display_name` nullable, derived from email                                                  | Friendly name without forcing input at registration                                                                                                                                     |
 | 2026-02-21 | Store UTC, display in `UserProfile.timezone`                                                 | Single DB truth; `zoneinfo` for conversion                                                                                                                                              |
 | 2026-02-21 | Navbar: display_name dropdown replaces "Leave"                                               | Named user with Profile + Logout dropdown menu                                                                                                                                          |
@@ -518,6 +563,10 @@ These are valid ideas — implement only after Phase 7 is complete:
 | 2026-02-22 | Owner can invite/revoke members via `/settings/members/`                                     | Tenant isolation requires membership management; soft-revoke via `is_active=False` + `tenant_revoked_at`; `tenant` FK never cleared                                                     |
 | 2026-02-22 | Audit actor fields use `UUIDField` not `ForeignKey`                                          | Hybrid integrity: no FK constraint, no implicit index, no circular dep on `User`; service layer owns integrity; index per-model on demand                                               |
 | 2026-02-22 | Three-category model taxonomy: `TenantScopedModel` / `TimeStampedAuditModel` / plain `Model` | Replaces single opt-in base. Circular risk is `User`-only; all other models get full audit trail in base class. `TenantScopedModel` extends `TimeStampedAuditModel` + adds `tenant_id`. |
+| 2026-02-22 | Superuser created; admin verified                                                            | `/admin/` shows all expected sections: Auth & Authorization, Core (Countries/Currencies/Languages/Timezones), Tenants, Users (User profiles/Users). Phase 1 fully operational.          |
+| 2026-02-22 | DaisyUI via CDN for dev; `django-tailwind` installed but no npm build step                   | Keeps dev stack lean; swap CDN for compiled output in Phase 7 prod hardening                                                                                                            |
+| 2026-02-22 | `users:login`, `users:logout`, `users:profile` as `RedirectView` stubs in Phase 2            | Allows `base.html` `{% url %}` tags to resolve and tests to pass before Phase 3 auth views exist                                                                                        |
+| 2026-02-22 | Theme toggle: `corporate` (light) ↔ `night` (dark); `system` resolves at render time via JS  | "system" stored in profile/cookie; JS reads `prefers-color-scheme` on page load to pick the actual DaisyUI theme — no server round-trip needed                                          |
 
 ---
 
