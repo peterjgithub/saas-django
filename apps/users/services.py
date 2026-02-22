@@ -14,6 +14,34 @@ from apps.tenants.models import Tenant
 from apps.users.models import User, UserProfile, derive_display_name
 
 # ---------------------------------------------------------------------------
+# I18N helpers
+# ---------------------------------------------------------------------------
+
+# Map ISO 639-1 alpha-2 language codes (as stored in core.Language.code) to the
+# Django LANGUAGES codes used in this project.  Any unmapped code falls back to "en".
+_LANGUAGE_CODE_MAP: dict[str, str] = {
+    "nl": "nl-be",
+    "fr": "fr-be",
+    "en": "en",
+}
+
+
+def locale_code_for_language(language) -> str:
+    """
+    Return the Django LANGUAGES code for a core.Language instance (or None).
+
+    Examples:
+        Language(code="nl") → "nl-be"
+        Language(code="fr") → "fr-be"
+        Language(code="de") → "en"   (unsupported — fall back to English)
+        None                → "en"
+    """
+    if language is None:
+        return "en"
+    return _LANGUAGE_CODE_MAP.get(language.code, "en")
+
+
+# ---------------------------------------------------------------------------
 # Auth
 # ---------------------------------------------------------------------------
 

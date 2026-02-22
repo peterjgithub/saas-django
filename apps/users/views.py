@@ -16,12 +16,14 @@ Views for the users app — Phase 3.
 
 import uuid
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.translation import activate
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_POST
 
@@ -41,10 +43,38 @@ from apps.users.services import (
     complete_profile,
     create_tenant_for_profile,
     invite_member,
+    locale_code_for_language,
     reengage_member,
     register_user,
     revoke_member,
 )
+
+# ---------------------------------------------------------------------------
+# I18N helpers
+# ---------------------------------------------------------------------------
+
+
+def _apply_language(locale: str, response):
+    """
+    Activate *locale* for the current thread and set the Django language cookie
+    on *response* so LocaleMiddleware picks it up on the next request.
+
+    Django 4+ removed LANGUAGE_SESSION_KEY; the cookie is now the sole
+    persistence mechanism used by get_language_from_request().
+    """
+    activate(locale)
+    response.set_cookie(
+        settings.LANGUAGE_COOKIE_NAME,
+        locale,
+        max_age=settings.LANGUAGE_COOKIE_AGE,
+        path=settings.LANGUAGE_COOKIE_PATH,
+        domain=settings.LANGUAGE_COOKIE_DOMAIN,
+        secure=settings.LANGUAGE_COOKIE_SECURE,
+        httponly=settings.LANGUAGE_COOKIE_HTTPONLY,
+        samesite=settings.LANGUAGE_COOKIE_SAMESITE,
+    )
+    return response
+
 
 # ---------------------------------------------------------------------------
 # Login
@@ -119,7 +149,11 @@ def register_view(request):
                 request.session["lang_detect"] = lang_detect
             if country_detect:
                 request.session["country_detect"] = country_detect
-            return redirect("users:profile_complete")
+            # Set Django locale immediately from browser hint so the very next
+            # page (profile/complete) renders in the user's detected language.
+            lang_obj = user.profile.language  # pre-filled by register_user()
+            locale = locale_code_for_language(lang_obj)
+            return _apply_language(locale, redirect("users:profile_complete"))
     else:
         form = RegisterForm()
 
@@ -194,9 +228,12 @@ def profile_complete_view(request):
                 language_obj=form.cleaned_data.get("language"),
                 country_obj=form.cleaned_data.get("country"),
             )
+            # Sync Django locale to the saved language preference.
+            profile.refresh_from_db()
+            locale = locale_code_for_language(profile.language)
             # Mark that suggestions have been confirmed — hide banner on next visit
             request.session["profile_suggestions_confirmed"] = True
-            return redirect("users:onboarding_create_tenant")
+            return _apply_language(locale, redirect("users:onboarding_create_tenant"))
     else:
         # Build initial data by layering sources lowest → highest priority
         initial = {}
@@ -343,8 +380,11 @@ def profile_view(request):
         form = ProfileSettingsForm(request.POST, instance=profile)
         if form.is_valid():
             form.save()
+            # Sync Django locale to the newly saved language preference.
+            profile.refresh_from_db()
+            locale = locale_code_for_language(profile.language)
             messages.success(request, _("Your profile has been updated."))
-            return redirect("users:profile")
+            return _apply_language(locale, redirect("users:profile"))
     else:
         form = ProfileSettingsForm(instance=profile)
 
