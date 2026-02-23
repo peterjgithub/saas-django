@@ -802,11 +802,11 @@ These are valid ideas — implement only after Phase 7 is complete:
 - [ ] **Audit Logs & Activity Feeds** — timestamped trail of user/tenant actions
 - [ ] **Feature Flags** — soft-launch features to selected tenants/users only
 - [ ] **App logo** — add a `SITE_LOGO` static asset (SVG/PNG); once added, embed it in the
-  invite email header (`invite.html`) above the `<h1>` and alongside the org logo if set.
-  `send_invite_email()` already passes `site_name` to the template context — extend it with
-  `site_logo_url` (absolute URL constructed from `request` or `settings.SITE_URL`).
-  Also render `tenant.logo` (already an `ImageField` on `Tenant`) in the invite email when
-  the tenant has uploaded one — place it below the app logo, before the body copy.
+      invite email header (`invite.html`) above the `<h1>` and alongside the org logo if set.
+      `send_invite_email()` already passes `site_name` to the template context — extend it with
+      `site_logo_url` (absolute URL constructed from `request` or `settings.SITE_URL`).
+      Also render `tenant.logo` (already an `ImageField` on `Tenant`) in the invite email when
+      the tenant has uploaded one — place it below the app logo, before the body copy.
 
 ---
 

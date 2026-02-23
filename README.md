@@ -4,14 +4,14 @@ A multi-tenant SaaS starter built with Django 6, PostgreSQL, and `uv`.
 
 ## Stack
 
-| Layer       | Technology                          |
-| ----------- | ----------------------------------- |
-| Language    | Python 3.14                         |
-| Framework   | Django ≥ 6.0                        |
-| Database    | PostgreSQL (psycopg v3)             |
-| Package mgr | `uv`                                |
-| Linting     | Ruff (DJ + S + B + E + F + I rules) |
-| UI          | Tailwind CSS + DaisyUI 5            |
+| Layer       | Technology                                       |
+| ----------- | ------------------------------------------------ |
+| Language    | Python 3.14                                      |
+| Framework   | Django ≥ 6.0                                     |
+| Database    | PostgreSQL (psycopg v3)                          |
+| Package mgr | `uv`                                             |
+| Linting     | Ruff (DJ + S + B + E + F + I rules)              |
+| UI          | Tailwind CSS + DaisyUI 5                         |
 | I18N        | English (en-us) · Dutch (nl-be) · French (fr-be) |
 
 ## Quick start
