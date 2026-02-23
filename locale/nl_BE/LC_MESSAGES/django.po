@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: saas-django\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-23 00:11+0000\n"
+"POT-Creation-Date: 2026-02-23 00:50+0000\n"
 "PO-Revision-Date: 2026-02-22 18:06+0000\n"
 "Last-Translator: saas-django\n"
 "Language-Team: Dutch (Belgium)\n"
@@ -74,7 +74,7 @@ msgstr "E-mail"
 msgid "you@example.com"
 msgstr "jij@voorbeeld.com"
 
-#: apps/users/forms.py:33 apps/users/forms.py:56 apps/users/forms.py:221
+#: apps/users/forms.py:33 apps/users/forms.py:56 apps/users/forms.py:209
 #: templates/users/login.html:53 templates/users/register.html:43
 msgid "Password"
 msgstr "Wachtwoord"
@@ -126,11 +126,11 @@ msgstr "collega@voorbeeld.com"
 msgid "Logo"
 msgstr "Logo"
 
-#: apps/users/forms.py:231
+#: apps/users/forms.py:219
 msgid "Confirm password"
 msgstr "Wachtwoord bevestigen"
 
-#: apps/users/forms.py:245
+#: apps/users/forms.py:233
 msgid "Passwords do not match."
 msgstr "Wachtwoorden komen niet overeen."
 
@@ -243,11 +243,11 @@ msgstr "gebruikersprofiel"
 msgid "user profiles"
 msgstr "gebruikersprofielen"
 
-#: apps/users/services.py:244
+#: apps/users/services.py:243
 msgid "Admin has no tenant to invite to."
 msgstr "Beheerder heeft geen organisatie om naar uit te nodigen."
 
-#: apps/users/services.py:263
+#: apps/users/services.py:262
 #, python-format
 msgid ""
 "%(email)s already belongs to a workspace. They must register a new account "
@@ -256,84 +256,79 @@ msgstr ""
 "%(email)s behoort al tot een werkruimte. Ze moeten een nieuw account "
 "registreren om bij uw werkruimte te kunnen aansluiten."
 
-#: apps/users/services.py:308
+#: apps/users/services.py:307
 msgid "You cannot revoke your own access."
 msgstr "U kunt uw eigen toegang niet intrekken."
 
-#: apps/users/services.py:310 apps/users/services.py:323
-#: apps/users/services.py:343 apps/users/services.py:367
-#: apps/users/services.py:389
+#: apps/users/services.py:309 apps/users/services.py:322
+#: apps/users/services.py:342 apps/users/services.py:366
 msgid "That member does not belong to your tenant."
 msgstr "Dat lid behoort niet tot uw organisatie."
 
-#: apps/users/services.py:365
+#: apps/users/services.py:364
 msgid "Invalid role."
 msgstr "Ongeldige rol."
 
-#: apps/users/services.py:369
+#: apps/users/services.py:368
 msgid "You cannot remove your own admin role."
 msgstr "U kunt uw eigen beheerdersrol niet verwijderen."
 
-#: apps/users/services.py:387
-msgid "You cannot deactivate your own account."
-msgstr "U kunt uw eigen account niet deactiveren."
-
-#: apps/users/views.py:122
+#: apps/users/views.py:125
 msgid "Incorrect email or password. Please try again."
 msgstr "Onjuist e-mailadres of wachtwoord. Probeer het opnieuw."
 
-#: apps/users/views.py:374
+#: apps/users/views.py:377
 msgid "Your profile has been updated."
 msgstr "Uw profiel is bijgewerkt."
 
-#: apps/users/views.py:444 apps/users/views.py:566
+#: apps/users/views.py:447 apps/users/views.py:569
 #, python-format
 msgid "%(email)s has been added to your workspace."
 msgstr "%(email)s is toegevoegd aan uw werkruimte."
 
-#: apps/users/views.py:466
+#: apps/users/views.py:469
 #, python-format
 msgid "%(email)s has been removed from the workspace."
 msgstr "%(email)s is verwijderd uit de werkruimte."
 
-#: apps/users/views.py:484
+#: apps/users/views.py:487
 #, python-format
 msgid "%(email)s has been re-added to the workspace."
 msgstr "%(email)s is opnieuw toegevoegd aan de werkruimte."
 
-#: apps/users/views.py:584
+#: apps/users/views.py:587
 msgid "Member not found."
 msgstr "Lid niet gevonden."
 
-#: apps/users/views.py:592
+#: apps/users/views.py:595
 #, python-format
 msgid "%(email)s has been promoted to admin."
 msgstr "%(email)s is beheerder gemaakt."
 
-#: apps/users/views.py:604
+#: apps/users/views.py:607
 #, python-format
 msgid "%(email)s is now %(role)s."
 msgstr "%(email)s is nu %(role)s."
 
-#: apps/users/views.py:620
+#: apps/users/views.py:623
 #, python-format
 msgid "%(email)s has been deactivated."
 msgstr "%(email)s is gedeactiveerd."
 
-#: apps/users/views.py:627
+#: apps/users/views.py:630
 #, python-format
 msgid "%(email)s has been activated."
 msgstr "%(email)s is geactiveerd."
 
-#: apps/users/views.py:634
+#: apps/users/views.py:637
 msgid "Unknown action."
 msgstr "Onbekende actie."
 
-#: apps/users/views.py:664
+#: apps/users/views.py:667
 msgid "Organisation settings saved."
 msgstr "Organisatie-instellingen opgeslagen."
 
-#: apps/users/views.py:733
+#: apps/users/views.py:750
 msgid "Welcome! Your account is set up. Complete your profile below."
 msgstr "Welkom! Uw account is aangemaakt. Vul hieronder uw profiel in."
 
@@ -480,20 +475,27 @@ msgstr "U bent uitgenodigd om lid te worden van %(org)s"
 
 #: templates/users/email/invite.html:20
 #, python-format
+#| msgid ""
+#| "\n"
+#| "                  <strong>%(name)s</strong> has invited you to join "
+#| "<strong>%(org)s</strong>.\n"
+#| "                "
 msgid ""
 "\n"
 "                  <strong>%(name)s</strong> has invited you to join "
-"<strong>%(org)s</strong>.\n"
+"<strong>%(org)s</strong> on %(site)s.\n"
 "                "
 msgstr ""
 "\n"
 "                  <strong>%(name)s</strong> heeft u uitgenodigd om lid te "
-"worden van <strong>%(org)s</strong>.\n"
+"worden van <strong>%(org)s</strong> op %(site)s.\n"
 "                "
 
 #: templates/users/email/invite.html:25
 msgid "Click the button below to set your password and complete your profile."
-msgstr "Klik op de knop hieronder om uw wachtwoord in te stellen en uw profiel in te vullen."
+msgstr ""
+"Klik op de knop hieronder om uw wachtwoord in te stellen en uw profiel in te "
+"vullen."
 
 #: templates/users/email/invite.html:33 templates/users/invite_accept.html:4
 #: templates/users/invite_accept.html:11
@@ -502,30 +504,39 @@ msgstr "Uitnodiging accepteren"
 
 #: templates/users/email/invite.html:38 templates/users/email/invite.txt:9
 msgid "This link expires after 7 days and can only be used once."
-msgstr "Deze koppeling vervalt na 7 dagen en kan slechts eenmaal worden gebruikt."
+msgstr ""
+"Deze koppeling vervalt na 7 dagen en kan slechts eenmaal worden gebruikt."
 
 #: templates/users/email/invite.html:39
 msgid ""
 "If the button above doesn't work, copy and paste this URL into your browser:"
-msgstr "Als de knop hierboven niet werkt, kopieer en plak dan deze URL in uw browser:"
+msgstr ""
+"Als de knop hierboven niet werkt, kopieer en plak dan deze URL in uw browser:"
 
 #: templates/users/email/invite.html:46 templates/users/email/invite.txt:11
 msgid ""
 "If you did not expect this invitation, you can safely ignore this email."
-msgstr "Als u deze uitnodiging niet verwachtte, kunt u deze e-mail veilig negeren."
+msgstr ""
+"Als u deze uitnodiging niet verwachtte, kunt u deze e-mail veilig negeren."
 
 #: templates/users/email/invite.txt:1
 #, python-format
+#| msgid ""
+#| "Hi,\n"
+#| "\n"
+#| "%(name)s has invited you to join %(org)s.\n"
+#| "\n"
+#| "Set your password and complete your profile by clicking the link below:\n"
 msgid ""
 "Hi,\n"
 "\n"
-"%(name)s has invited you to join %(org)s.\n"
+"%(name)s has invited you to join %(org)s on %(site)s.\n"
 "\n"
 "Set your password and complete your profile by clicking the link below:\n"
 msgstr ""
 "Hallo,\n"
 "\n"
-"%(name)s heeft u uitgenodigd om lid te worden van %(org)s.\n"
+"%(name)s heeft u uitgenodigd om lid te worden van %(org)s op %(site)s.\n"
 "\n"
 "Stel uw wachtwoord in en vul uw profiel in via de onderstaande koppeling:\n"
 
@@ -895,6 +906,9 @@ msgstr "JIJ"
 #: templates/users/settings_users.html:133
 msgid "No members yet."
 msgstr "Nog geen leden."
+
+#~ msgid "You cannot deactivate your own account."
+#~ msgstr "U kunt uw eigen account niet deactiveren."
 
 #~ msgid "Set as Admin"
 #~ msgstr "Instellen als beheerder"

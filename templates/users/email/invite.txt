@@ -1,6 +1,6 @@
-{% load i18n %}{% autoescape off %}{% blocktrans with name=inviter_name org=organisation %}Hi,
+{% load i18n %}{% autoescape off %}{% blocktrans with name=inviter_name org=organisation site=site_name %}Hi,
 
-{{ name }} has invited you to join {{ org }}.
+{{ name }} has invited you to join {{ org }} on {{ site }}.
 
 Set your password and complete your profile by clicking the link below:
 {% endblocktrans %}

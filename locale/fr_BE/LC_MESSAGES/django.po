@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: saas-django\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-23 00:11+0000\n"
+"POT-Creation-Date: 2026-02-23 00:50+0000\n"
 "PO-Revision-Date: 2026-02-22 18:06+0000\n"
 "Last-Translator: saas-django\n"
 "Language-Team: French (Belgium)\n"
@@ -38,7 +38,8 @@ msgstr "logo"
 
 #: apps/tenants/models.py:25
 msgid "Organisation logo (optional). Displayed in the app header."
-msgstr "Logo de l'organisation (optionnel). Affiché dans l'en-tête de l'application."
+msgstr ""
+"Logo de l'organisation (optionnel). Affiché dans l'en-tête de l'application."
 
 #: apps/tenants/models.py:29 apps/users/models.py:190
 msgid "tenant"
@@ -74,7 +75,7 @@ msgstr "E-mail"
 msgid "you@example.com"
 msgstr "vous@exemple.com"
 
-#: apps/users/forms.py:33 apps/users/forms.py:56 apps/users/forms.py:221
+#: apps/users/forms.py:33 apps/users/forms.py:56 apps/users/forms.py:209
 #: templates/users/login.html:53 templates/users/register.html:43
 msgid "Password"
 msgstr "Mot de passe"
@@ -126,11 +127,11 @@ msgstr "collègue@exemple.com"
 msgid "Logo"
 msgstr "Logo"
 
-#: apps/users/forms.py:231
+#: apps/users/forms.py:219
 msgid "Confirm password"
 msgstr "Confirmer le mot de passe"
 
-#: apps/users/forms.py:245
+#: apps/users/forms.py:233
 msgid "Passwords do not match."
 msgstr "Les mots de passe ne correspondent pas."
 
@@ -243,11 +244,11 @@ msgstr "profil utilisateur"
 msgid "user profiles"
 msgstr "profils utilisateurs"
 
-#: apps/users/services.py:244
+#: apps/users/services.py:243
 msgid "Admin has no tenant to invite to."
 msgstr "L'administrateur n'a pas d'organisation vers laquelle inviter."
 
-#: apps/users/services.py:263
+#: apps/users/services.py:262
 #, python-format
 msgid ""
 "%(email)s already belongs to a workspace. They must register a new account "
@@ -256,84 +257,79 @@ msgstr ""
 "%(email)s appartient déjà à un espace de travail. Cette personne doit créer "
 "un nouveau compte pour rejoindre le vôtre."
 
-#: apps/users/services.py:308
+#: apps/users/services.py:307
 msgid "You cannot revoke your own access."
 msgstr "Vous ne pouvez pas révoquer votre propre accès."
 
-#: apps/users/services.py:310 apps/users/services.py:323
-#: apps/users/services.py:343 apps/users/services.py:367
-#: apps/users/services.py:389
+#: apps/users/services.py:309 apps/users/services.py:322
+#: apps/users/services.py:342 apps/users/services.py:366
 msgid "That member does not belong to your tenant."
 msgstr "Ce membre n'appartient pas à votre organisation."
 
-#: apps/users/services.py:365
+#: apps/users/services.py:364
 msgid "Invalid role."
 msgstr "Rôle invalide."
 
-#: apps/users/services.py:369
+#: apps/users/services.py:368
 msgid "You cannot remove your own admin role."
 msgstr "Vous ne pouvez pas supprimer votre propre rôle d'administrateur."
 
-#: apps/users/services.py:387
-msgid "You cannot deactivate your own account."
-msgstr "Vous ne pouvez pas désactiver votre propre compte."
-
-#: apps/users/views.py:122
+#: apps/users/views.py:125
 msgid "Incorrect email or password. Please try again."
 msgstr "E-mail ou mot de passe incorrect. Veuillez réessayer."
 
-#: apps/users/views.py:374
+#: apps/users/views.py:377
 msgid "Your profile has been updated."
 msgstr "Votre profil a été mis à jour."
 
-#: apps/users/views.py:444 apps/users/views.py:566
+#: apps/users/views.py:447 apps/users/views.py:569
 #, python-format
 msgid "%(email)s has been added to your workspace."
 msgstr "%(email)s a été ajouté à votre espace de travail."
 
-#: apps/users/views.py:466
+#: apps/users/views.py:469
 #, python-format
 msgid "%(email)s has been removed from the workspace."
 msgstr "%(email)s a été supprimé de l'espace de travail."
 
-#: apps/users/views.py:484
+#: apps/users/views.py:487
 #, python-format
 msgid "%(email)s has been re-added to the workspace."
 msgstr "%(email)s a été réajouté à l'espace de travail."
 
-#: apps/users/views.py:584
+#: apps/users/views.py:587
 msgid "Member not found."
 msgstr "Membre introuvable."
 
-#: apps/users/views.py:592
+#: apps/users/views.py:595
 #, python-format
 msgid "%(email)s has been promoted to admin."
 msgstr "%(email)s a été promu administrateur."
 
-#: apps/users/views.py:604
+#: apps/users/views.py:607
 #, python-format
 msgid "%(email)s is now %(role)s."
 msgstr "%(email)s est maintenant %(role)s."
 
-#: apps/users/views.py:620
+#: apps/users/views.py:623
 #, python-format
 msgid "%(email)s has been deactivated."
 msgstr "%(email)s a été désactivé."
 
-#: apps/users/views.py:627
+#: apps/users/views.py:630
 #, python-format
 msgid "%(email)s has been activated."
 msgstr "%(email)s a été activé."
 
-#: apps/users/views.py:634
+#: apps/users/views.py:637
 msgid "Unknown action."
 msgstr "Action inconnue."
 
-#: apps/users/views.py:664
+#: apps/users/views.py:667
 msgid "Organisation settings saved."
 msgstr "Paramètres de l'organisation enregistrés."
 
-#: apps/users/views.py:733
+#: apps/users/views.py:750
 msgid "Welcome! Your account is set up. Complete your profile below."
 msgstr "Bienvenue ! Votre compte est créé. Complétez votre profil ci-dessous."
 
@@ -481,20 +477,27 @@ msgstr "Vous avez été invité(e) à rejoindre %(org)s"
 
 #: templates/users/email/invite.html:20
 #, python-format
+#| msgid ""
+#| "\n"
+#| "                  <strong>%(name)s</strong> has invited you to join "
+#| "<strong>%(org)s</strong>.\n"
+#| "                "
 msgid ""
 "\n"
 "                  <strong>%(name)s</strong> has invited you to join "
-"<strong>%(org)s</strong>.\n"
+"<strong>%(org)s</strong> on %(site)s.\n"
 "                "
 msgstr ""
 "\n"
 "                  <strong>%(name)s</strong> vous a invité(e) à rejoindre "
-"<strong>%(org)s</strong>.\n"
+"<strong>%(org)s</strong> sur %(site)s.\n"
 "                "
 
 #: templates/users/email/invite.html:25
 msgid "Click the button below to set your password and complete your profile."
-msgstr "Cliquez sur le bouton ci-dessous pour définir votre mot de passe et compléter votre profil."
+msgstr ""
+"Cliquez sur le bouton ci-dessous pour définir votre mot de passe et "
+"compléter votre profil."
 
 #: templates/users/email/invite.html:33 templates/users/invite_accept.html:4
 #: templates/users/invite_accept.html:11
@@ -503,32 +506,44 @@ msgstr "Accepter l'invitation"
 
 #: templates/users/email/invite.html:38 templates/users/email/invite.txt:9
 msgid "This link expires after 7 days and can only be used once."
-msgstr "Ce lien expire après 7 jours et ne peut être utilisé qu'une seule fois."
+msgstr ""
+"Ce lien expire après 7 jours et ne peut être utilisé qu'une seule fois."
 
 #: templates/users/email/invite.html:39
 msgid ""
 "If the button above doesn't work, copy and paste this URL into your browser:"
-msgstr "Si le bouton ci-dessus ne fonctionne pas, copiez et collez cette URL dans votre navigateur :"
+msgstr ""
+"Si le bouton ci-dessus ne fonctionne pas, copiez et collez cette URL dans "
+"votre navigateur :"
 
 #: templates/users/email/invite.html:46 templates/users/email/invite.txt:11
 msgid ""
 "If you did not expect this invitation, you can safely ignore this email."
-msgstr "Si vous n'attendiez pas cette invitation, vous pouvez ignorer cet e-mail en toute sécurité."
+msgstr ""
+"Si vous n'attendiez pas cette invitation, vous pouvez ignorer cet e-mail en "
+"toute sécurité."
 
 #: templates/users/email/invite.txt:1
 #, python-format
+#| msgid ""
+#| "Hi,\n"
+#| "\n"
+#| "%(name)s has invited you to join %(org)s.\n"
+#| "\n"
+#| "Set your password and complete your profile by clicking the link below:\n"
 msgid ""
 "Hi,\n"
 "\n"
-"%(name)s has invited you to join %(org)s.\n"
+"%(name)s has invited you to join %(org)s on %(site)s.\n"
 "\n"
 "Set your password and complete your profile by clicking the link below:\n"
 msgstr ""
 "Bonjour,\n"
 "\n"
-"%(name)s vous a invité(e) à rejoindre %(org)s.\n"
+"%(name)s vous a invité(e) à rejoindre %(org)s sur %(site)s.\n"
 "\n"
-"Définissez votre mot de passe et complétez votre profil en cliquant sur le lien ci-dessous :\n"
+"Définissez votre mot de passe et complétez votre profil en cliquant sur le "
+"lien ci-dessous :\n"
 
 #: templates/users/invite_accept.html:13
 msgid "Set a password for your account to get started."
@@ -572,7 +587,9 @@ msgstr "Ce lien d'invitation est invalide ou a expiré."
 
 #: templates/users/invite_invalid.html:14
 msgid "Please ask the workspace admin to send you a new invitation."
-msgstr "Veuillez demander à l'administrateur de l'espace de travail de vous envoyer une nouvelle invitation."
+msgstr ""
+"Veuillez demander à l'administrateur de l'espace de travail de vous envoyer "
+"une nouvelle invitation."
 
 #: templates/users/invite_invalid.html:18
 msgid "Go to login"
@@ -903,6 +920,9 @@ msgstr "VOUS"
 #: templates/users/settings_users.html:133
 msgid "No members yet."
 msgstr "Aucun membre pour l'instant."
+
+#~ msgid "You cannot deactivate your own account."
+#~ msgstr "Vous ne pouvez pas désactiver votre propre compte."
 
 #~ msgid "Set as Admin"
 #~ msgstr "Définir comme administrateur"

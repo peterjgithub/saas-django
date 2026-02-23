@@ -68,12 +68,15 @@ def send_invite_email(user: User, admin_profile: UserProfile, base_url: str) -> 
     The email contains a signed link to /invite/accept/<uid>/<token>/ where
     the invited user can set their password and complete their profile.
     """
+    from django.conf import settings as django_settings
+
     link = make_invite_link(user, base_url)
     context = {
         "invite_link": link,
         "organisation": admin_profile.tenant.organization,
         "inviter_name": admin_profile.display_name or admin_profile.user.email,
         "invitee_email": user.email,
+        "site_name": getattr(django_settings, "SITE_NAME", "SaaS App"),
     }
     subject = render_to_string("users/email/invite_subject.txt", context).strip()
     body_txt = render_to_string("users/email/invite.txt", context)
