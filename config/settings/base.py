@@ -31,6 +31,13 @@ environ.Env.read_env(BASE_DIR / ".env")
 
 SECRET_KEY = env("SECRET_KEY")
 
+# ---------------------------------------------------------------------------
+# Email
+# ---------------------------------------------------------------------------
+
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@example.com")
+SERVER_EMAIL = env("SERVER_EMAIL", default="noreply@example.com")
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
