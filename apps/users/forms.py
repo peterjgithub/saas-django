@@ -8,6 +8,7 @@ Forms for the users app.
 - ProfileSettingsForm — full profile preferences
 - InviteMemberForm  — admin invites by email
 - OrgSettingsForm   — organisation name + logo (settings > general)
+- InviteAcceptForm  — invited user sets their password via the accept link
 """
 
 from django import forms
@@ -204,4 +205,42 @@ __all__ = [
     "ProfileSettingsForm",
     "InviteMemberForm",
     "OrgSettingsForm",
+    "InviteAcceptForm",
 ]
+
+
+class InviteAcceptForm(forms.Form):
+    """
+    Presented to an invited user when they follow their invite link.
+
+    Only collects a password (the email is already known and shown read-only).
+    Both fields use password-manager-friendly autocomplete attributes.
+    """
+
+    password = forms.CharField(
+        label=_("Password"),
+        widget=forms.PasswordInput(
+            attrs={
+                "autocomplete": "new-password",
+                "class": "input w-full text-base",
+            }
+        ),
+        min_length=8,
+    )
+    confirm_password = forms.CharField(
+        label=_("Confirm password"),
+        widget=forms.PasswordInput(
+            attrs={
+                "autocomplete": "new-password",
+                "class": "input w-full text-base",
+            }
+        ),
+    )
+
+    def clean(self):
+        cleaned = super().clean()
+        pw = cleaned.get("password")
+        pw2 = cleaned.get("confirm_password")
+        if pw and pw2 and pw != pw2:
+            raise forms.ValidationError(_("Passwords do not match."))
+        return cleaned

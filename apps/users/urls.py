@@ -42,4 +42,10 @@ urlpatterns = [
     path("settings/users/", views.settings_users_view, name="settings_users"),
     path("settings/general/", views.settings_general_view, name="settings_general"),
     path("settings/billing/", views.settings_billing_view, name="settings_billing"),
+    # Invite accept (unauthenticated — signed token link from email)
+    path(
+        "invite/accept/<str:uidb64>/<str:token>/",
+        views.invite_accept_view,
+        name="invite_accept",
+    ),
 ]

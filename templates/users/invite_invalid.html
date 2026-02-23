@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Invalid invitation link" %} — {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center px-4 py-12">
+  <div class="w-full max-w-md text-center">
+    <div class="card bg-base-100 shadow-lg">
+      <div class="card-body gap-4">
+        <h1 class="card-title text-2xl justify-center">{% trans "Invalid invitation link" %}</h1>
+        <p class="opacity-70">
+          {% trans "This invitation link is invalid or has expired." %}
+          {% trans "Please ask the workspace admin to send you a new invitation." %}
+        </p>
+        <div class="card-actions justify-center mt-2">
+          <a href="{% url 'users:login' %}" class="btn btn-primary min-h-[44px]">
+            {% trans "Go to login" %}
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% load i18n %}{% autoescape off %}{% blocktrans with name=inviter_name org=organisation %}Hi,
+
+{{ name }} has invited you to join {{ org }}.
+
+Set your password and complete your profile by clicking the link below:
+{% endblocktrans %}
+{{ invite_link }}
+
+{% trans "This link expires after 7 days and can only be used once." %}
+
+{% blocktrans %}If you did not expect this invitation, you can safely ignore this email.{% endblocktrans %}
+{% endautoescape %}

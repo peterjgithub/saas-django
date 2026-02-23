@@ -6,12 +6,87 @@ Each function takes explicit arguments; no request objects passed in.
 """
 
 from django.contrib.auth import authenticate
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
 from django.utils import timezone
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.models import Country, Language, Timezone
 from apps.tenants.models import Tenant
 from apps.users.models import User, UserProfile, derive_display_name
+
+# ---------------------------------------------------------------------------
+# Invite token
+# ---------------------------------------------------------------------------
+
+
+class InviteTokenGenerator(PasswordResetTokenGenerator):
+    """
+    Token generator for workspace invitations.
+
+    Derived from PasswordResetTokenGenerator so the token is automatically
+    invalidated once the invited user sets a password (the hash changes).
+    We additionally include is_active in the hash so a revoked user's token
+    is invalidated immediately.
+    """
+
+    def _make_hash_value(self, user, timestamp):
+        return super()._make_hash_value(user, timestamp) + str(user.is_active)
+
+
+invite_token_generator = InviteTokenGenerator()
+
+
+def make_invite_link(user: User, base_url: str) -> str:
+    """Return the full accept-invite URL for *user*."""
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = invite_token_generator.make_token(user)
+    return f"{base_url}/invite/accept/{uid}/{token}/"
+
+
+def get_user_from_invite_link(uidb64: str, token: str) -> User | None:
+    """
+    Validate *uidb64* + *token* and return the User, or None if invalid/expired.
+    """
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except User.DoesNotExist, ValueError, TypeError, OverflowError:
+        return None
+    if invite_token_generator.check_token(user, token):
+        return user
+    return None
+
+
+def send_invite_email(user: User, admin_profile: UserProfile, base_url: str) -> None:
+    """
+    Send a workspace invitation email to *user*.
+
+    The email contains a signed link to /invite/accept/<uid>/<token>/ where
+    the invited user can set their password and complete their profile.
+    """
+    link = make_invite_link(user, base_url)
+    context = {
+        "invite_link": link,
+        "organisation": admin_profile.tenant.organization,
+        "inviter_name": admin_profile.display_name or admin_profile.user.email,
+        "invitee_email": user.email,
+    }
+    subject = render_to_string("users/email/invite_subject.txt", context).strip()
+    body_txt = render_to_string("users/email/invite.txt", context)
+    body_html = render_to_string("users/email/invite.html", context)
+    send_mail(
+        subject=subject,
+        message=body_txt,
+        from_email=None,  # uses DEFAULT_FROM_EMAIL from settings
+        recipient_list=[user.email],
+        html_message=body_html,
+        fail_silently=False,
+    )
+
 
 # ---------------------------------------------------------------------------
 # I18N helpers
@@ -148,14 +223,17 @@ def create_tenant_for_profile(profile: UserProfile, organization: str) -> Tenant
 # ---------------------------------------------------------------------------
 
 
-def invite_member(admin_profile: UserProfile, email: str) -> UserProfile:
+def invite_member(
+    admin_profile: UserProfile, email: str, base_url: str = ""
+) -> UserProfile:
     """
     Invite a user to the admin's tenant.
 
     - If no User exists for this email, create one with an unusable password
-      (they must use password-reset to set their password).
+      (they must use the invite link to set their password).
     - The invited user's profile must have tenant=None (no second workspace).
     - Sets profile.tenant, role=member, tenant_joined_at=now(), is_active=True.
+    - Sends an invitation email with a signed accept link (when base_url is given).
     - Raises ValueError on constraint violations.
     """
     if not admin_profile.tenant:
@@ -202,6 +280,15 @@ def invite_member(admin_profile: UserProfile, email: str) -> UserProfile:
             "deleted_at",
         ]
     )
+
+    # Send the invitation email if a base_url was supplied.
+    if base_url:
+        send_invite_email(
+            user=user,
+            admin_profile=admin_profile,
+            base_url=base_url,
+        )
+
     return member_profile
 
 
@@ -315,4 +402,7 @@ __all__ = [
     "promote_to_admin",
     "set_member_role",
     "deactivate_member",
+    "invite_token_generator",
+    "get_user_from_invite_link",
+    "send_invite_email",
 ]

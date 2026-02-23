@@ -16,6 +16,7 @@ Views for the users app — Phase 3.
 - settings_users_view       GET/POST /settings/users/
 - settings_general_view     GET/POST /settings/general/
 - settings_billing_view     GET      /settings/billing/
+- invite_accept_view        GET/POST /invite/accept/<uidb64>/<token>/
 """
 
 import logging
@@ -34,6 +35,7 @@ from django.views.decorators.http import require_POST
 
 from apps.core.models import Country, Timezone
 from apps.users.forms import (
+    InviteAcceptForm,
     InviteMemberForm,
     LoginForm,
     OrgSettingsForm,
@@ -49,6 +51,7 @@ from apps.users.services import (
     complete_profile,
     create_tenant_for_profile,
     deactivate_member,
+    get_user_from_invite_link,
     invite_member,
     locale_code_for_language,
     promote_to_admin,
@@ -548,7 +551,11 @@ def settings_users_view(request):
             if form.is_valid():
                 email = form.cleaned_data["email"]
                 try:
-                    invite_member(admin_profile=admin_profile, email=email)
+                    invite_member(
+                        admin_profile=admin_profile,
+                        email=email,
+                        base_url=request.build_absolute_uri("/").rstrip("/"),
+                    )
                     logger.info(
                         "settings: invitation sent to %s by %s",
                         email,
@@ -678,4 +685,59 @@ def settings_billing_view(request):
         request,
         "users/settings_billing.html",
         {"active_tab": "billing"},
+    )
+
+
+# ---------------------------------------------------------------------------
+# Invite accept
+# ---------------------------------------------------------------------------
+
+
+def invite_accept_view(request, uidb64: str, token: str):
+    """
+    GET  /invite/accept/<uidb64>/<token>/
+         Validate the invite token and show the set-password form.
+
+    POST /invite/accept/<uidb64>/<token>/
+         Set the user's password, mark profile_completed_at, log them in,
+         then redirect to /profile/ for further profile completion.
+         No tenant onboarding — the invited user is already in a tenant.
+    """
+    user = get_user_from_invite_link(uidb64, token)
+
+    if user is None:
+        return render(request, "users/invite_invalid.html", status=400)
+
+    # If the user already has a usable password the token is consumed — redirect
+    # to login so they don't accidentally reset a working account.
+    if user.has_usable_password():
+        return render(request, "users/invite_already_accepted.html", status=200)
+
+    if request.method == "POST":
+        form = InviteAcceptForm(request.POST)
+        if form.is_valid():
+            user.set_password(form.cleaned_data["password"])
+            user.save(update_fields=["password"])
+
+            # Mark profile as complete so the onboarding gate is bypassed.
+            profile: "UserProfile" = user.profile  # type: ignore[annotation-unchecked]
+            if not profile.profile_completed_at:
+                from django.utils import timezone as tz
+
+                profile.profile_completed_at = tz.now()
+                profile.save(update_fields=["profile_completed_at"])
+
+            login(request, user)
+            messages.success(
+                request,
+                _("Welcome! Your account is set up. Complete your profile below."),
+            )
+            return redirect("users:profile")
+    else:
+        form = InviteAcceptForm()
+
+    return render(
+        request,
+        "users/invite_accept.html",
+        {"form": form, "email": user.email},
     )

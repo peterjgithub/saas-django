@@ -41,8 +41,8 @@ _ALWAYS_EXEMPT = {
 def _is_exempt(path: str) -> bool:
     if path in _ALWAYS_EXEMPT:
         return True
-    # Allow any URL under /admin/
-    if path.startswith("/admin/"):
+    # Allow any URL under /admin/ or /invite/
+    if path.startswith("/admin/") or path.startswith("/invite/"):
         return True
     # Allow custom exempt list from settings
     extra: list[str] = getattr(settings, "PROFILE_GATE_EXEMPT_URLS", [])

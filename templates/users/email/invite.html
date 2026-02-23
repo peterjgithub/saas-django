@@ -1,0 +1,55 @@
+{% load i18n %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% blocktrans with org=organisation %}You've been invited to join {{ org }}{% endblocktrans %}</title>
+</head>
+<body style="font-family: sans-serif; background: #f9fafb; margin: 0; padding: 32px;">
+  <table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td align="center">
+        <table width="560" cellpadding="0" cellspacing="0"
+               style="background: #ffffff; border-radius: 8px; padding: 40px; border: 1px solid #e5e7eb;">
+          <tr>
+            <td>
+              <h1 style="font-size: 22px; color: #111827; margin-top: 0;">
+                {% blocktrans with org=organisation %}You've been invited to join {{ org }}{% endblocktrans %}
+              </h1>
+              <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                {% blocktrans with name=inviter_name org=organisation %}
+                  <strong>{{ name }}</strong> has invited you to join <strong>{{ org }}</strong>.
+                {% endblocktrans %}
+              </p>
+              <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                {% trans "Click the button below to set your password and complete your profile." %}
+              </p>
+
+              <div style="text-align: center; margin: 32px 0;">
+                <a href="{{ invite_link }}"
+                   style="display: inline-block; background: #4f46e5; color: #ffffff;
+                          text-decoration: none; padding: 14px 32px; border-radius: 6px;
+                          font-size: 15px; font-weight: 600;">
+                  {% trans "Accept invitation" %}
+                </a>
+              </div>
+
+              <p style="color: #6b7280; font-size: 13px; line-height: 1.5;">
+                {% trans "This link expires after 7 days and can only be used once." %}
+                {% trans "If the button above doesn't work, copy and paste this URL into your browser:" %}
+              </p>
+              <p style="word-break: break-all; font-size: 13px; color: #4f46e5;">
+                {{ invite_link }}
+              </p>
+              <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
+              <p style="color: #9ca3af; font-size: 12px;">
+                {% trans "If you did not expect this invitation, you can safely ignore this email." %}
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
