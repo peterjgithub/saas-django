@@ -78,6 +78,8 @@
 | 54  | `Tenant.logo` uses `ImageField` with `upload_to="tenant_logos/"` — Pillow required              | Pillow validates image integrity on upload. Dev media served via `static()` helper; production serving via CDN/S3 deferred to Phase 7. `logo` is nullable — existing tenants are not required to upload one.                                                                                                              |
 | 55  | Settings link in sidebar visible only to `role == "admin" and tenant_id` profiles               | Regular `member` users have no settings they can change in this area. Guards in templates use `user.profile.role == "admin" and user.profile.tenant_id`. The view layer enforces 403 via `_require_admin()` regardless of template visibility.                                                                            |
 | 56  | "Admin" renamed to "Django Admin" in sidebar and mobile overlay                                 | The app now has its own "Settings" link for product admin. "Admin" was ambiguous — "Django Admin" makes it clear this is the Django /admin/ interface, visible to `is_staff` users only. Distinguishes from the product-level "Settings" link.                                                                            |
+| 57  | `deactivate_member` delegates to `revoke_member` — no duplicate logic                          | Both operations are identical (set `is_active=False`, `tenant_revoked_at=now()`, `deleted_by=admin.pk`). Two names exist only so the Settings > Users UI can use "Deactivate" while the legacy `/settings/members/` endpoint keeps "Revoke". `deactivate_member` is a thin wrapper; all validation lives in `revoke_member`. |
+| 58  | Invite email accept flow: `InviteTokenGenerator` + signed URL + password-set form              | `InviteTokenGenerator` extends `PasswordResetTokenGenerator`; token auto-invalidates when the user sets a password (password hash in HMAC). Invited user starts with unusable password; accept page sets password, stamps `profile_completed_at`, logs in, redirects to `/profile/`. No tenant onboarding step — invited users are already in a tenant. Token re-use is blocked by the `has_usable_password()` guard and the HMAC change. |
 
 ---
 
@@ -743,6 +745,25 @@ context_processors` in `config/settings/base.py`.
 - [x] `SettingsGeneralViewTest` — admin 200; member 403; save name; empty name error; logo upload
 - [x] `SettingsBillingViewTest` — admin 200; member 403; "coming soon" text present
 - [x] 143 tests total (122 Phase 1–4 + 21 Phase 5), all passing; ruff clean
+
+#### Post-Phase 5 invite email flow (committed after Phase 5)
+
+- [x] **`InviteTokenGenerator`** — extends `PasswordResetTokenGenerator`; HMAC includes password hash + `is_active`; token auto-invalidates when the user sets a password
+- [x] **`make_invite_link()` / `get_user_from_invite_link()`** — helpers in `services.py`
+- [x] **`send_invite_email()`** — renders `users/email/invite_subject.txt`, `invite.txt`, `invite.html`; called by `invite_member()` when `base_url` is provided
+- [x] **`invite_member()` extended** — accepts `base_url: str = ""`; sends email if set
+- [x] **`InviteAcceptForm`** — password + confirm_password, min 8 chars, `clean()` checks equality
+- [x] **`invite_accept_view`** — GET validates token; POST sets password, stamps `profile_completed_at`, calls `login()`, redirects to `/profile/`; no tenant onboarding (already in tenant)
+- [x] **URL:** `/invite/accept/<uidb64>/<token>/` — exempt from `ProfileCompleteMiddleware` via `/invite/` prefix check
+- [x] **Email templates:** `templates/users/email/invite_subject.txt`, `invite.txt`, `invite.html`
+- [x] **UI templates:** `invite_accept.html`, `invite_invalid.html`, `invite_already_accepted.html`
+- [x] **nl_BE + fr_BE translations** for all new strings; `compilemessages` run
+- [x] **`deactivate_member` refactored** — delegates to `revoke_member` (was duplicate logic)
+- [x] **3× Python 2 except syntax fixed** — `except A, B:` → `except (A, B):`
+- [x] **`set_theme_view` fix** — removed `updated_at` from `update_fields` (redundant with `auto_now`)
+- [x] **`InviteAcceptAccessTest`** — 2 new tests (unauthenticated GET; authenticated POST)
+- [x] **`SettingsUsersInviteTest`** — decorated with `@override_settings(EMAIL_BACKEND=locmem)`
+- [x] 168 tests total, all passing; ruff clean
 
 ---
 

@@ -8,10 +8,10 @@ Views for the users app — Phase 3.
 - onboarding_tenant         GET/POST /onboarding/create-tenant/
 - profile_view              GET/POST /profile/
 - account_revoked_view      GET      /account/revoked/
-- members_view              GET      /settings/members/  (legacy)
-- invite_member_view        POST     /settings/members/invite/
-- revoke_member_view        POST     /settings/members/revoke/<uuid>/
-- reengage_member_view      POST     /settings/members/reengage/<uuid>/
+- members_view              GET      /settings/members/          (legacy)
+- invite_member_view        POST     /settings/members/invite/   (legacy)
+- revoke_member_view        POST     /settings/members/revoke/<uuid>/   (legacy)
+- reengage_member_view      POST     /settings/members/reengage/<uuid>/ (legacy)
 - settings_redirect_view    GET      /settings/
 - settings_users_view       GET/POST /settings/users/
 - settings_general_view     GET/POST /settings/general/
@@ -29,6 +29,9 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode
 from django.utils.translation import activate
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_POST
@@ -45,7 +48,7 @@ from apps.users.forms import (
     TenantCreateForm,
 )
 from apps.users.geo import country_code_from_timezone, get_client_ip, lookup_from_ip
-from apps.users.models import UserProfile
+from apps.users.models import User, UserProfile
 from apps.users.services import (
     authenticate_user,
     complete_profile,
@@ -511,7 +514,7 @@ def set_theme_view(request):
     if request.user.is_authenticated:
         profile = request.user.profile
         profile.theme = theme
-        profile.save(update_fields=["theme", "updated_at"])
+        profile.save(update_fields=["theme"])
         return JsonResponse({"ok": True, "theme": theme})
 
     # Unauthenticated — nothing to persist server-side; the client uses localStorage.
@@ -702,14 +705,30 @@ def invite_accept_view(request, uidb64: str, token: str):
          Set the user's password, mark profile_completed_at, log them in,
          then redirect to /profile/ for further profile completion.
          No tenant onboarding — the invited user is already in a tenant.
+
+    Token design note: InviteTokenGenerator includes the password hash in its
+    HMAC, so any password change invalidates the token.  When the token is
+    invalid we still try to decode the uid and check has_usable_password() so
+    we can show the friendlier "already accepted" page instead of the generic
+    "invalid link" page when the user has already set their password.
     """
     user = get_user_from_invite_link(uidb64, token)
 
     if user is None:
+        # Token is invalid or expired.  Decode the uid independently to check
+        # whether the user already has a password — if so, show the friendlier
+        # "already accepted" page rather than the generic invalid-link page.
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            candidate = User.objects.get(pk=uid)
+        except Exception:  # noqa: BLE001
+            candidate = None
+
+        if candidate is not None and candidate.has_usable_password():
+            return render(request, "users/invite_already_accepted.html", status=200)
         return render(request, "users/invite_invalid.html", status=400)
 
-    # If the user already has a usable password the token is consumed — redirect
-    # to login so they don't accidentally reset a working account.
+    # Token is valid but the user somehow already has a usable password — guard.
     if user.has_usable_password():
         return render(request, "users/invite_already_accepted.html", status=200)
 
@@ -722,9 +741,7 @@ def invite_accept_view(request, uidb64: str, token: str):
             # Mark profile as complete so the onboarding gate is bypassed.
             profile: "UserProfile" = user.profile  # type: ignore[annotation-unchecked]
             if not profile.profile_completed_at:
-                from django.utils import timezone as tz
-
-                profile.profile_completed_at = tz.now()
+                profile.profile_completed_at = timezone.now()
                 profile.save(update_fields=["profile_completed_at"])
 
             login(request, user)

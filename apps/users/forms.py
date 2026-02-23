@@ -197,18 +197,6 @@ class OrgSettingsForm(forms.ModelForm):
         )
 
 
-__all__ = [
-    "LoginForm",
-    "RegisterForm",
-    "ProfileCompleteForm",
-    "TenantCreateForm",
-    "ProfileSettingsForm",
-    "InviteMemberForm",
-    "OrgSettingsForm",
-    "InviteAcceptForm",
-]
-
-
 class InviteAcceptForm(forms.Form):
     """
     Presented to an invited user when they follow their invite link.
@@ -244,3 +232,15 @@ class InviteAcceptForm(forms.Form):
         if pw and pw2 and pw != pw2:
             raise forms.ValidationError(_("Passwords do not match."))
         return cleaned
+
+
+__all__ = [
+    "LoginForm",
+    "RegisterForm",
+    "ProfileCompleteForm",
+    "TenantCreateForm",
+    "ProfileSettingsForm",
+    "InviteMemberForm",
+    "OrgSettingsForm",
+    "InviteAcceptForm",
+]

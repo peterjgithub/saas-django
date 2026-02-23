@@ -9,7 +9,7 @@ Covers:
 """
 
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -97,6 +97,7 @@ class SettingsUsersAccessTest(TestCase):
 # ---------------------------------------------------------------------------
 
 
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
 class SettingsUsersInviteTest(TestCase):
     def setUp(self):
         self.admin, self.tenant = _make_admin()

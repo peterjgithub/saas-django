@@ -385,8 +385,8 @@ class Tenant(TimeStampedAuditModel):
 | Anonymised (future) | `False`     | set                 | set          | set (unchanged) |
 
 **Owner constraint:** The admin of a tenant cannot revoke themselves.
-Enforced at the service layer — `services.revoke_member()` raises if
-`profile.user == request.user`.
+Enforced at the service layer — `services.revoke_member()` raises `ValueError` if
+`admin_profile.pk == target_profile.pk`.
 
 **Member management UI** lives at `/settings/members/` — `admin`-only (403 for members).
 Queries: `UserProfile.objects.filter(tenant=request.user.profile.tenant)`.

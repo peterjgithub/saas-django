@@ -47,7 +47,7 @@ Key rules summary (full detail in `.clauderules`):
 - Registration success → `/profile/complete/` (two-step onboarding: profile → tenant)
 - "Do this later" sets `session["skip_profile_gate"]` — does NOT permanently complete profile
 - Step 2 (workspace creation) cannot be skipped — minimum requirement for app access
-- Workspace creator gets `role="admin"` on their `UserProfile` — can invite/revoke members at `/settings/members/`
+- Workspace creator gets `role="admin"` on their `UserProfile` — can invite/revoke members at `/settings/users/`
 - Admin cannot self-revoke; revoking sets `UserProfile.is_active = False` + `tenant_revoked_at = now()` (soft-revoke); `tenant` FK is never cleared
 - I18N: `en-us` + `nl-be` + `fr-be`; wrap all strings in `trans` template tag / `_()`
 - Locale directories are `locale/nl/` and `locale/fr/` (intentionally empty neutral bases) + `locale/nl_BE/` and `locale/fr_BE/` (Belgian overrides — all project translations); `LANGUAGES` codes `"nl-be"`/`"fr-be"` trigger Django's `nl_BE → nl` fallback chain automatically
@@ -70,10 +70,12 @@ Key rules summary (full detail in `.clauderules`):
 - **Top-right dropdown (authenticated):** `display_name` → Profile + Logout **only** — Admin link is **not** in this dropdown
 - `admin.site.site_url = "/dashboard/"` set in `config/urls.py` (one-liner before `urlpatterns`) — no custom `AdminSite` subclass needed
 - **Theme toggle:** 3-state cycle `corporate → night → system`; `localStorage` key `theme` always stores the logical pref; for authenticated users the current theme (from `UserProfile.theme`) is injected server-side into the anti-flash script so a fresh browser/incognito gets the right theme on first paint; `POST /theme/set/` (`users:set_theme`) persists preference to DB for authenticated users
-- **Profile form fields:** `display_name`, `timezone`, `country`, `currency`, `theme`, `marketing_emails` — language is switched via the navbar, **not** the profile form
+- **Profile form fields:** `display_name`, `timezone`, `country`, `theme`, `marketing_emails` — language is switched via the navbar, **not** the profile form; `currency` is **not** on `UserProfile` (it belongs on `Tenant`, deferred to Phase 6)
 - **Onboarding step 1 fields:** `display_name` (optional), `timezone` (optional), `country` (optional) — no language field, no avatar upload
 - **`except (A, B):` tuple syntax always** — never `except A, B:` (that is Python 2 and silently catches only `A`)
 - **After completing each phase** (tests passing, ruff clean): `git add -A && git commit -m "feat: Phase N — <summary>" && git push` — do not wait to be asked
 - **Always propose before changing.** Before any non-trivial edit (refactor, architecture change, multi-file change), present a summary of what will change and why, and wait for explicit approval. Trivial single-line fixes may be applied directly.
 - **English only in all documentation and instructions.** All code comments, docstrings, `.md` files, commit messages, and AI instruction files must be in English. The product UI is translated; the codebase is English-only.
 - **Language prefix in URLs (`i18n_patterns`) deferred — add only when a public CMS is introduced.** All current routes are auth-gated SaaS pages with no SEO value; cookie-based locale (`django_language`) is sufficient. When a headless CMS or public marketing section is added, wrap those routes in `i18n_patterns` (with `prefix_default_language=False`) and add `hreflang` tags. App routes stay prefix-free.
+- **`deactivate_member` delegates to `revoke_member`** — they are identical; two names exist only for UI label clarity (Settings UI uses "Deactivate"; legacy endpoint uses "Revoke"). All validation logic lives in `revoke_member` only.
+- **Invite email accept flow:** `InviteTokenGenerator` (subclass of `PasswordResetTokenGenerator`) issues a signed URL `/invite/accept/<uidb64>/<token>/`; token invalidates on password change; invited user sets password on accept page, gets logged in, redirected to `/profile/`; exempt from `ProfileCompleteMiddleware` via `/invite/` prefix.

@@ -219,11 +219,14 @@ class InviteAcceptInvalidTokenTest(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 400)
 
-    def test_expired_token_returns_400(self):
+    def test_expired_token_returns_already_accepted(self):
         """
         Simulate a used/expired token by setting the user's password after
         the token is generated.  The token generator includes the password
         hash in its HMAC, so any password change invalidates the token.
+        Once the password is set has_usable_password() is True, so the view
+        returns the already-accepted page (200) rather than the invalid page (400).
+        Both outcomes confirm re-use is blocked; the 200 path is deterministic here.
         """
         uid = urlsafe_base64_encode(force_bytes(self.user.pk))
         token = invite_token_generator.make_token(self.user)
@@ -235,10 +238,9 @@ class InviteAcceptInvalidTokenTest(TestCase):
             kwargs={"uidb64": uid, "token": token},
         )
         response = self.client.get(url)
-        # Token is now invalid (password hash changed) → 400, but since the
-        # user now *has* a usable password the view returns the already-accepted
-        # page (200) instead.  Both outcomes confirm re-use is blocked.
-        self.assertIn(response.status_code, [200, 400])
+        # has_usable_password() is now True → already-accepted page (200).
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "users/invite_already_accepted.html")
 
 
 # ---------------------------------------------------------------------------
@@ -273,3 +275,38 @@ class InviteAcceptAlreadyAcceptedTest(TestCase):
     def test_already_accepted_renders_correct_template(self):
         response = self.client.get(self.url)
         self.assertTemplateUsed(response, "users/invite_already_accepted.html")
+
+
+# ---------------------------------------------------------------------------
+# GET — unauthenticated access + authenticated accept
+# ---------------------------------------------------------------------------
+
+
+class InviteAcceptAccessTest(TestCase):
+    """Verify the invite URL is accessible without a session (public URL)."""
+
+    def setUp(self):
+        _, self.tenant = _make_admin()
+        self.user = _make_invited_user(self.tenant)
+        self.url = _accept_url(self.user)
+
+    def test_unauthenticated_user_can_get_accept_url(self):
+        """The accept URL must be reachable without being logged in."""
+        # Ensure no session is active.
+        self.client.logout()
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "users/invite_accept.html")
+
+    def test_authenticated_user_can_accept_invite(self):
+        """
+        An already-authenticated admin (e.g. testing their own invite link) can
+        still POST the form successfully — the view does not block authenticated users.
+        """
+        admin_user, _ = _make_admin(email="admin2@invite.com")
+        self.client.force_login(admin_user)
+        response = self.client.post(
+            self.url, {"password": "newpass99!", "confirm_password": "newpass99!"}
+        )
+        # Successful accept redirects to /profile/.
+        self.assertRedirects(response, reverse("users:profile"))

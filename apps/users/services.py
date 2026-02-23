@@ -374,20 +374,12 @@ def deactivate_member(admin_profile: UserProfile, target_profile: UserProfile) -
     """
     Deactivate a member account (soft-revoke: profile.is_active = False).
 
-    This is identical to revoke_member in behaviour; it is exposed under a
-    separate name so the Settings > Users UI can use the "Deactivate" label
-    while the existing /settings/members/ endpoint keeps the "Revoke" label.
-    Admin cannot deactivate themselves.
+    Delegates to revoke_member — the two operations are identical in behaviour.
+    Exposed under a separate name so the Settings > Users UI can use the
+    "Deactivate" label while the legacy /settings/members/ endpoint keeps the
+    "Revoke" label.
     """
-    if admin_profile.pk == target_profile.pk:
-        raise ValueError(_("You cannot deactivate your own account."))
-    if target_profile.tenant_id != admin_profile.tenant_id:
-        raise ValueError(_("That member does not belong to your tenant."))
-
-    target_profile.is_active = False
-    target_profile.tenant_revoked_at = timezone.now()
-    target_profile.deleted_by = admin_profile.user.pk
-    target_profile.save(update_fields=["is_active", "tenant_revoked_at", "deleted_by"])
+    revoke_member(admin_profile=admin_profile, target_profile=target_profile)
 
 
 __all__ = [
