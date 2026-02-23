@@ -148,6 +148,38 @@ class RegisterViewTest(TestCase):
         response = self.client.get(self.url)
         self.assertContains(response, 'name="lang_detect"')
 
+    def test_registration_with_dutch_browser_hint_does_not_force_dutch_cookie(self):
+        """
+        Regression: registering with lang_detect='nl-BE' (Belgian browser) must NOT
+        set the django_language cookie to 'nl-be'.  The browser hint is stored in
+        profile.language for informational purposes only; it must never override the
+        active UI language.  Language is switched exclusively via the navbar.
+        """
+        response = self.client.post(
+            self.url,
+            {
+                "email": "dutchbrowser@example.com",
+                "password": "StrongPass1!",
+                "lang_detect": "nl-BE",
+                "tz_detect": "Europe/Brussels",
+            },
+        )
+        # Should redirect to profile complete, not stay on register
+        self.assertRedirects(
+            response,
+            reverse("users:profile_complete"),
+            fetch_redirect_response=False,
+        )
+        # The language cookie must NOT have been set to Dutch
+        lang_cookie = response.cookies.get("django_language")
+        if lang_cookie:
+            self.assertNotEqual(
+                lang_cookie.value,
+                "nl-be",
+                "Registration with a Dutch browser hint must not force the UI "
+                "to Dutch.",
+            )
+
     def test_authenticated_user_redirected(self):
         user = _make_complete_user(email="auth@example.com")
         self.client.force_login(user)

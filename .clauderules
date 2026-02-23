@@ -839,6 +839,26 @@ context_processors`. Without it `{{ LANGUAGE_CODE }}` resolves to the static
 - Every new feature MUST include tests under `apps/<name>/tests/`
 - Run tests: `uv run python manage.py test`
 
+### ⚠️ CRITICAL — `except` clause syntax (Python 3 only)
+
+**ALWAYS use a tuple when catching multiple exceptions. NEVER use the comma form.**
+
+```python
+# ✅ CORRECT — tuple syntax
+except (ValueError, TypeError):
+except (User.DoesNotExist, ValueError, TypeError, OverflowError):
+
+# ❌ WRONG — Python 2 comma syntax — DO NOT USE, EVER
+except ValueError, TypeError:          # silently catches only ValueError
+except User.DoesNotExist, ValueError:  # silently catches only DoesNotExist
+```
+
+The comma form is **valid Python 3 syntax** but it does NOT catch both exceptions —
+it catches only the first and binds the second as the local exception variable.
+This is a silent logic bug that ruff does NOT catch automatically.
+Check every `except` clause you write before submitting.
+This rule has been violated multiple times in this codebase — treat it as a red flag.
+
 ### Django template formatting
 
 - **NEVER let Prettier (or any HTML formatter) touch `templates/`.**

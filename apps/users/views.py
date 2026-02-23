@@ -22,7 +22,6 @@ Views for the users app — Phase 3.
 import logging
 import uuid
 
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
@@ -32,7 +31,6 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
-from django.utils.translation import activate
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_POST
 
@@ -56,7 +54,6 @@ from apps.users.services import (
     deactivate_member,
     get_user_from_invite_link,
     invite_member,
-    locale_code_for_language,
     promote_to_admin,
     reengage_member,
     register_user,
@@ -67,32 +64,6 @@ from apps.users.services import (
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# I18N helpers
-# ---------------------------------------------------------------------------
-
-
-def _apply_language(locale: str, response):
-    """
-    Activate *locale* for the current thread and set the Django language cookie
-    on *response* so LocaleMiddleware picks it up on the next request.
-
-    Django 4+ removed LANGUAGE_SESSION_KEY; the cookie is now the sole
-    persistence mechanism used by get_language_from_request().
-    """
-    activate(locale)
-    response.set_cookie(
-        settings.LANGUAGE_COOKIE_NAME,
-        locale,
-        max_age=settings.LANGUAGE_COOKIE_AGE,
-        path=settings.LANGUAGE_COOKIE_PATH,
-        domain=settings.LANGUAGE_COOKIE_DOMAIN,
-        secure=settings.LANGUAGE_COOKIE_SECURE,
-        httponly=settings.LANGUAGE_COOKIE_HTTPONLY,
-        samesite=settings.LANGUAGE_COOKIE_SAMESITE,
-    )
-    return response
-
-
 # ---------------------------------------------------------------------------
 # Login
 # ---------------------------------------------------------------------------
@@ -166,11 +137,13 @@ def register_view(request):
                 request.session["lang_detect"] = lang_detect
             if country_detect:
                 request.session["country_detect"] = country_detect
-            # Set Django locale immediately from browser hint so the very next
-            # page (profile/complete) renders in the user's detected language.
-            lang_obj = user.profile.language  # pre-filled by register_user()
-            locale = locale_code_for_language(lang_obj)
-            return _apply_language(locale, redirect("users:profile_complete"))
+            # Do NOT call _apply_language here.  The browser hint is used only to
+            # pre-fill profile.language for informational purposes.  Forcing the
+            # locale cookie here would override whatever language the user already
+            # had active (e.g. English) and would make the entire onboarding flow
+            # render in the OS/browser locale — not what the user chose.
+            # Language switching is exclusively via the navbar set_language buttons.
+            return redirect("users:profile_complete")
     else:
         form = RegisterForm()
 

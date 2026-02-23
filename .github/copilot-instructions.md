@@ -72,7 +72,9 @@ Key rules summary (full detail in `.clauderules`):
 - **Theme toggle:** 3-state cycle `corporate → night → system`; `localStorage` key `theme` always stores the logical pref; for authenticated users the current theme (from `UserProfile.theme`) is injected server-side into the anti-flash script so a fresh browser/incognito gets the right theme on first paint; `POST /theme/set/` (`users:set_theme`) persists preference to DB for authenticated users
 - **Profile form fields:** `display_name`, `timezone`, `country`, `theme`, `marketing_emails` — language is switched via the navbar, **not** the profile form; `currency` is **not** on `UserProfile` (it belongs on `Tenant`, deferred to Phase 6)
 - **Onboarding step 1 fields:** `display_name` (optional), `timezone` (optional), `country` (optional) — no language field, no avatar upload
-- **`except (A, B):` tuple syntax always** — never `except A, B:` (that is Python 2 and silently catches only `A`)
+- **`except (A, B):` tuple syntax always — this rule has been violated multiple times, check every `except` you write.**
+  `except A, B:` is Python 2 syntax that is STILL VALID in Python 3 but silently catches only `A` and binds `B` as the exception variable — a silent logic bug that ruff does not catch.
+  ✅ `except (ValueError, TypeError):` — ❌ `except ValueError, TypeError:`
 - **After completing each phase** (tests passing, ruff clean): `git add -A && git commit -m "feat: Phase N — <summary>" && git push` — do not wait to be asked
 - **Always propose before changing.** Before any non-trivial edit (refactor, architecture change, multi-file change), present a summary of what will change and why, and wait for explicit approval. Trivial single-line fixes may be applied directly.
 - **English only in all documentation and instructions.** All code comments, docstrings, `.md` files, commit messages, and AI instruction files must be in English. The product UI is translated; the codebase is English-only.
